@@ -1,13 +1,284 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    @apply appearance-none bg-transparent border-0 outline-none;
+  }
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+@layer components {
+  .all-\[unset\] {
+    all: unset;
+  }
+}
+
+:root {
+  --cart: 0px -6px 18px 0px rgba(0, 0, 0, 0.25);
+  --display-100-demi-font-family: "Maison Neue", Helvetica;
+  --display-100-demi-font-size: 24px;
+  --display-100-demi-font-style: normal;
+  --display-100-demi-font-weight: 400;
+  --display-100-demi-letter-spacing: 0px;
+  --display-100-demi-line-height: 33.2400016784668px;
+  --display-100-font-family: "Maison Neue", Helvetica;
+  --display-100-font-size: 24px;
+  --display-100-font-style: normal;
+  --display-100-font-weight: 400;
+  --display-100-letter-spacing: 0px;
+  --display-100-line-height: 33.2400016784668px;
+  --display-100-strikethrough-font-family: "Maison Neue", Helvetica;
+  --display-100-strikethrough-font-size: 24px;
+  --display-100-strikethrough-font-style: normal;
+  --display-100-strikethrough-font-weight: 400;
+  --display-100-strikethrough-letter-spacing: 0px;
+  --display-100-strikethrough-line-height: 33.2400016784668px;
+  --display-200-font-family: "Maison Neue", Helvetica;
+  --display-200-font-size: 32px;
+  --display-200-font-style: normal;
+  --display-200-font-weight: 400;
+  --display-200-letter-spacing: 0px;
+  --display-200-line-height: 40px;
+  --display-300-font-family: "Maison Neue", Helvetica;
+  --display-300-font-size: 38px;
+  --display-300-font-style: normal;
+  --display-300-font-weight: 400;
+  --display-300-letter-spacing: 0.20000000298023224px;
+  --display-300-line-height: 53.20000076293945px;
+  --display-400-demi-font-family: "Maison Neue", Helvetica;
+  --display-400-demi-font-size: 40px;
+  --display-400-demi-font-style: normal;
+  --display-400-demi-font-weight: 400;
+  --display-400-demi-letter-spacing: 0px;
+  --display-400-demi-line-height: 48px;
+  --display-400-font-family: "Maison Neue", Helvetica;
+  --display-400-font-size: 40px;
+  --display-400-font-style: normal;
+  --display-400-font-weight: 400;
+  --display-400-letter-spacing: 0.20000000298023224px;
+  --display-400-line-height: 48px;
+  --display-500-font-family: "Maison Neue", Helvetica;
+  --display-500-font-size: 46px;
+  --display-500-font-style: normal;
+  --display-500-font-weight: 400;
+  --display-500-letter-spacing: 0.9200000166893005px;
+  --display-500-line-height: 55.20000076293945px;
+  --display-600-demi-font-family: "Maison Neue", Helvetica;
+  --display-600-demi-font-size: 54px;
+  --display-600-demi-font-style: normal;
+  --display-600-demi-font-weight: 400;
+  --display-600-demi-letter-spacing: 0px;
+  --display-600-demi-line-height: 72px;
+  --display-700-dmei-font-family: "Maison Neue", Helvetica;
+  --display-700-dmei-font-size: 64px;
+  --display-700-dmei-font-style: normal;
+  --display-700-dmei-font-weight: 400;
+  --display-700-dmei-letter-spacing: 0px;
+  --display-700-dmei-line-height: 72px;
+  --display-800-font-family: "Maison Neue", Helvetica;
+  --display-800-font-size: 70px;
+  --display-800-font-style: normal;
+  --display-800-font-weight: 400;
+  --display-800-letter-spacing: 0.20000000298023224px;
+  --display-800-line-height: 84px;
+  --display-900-demi-font-family: "Maison Neue", Helvetica;
+  --display-900-demi-font-size: 160px;
+  --display-900-demi-font-style: normal;
+  --display-900-demi-font-weight: 400;
+  --display-900-demi-letter-spacing: 0px;
+  --display-900-demi-line-height: 176px;
+  --header: 0px 10px 10px 0px rgba(0, 0, 0, 0.1);
+  --overlay: rgba(0, 0, 0, 0.6);
+  --red: rgba(208, 2, 27, 1);
+  --text-100-demi-font-family: "Maison Neue", Helvetica;
+  --text-100-demi-font-size: 10px;
+  --text-100-demi-font-style: normal;
+  --text-100-demi-font-weight: 400;
+  --text-100-demi-letter-spacing: 0.6000000238418579px;
+  --text-100-demi-line-height: 16px;
+  --text-100-font-family: "Maison Neue", Helvetica;
+  --text-100-font-size: 10px;
+  --text-100-font-style: normal;
+  --text-100-font-weight: 400;
+  --text-100-letter-spacing: 1px;
+  --text-100-line-height: 16px;
+  --text-200-demi-font-family: "Maison Neue", Helvetica;
+  --text-200-demi-font-size: 12px;
+  --text-200-demi-font-style: normal;
+  --text-200-demi-font-weight: 400;
+  --text-200-demi-letter-spacing: 0.20000000298023224px;
+  --text-200-demi-line-height: 16px;
+  --text-200-font-family: "Maison Neue", Helvetica;
+  --text-200-font-size: 12px;
+  --text-200-font-style: normal;
+  --text-200-font-weight: 400;
+  --text-200-letter-spacing: 0.20000000298023224px;
+  --text-200-line-height: 16px;
+  --text-200-strikethrough-font-family: "Maison Neue", Helvetica;
+  --text-200-strikethrough-font-size: 12px;
+  --text-200-strikethrough-font-style: normal;
+  --text-200-strikethrough-font-weight: 400;
+  --text-200-strikethrough-letter-spacing: 0.20000000298023224px;
+  --text-200-strikethrough-line-height: 16px;
+  --text-200-underline-font-family: "Maison Neue", Helvetica;
+  --text-200-underline-font-size: 12px;
+  --text-200-underline-font-style: normal;
+  --text-200-underline-font-weight: 400;
+  --text-200-underline-letter-spacing: 0.20000000298023224px;
+  --text-200-underline-line-height: 16px;
+  --text-300-demi-font-family: "Maison Neue", Helvetica;
+  --text-300-demi-font-size: 14px;
+  --text-300-demi-font-style: normal;
+  --text-300-demi-font-weight: 400;
+  --text-300-demi-letter-spacing: 0.41999998688697815px;
+  --text-300-demi-line-height: 21px;
+  --text-300-font-family: "Maison Neue", Helvetica;
+  --text-300-font-size: 14px;
+  --text-300-font-style: normal;
+  --text-300-font-weight: 400;
+  --text-300-letter-spacing: 1.399999976158142px;
+  --text-300-line-height: 16.799999237060547px;
+  --text-300-underline-font-family: "Maison Neue", Helvetica;
+  --text-300-underline-font-size: 14px;
+  --text-300-underline-font-style: normal;
+  --text-300-underline-font-weight: 400;
+  --text-300-underline-letter-spacing: 1.399999976158142px;
+  --text-300-underline-line-height: 20px;
+  --text-400-demi-font-family: "Maison Neue", Helvetica;
+  --text-400-demi-font-size: 16px;
+  --text-400-demi-font-style: normal;
+  --text-400-demi-font-weight: 400;
+  --text-400-demi-letter-spacing: 0.20000000298023224px;
+  --text-400-demi-line-height: 24px;
+  --text-400-font-family: "Maison Neue", Helvetica;
+  --text-400-font-size: 16px;
+  --text-400-font-style: normal;
+  --text-400-font-weight: 400;
+  --text-400-letter-spacing: 0.6399999856948853px;
+  --text-400-line-height: 24px;
+  --text-400-underline-font-family: "Maison Neue", Helvetica;
+  --text-400-underline-font-size: 16px;
+  --text-400-underline-font-style: normal;
+  --text-400-underline-font-weight: 400;
+  --text-400-underline-letter-spacing: 0.6399999856948853px;
+  --text-400-underline-line-height: 24px;
+  --timberwolf: rgba(230, 222, 216, 1);
+  --white: rgba(255, 255, 255, 1);
+  --x-100: rgba(245, 244, 244, 1);
+  --x-200: rgba(221, 219, 220, 1);
+  --x-300: rgba(115, 115, 115, 1);
+  --x-400: rgba(76, 76, 75, 1);
+  --x-500: rgba(38, 38, 38, 1);
+  --x-600: rgba(0, 0, 0, 1);
+}
+
+:root {
+  --animate-spin: spin 1s linear infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 1s var(--animation-delay, 0s) ease forwards;
+}
+
+.animate-fade-up {
+  animation: fade-up 1s var(--animation-delay, 0s) ease forwards;
+}
+
+.animate-marquee {
+  animation: marquee var(--duration) infinite linear;
+}
+
+.animate-marquee-vertical {
+  animation: marquee-vertical var(--duration) linear infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 8s infinite;
+}
+
+.animate-spin {
+  animation: var(--animate-spin);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes image-glow {
+  0% {
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.74, 0.25, 0.76, 1);
+  }
+
+  10% {
+    opacity: 0.7;
+    animation-timing-function: cubic-bezier(0.12, 0.01, 0.08, 0.99);
+  }
+
+  to {
+    opacity: 0.4;
+  }
+}
+
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes shimmer {
+  0%,
+  90%,
+  to {
+    background-position: calc(-100% - var(--shimmer-width)) 0;
+  }
+
+  30%,
+  60% {
+    background-position: calc(100% + var(--shimmer-width)) 0;
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translate(0);
+  }
+
+  to {
+    transform: translateX(calc(-100% - var(--gap)));
+  }
+}
+
+@keyframes marquee-vertical {
+  0% {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(calc(-100% - var(--gap)));
+  }
 }

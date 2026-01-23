@@ -1,0 +1,52 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ["./src/**/*.{html,js,ts,jsx,tsx}"],
+  theme: {
+    extend: {
+      colors: {
+        overlay: "var(--overlay)",
+        red: "var(--red)",
+        timberwolf: "var(--timberwolf)",
+        white: "var(--white)",
+        "x-100": "var(--x-100)",
+        "x-200": "var(--x-200)",
+        "x-300": "var(--x-300)",
+        "x-400": "var(--x-400)",
+        "x-500": "var(--x-500)",
+        "x-600": "var(--x-600)",
+      },
+      fontFamily: {
+        "display-100": "var(--display-100-font-family)",
+        "display-100-demi": "var(--display-100-demi-font-family)",
+        "display-100-strikethrough":
+          "var(--display-100-strikethrough-font-family)",
+        "display-200": "var(--display-200-font-family)",
+        "display-300": "var(--display-300-font-family)",
+        "display-400": "var(--display-400-font-family)",
+        "display-400-demi": "var(--display-400-demi-font-family)",
+        "display-500": "var(--display-500-font-family)",
+        "display-600-demi": "var(--display-600-demi-font-family)",
+        "display-700-dmei": "var(--display-700-dmei-font-family)",
+        "display-800": "var(--display-800-font-family)",
+        "display-900-demi": "var(--display-900-demi-font-family)",
+        "text-100": "var(--text-100-font-family)",
+        "text-100-demi": "var(--text-100-demi-font-family)",
+        "text-200": "var(--text-200-font-family)",
+        "text-200-demi": "var(--text-200-demi-font-family)",
+        "text-200-strikethrough": "var(--text-200-strikethrough-font-family)",
+        "text-200-underline": "var(--text-200-underline-font-family)",
+        "text-300": "var(--text-300-font-family)",
+        "text-300-demi": "var(--text-300-demi-font-family)",
+        "text-300-underline": "var(--text-300-underline-font-family)",
+        "text-400": "var(--text-400-font-family)",
+        "text-400-demi": "var(--text-400-demi-font-family)",
+        "text-400-underline": "var(--text-400-underline-font-family)",
+      },
+      boxShadow: {
+        cart: "var(--cart)",
+        header: "var(--header)",
+      },
+    },
+  },
+  plugins: [],
+};
