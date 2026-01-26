@@ -1,0 +1,10 @@
+
+> fashionhub365_fe@0.1.0 build
+> react-scripts build
+
+Creating an optimized production build...
+Failed to compile.
+
+Module not found: Error: Can't resolve './frame-1-2.png' in 'C:\Users\lapto\FashionHub365\fashionhub365_fe\src'
+
+
