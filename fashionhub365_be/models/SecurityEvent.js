@@ -1,27 +1,31 @@
 const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid');
 
 const securityEventSchema = new mongoose.Schema({
-    uuid: {
-        type: String,
-        default: uuidv4,
-        unique: true,
-        required: true
-    },
     user_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     },
     event_type: {
-        type: String
+        type: String,
+        required: true,
+        enum: [
+            'LOGIN_SUCCESS', 'LOGIN_FAILED', 'LOGIN_LOCKED',
+            'LOGOUT', 'REGISTER',
+            'REFRESH_REUSE', 'TOKEN_REVOKED',
+            'PASSWORD_CHANGE', 'PASSWORD_RESET_REQUEST', 'PASSWORD_RESET_SUCCESS',
+            'EMAIL_VERIFY_REQUEST', 'EMAIL_VERIFY_SUCCESS',
+        ],
     },
-    details: {
-        type: String
+    severity: {
+        type: String,
+        enum: ['INFO', 'WARNING', 'CRITICAL'],
+        default: 'INFO'
     },
-    occurred_at: {
-        type: Date,
-        default: Date.now
-    }
+    ip_address: String,
+    user_agent: String,
+    metadata: mongoose.Schema.Types.Mixed
+}, {
+    timestamps: { createdAt: 'created_at' }
 });
 
 module.exports = mongoose.model('SecurityEvent', securityEventSchema);

@@ -1,23 +1,47 @@
-require('dotenv').config();
 const express = require('express');
+const helmet = require('helmet');
+const cors = require('cors');
+const morgan = require('morgan');
+const config = require('./config/config');
 const connectDB = require('./config/db');
-const initDB = require('./script/initDB');
-
-// Connect to Database
-connectDB().then(() => {
-    initDB();
-});
+const routes = require('./routes');
+const errorHandler = require('./middleware/error');
+const ApiError = require('./utils/ApiError');
 
 const app = express();
 
-// Init Middleware
-app.use(express.json({ extended: false }));
+// Security headers
+app.use(helmet());
 
-app.get('/', (req, res) => res.send('API Running'));
+// CORS
+app.use(cors());
 
-// Define Routes (to be added)
-// app.use('/api/users', require('./routes/api/users'));
+// Logging
+if (config.env === 'development') {
+    app.use(morgan('dev'));
+}
 
-const PORT = process.env.PORT || 5000;
+// Body parser
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+// Health check
+app.get('/', (req, res) => res.send('FashionHub365 API Running'));
+
+// API routes
+app.use('/api/v1', routes);
+
+// 404 handler
+app.use((req, res, next) => {
+    next(new ApiError(404, 'Not found'));
+});
+
+// Global error handler
+app.use(errorHandler);
+
+// Connect DB & Start server
+connectDB().then(() => {
+    app.listen(config.port, () => {
+        console.log(`Server started on port ${config.port} in ${config.env} mode`);
+    });
+});
