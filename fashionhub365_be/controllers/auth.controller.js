@@ -2,7 +2,7 @@ const httpStatus = require('http-status');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const catchAsync = require('../utils/catchAsync');
-const { authService, userService, tokenService } = require('../services');
+const { authService, userService, tokenService, emailService } = require('../services'); // Added emailService
 const { Role, SecurityEvent, User, EmailVerificationToken, PasswordResetToken, Session } = require('../models');
 const ApiError = require('../utils/ApiError');
 
@@ -16,18 +16,19 @@ const sanitizeUser = (user) => {
 };
 
 const register = catchAsync(async (req, res) => {
-    const { email, password, username, full_name } = req.body;
+    let { email, password, username, full_name } = req.body;
+    email = email.toLowerCase(); // Ensure lowercase
 
     // Default role: Customer
     const userRole = await Role.findOne({ slug: 'customer' });
     const global_role_ids = userRole ? [userRole._id] : [];
 
-    // Register: status PENDING, no tokens returned
+    // Register: status PENDING (Requires email verification)
     const user = await userService.createUser({
         email,
         username,
-        password, // Pass plain password, let userService hash it (R2)
-        status: 'PENDING', // Default to PENDING
+        password,
+        status: 'PENDING',
         global_role_ids,
         profile: { full_name: full_name || '' },
     });
@@ -51,20 +52,11 @@ const register = catchAsync(async (req, res) => {
     });
 
     // Send verification email
-    // Send verification email
     try {
-        console.time('EmailDispatch');
-        console.log('[DEBUG] Calling emailService.sendVerificationEmail (Async) for:', email);
-        const emailService = require('../services/email.service');
-
-        // NO AWAIT here for performance
-        emailService.sendVerificationEmail(email, verifyToken)
-            .then(() => console.log('[DEBUG] Email sent successfully (Background)'))
-            .catch((err) => console.error('[ERROR] Failed to send verification email (Background):', err));
-
-        console.timeEnd('EmailDispatch');
+        console.log(`[AUTH] Sending verification email to ${user.email}`);
+        await emailService.sendVerificationEmail(user.email, verifyToken);
     } catch (error) {
-        console.error('[ERROR] Failed to initiate email sending:', error);
+        console.error('[AUTH ERROR] Failed to send verification email:', error);
     }
 
     res.status(httpStatus.CREATED).send({
@@ -78,7 +70,8 @@ const register = catchAsync(async (req, res) => {
 });
 
 const login = catchAsync(async (req, res) => {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
+    email = email.toLowerCase(); // Ensure lowercase
     const user = await authService.loginUserWithEmailAndPassword(email, password, req.ip, req.headers['user-agent']);
     const tokens = await tokenService.generateAuthTokens(user, req.headers['user-agent'], req.ip);
     res.send({

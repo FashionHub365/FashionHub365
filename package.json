@@ -1,0 +1,16 @@
+{
+  "name": "fashionhub365-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd fashionhub365_be && npm start",
+    "client": "cd fashionhub365_fe && npm start",
+    "dev": "concurrently \"npm run server:dev\" \"npm run client\"",
+    "server:dev": "cd fashionhub365_be && npm run dev",
+    "install-all": "npm install && cd fashionhub365_fe && npm install && cd ../fashionhub365_be && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

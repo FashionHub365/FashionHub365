@@ -37,7 +37,8 @@ const sendVerificationEmail = async (to, token) => {
     console.log('[DEBUG] Inside sendVerificationEmail for:', to);
     const subject = 'Email Verification';
     // Replace hardcoded localhost with config url if available
-    const verificationUrl = `http://localhost:${config.port}/verify-email?token=${token}`;
+    // Point to Frontend URL (Port 3000 assuming default React)
+    const verificationUrl = `http://localhost:3000/verify-email?token=${token}`;
     const text = `Dear user,
 To verify your email, click on this link: ${verificationUrl}
 If you did not create an account, then ignore this email.`;
