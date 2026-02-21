@@ -185,8 +185,30 @@ const resetPassword = catchAsync(async (req, res) => {
     const user = await User.findById(tokenDoc.user_id);
     if (!user) throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
 
+    const updateBody = { newPassword };
+    let autoVerified = false;
+
+    if (!user.is_email_verified) {
+        updateBody.is_email_verified = true;
+        if (user.status === 'PENDING') {
+            updateBody.status = 'ACTIVE';
+        }
+        autoVerified = true;
+    }
+
     // Use centralized update service (R2)
-    await userService.updateUserById(user._id, { newPassword });
+    await userService.updateUserById(user._id, updateBody);
+
+    if (autoVerified) {
+        await SecurityEvent.create({
+            user_id: user._id,
+            event_type: 'EMAIL_VERIFY_AUTO_RESET_PASS',
+            severity: 'INFO',
+            ip_address: req.ip,
+            user_agent: req.headers['user-agent'],
+            metadata: { reason: 'Verified via Password Reset' }
+        });
+    }
 
     tokenDoc.used_at = new Date();
     await tokenDoc.save();

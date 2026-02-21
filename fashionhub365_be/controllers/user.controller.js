@@ -2,6 +2,7 @@ const httpStatus = require('http-status');
 const pick = require('../utils/pick');
 const ApiError = require('../utils/ApiError');
 const catchAsync = require('../utils/catchAsync');
+const { userService, tokenService } = require('../services');
 const { userService } = require('../services');
 const { User, AuditLog } = require('../models');
 
@@ -76,10 +77,52 @@ const deleteUser = catchAsync(async (req, res) => {
     res.status(httpStatus.NO_CONTENT).send();
 });
 
+const updateMe = catchAsync(async (req, res) => {
+    // Không cho phép user tự update status
+    if (req.body.status) {
+        delete req.body.status;
+    }
+    const user = await userService.updateUserById(req.user._id, req.body);
+    res.send({ success: true, data: { user } });
+});
+
+const deleteMe = catchAsync(async (req, res) => {
+    const user = await User.findById(req.user._id).select('+password_hash');
+    if (!user) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+    }
+
+    // Yêu cầu xác nhận mật khẩu để vô hiệu hoá tài khoản
+    if (!(await user.matchPassword(req.body.password))) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Incorrect password');
+    }
+
+    await userService.updateUserById(user._id, { status: 'INACTIVE' });
+
+    // Revoke current session
+    const { Session } = require('../models');
+    await Session.updateMany({ user_id: user._id }, { is_revoked: true, revoked_at: new Date() });
+
+    await AuditLog.create({
+        user_id: req.user._id,
+        action: 'USER_SELF_DEACTIVATE',
+        target_collection: 'User',
+        target_id: user._id,
+        old_values: { status: user.status },
+        new_values: { status: 'INACTIVE' },
+        ip_address: req.ip,
+        user_agent: req.headers['user-agent'],
+    });
+
+    res.status(httpStatus.NO_CONTENT).send();
+});
+
 module.exports = {
     createUser,
     getUsers,
     getUser,
     updateUser,
     deleteUser,
+    updateMe,
+    deleteMe
 };

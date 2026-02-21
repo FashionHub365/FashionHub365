@@ -12,6 +12,11 @@ router
     .get(auth.auth(), auth.authorize(['USER.VIEW']), validate(userValidation.getUsers), userController.getUsers);
 
 router
+    .route('/me')
+    .patch(auth.auth(), validate(userValidation.updateMe), userController.updateMe)
+    .delete(auth.auth(), validate(userValidation.deleteMe), userController.deleteMe);
+
+router
     .route('/:userId')
     .get(auth.auth(), auth.authorize(['USER.VIEW']), validate(userValidation.getUser), userController.getUser)
     .patch(auth.auth(), auth.authorize(['USER.UPDATE']), validate(userValidation.updateUser), userController.updateUser)
