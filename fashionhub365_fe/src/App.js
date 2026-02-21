@@ -7,6 +7,10 @@ import { ProductDetail } from "./pages/ProductDetail";
 import { Stores } from "./pages/Stores";
 import { Listing } from "./pages/Listing";
 import "./App.css";
+import SellerOrders from "./pages/seller/SellerOrders";
+import SellerProducts from "./pages/seller/SellerProducts";
+import AdminCategories from "./pages/admin/AdminCategories";
+import SellerDashboard from "./pages/seller/SellerDashboard";
 
 function App() {
   return (
@@ -21,6 +25,14 @@ function App() {
           <Route path="/stores" element={<Stores />} />
           <Route path="/men" element={<Listing />} />
           <Route path="/listing" element={<Listing />} />
+          
+          {/* Seller Routes */}
+          <Route path="/seller/orders" element={<SellerOrders />} />
+          <Route path="/seller/products" element={<SellerProducts />} />
+          <Route path="/seller/dashboard" element={<SellerDashboard />} />
+
+          {/* Admin Routes */}
+          <Route path="/admin/categories" element={<AdminCategories />} />
         </Routes>
       </div>
     </Router>
