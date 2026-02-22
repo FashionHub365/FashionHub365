@@ -64,8 +64,8 @@ const authorize = (requiredPermissions = [], options = {}) => async (req, res, n
         const mode = options.mode || 'OR';
         const storeIdField = options.storeIdFrom || null;
         const storeId = storeIdField
-            ? (req.params[storeIdField] || req.body[storeIdField] || req.query[storeIdField])
-            : (req.params.storeId || req.body.storeId || req.query.storeId);
+            ? (req.params?.[storeIdField] || req.body?.[storeIdField] || req.query?.[storeIdField])
+            : (req.params?.storeId || req.body?.storeId || req.query?.storeId);
 
         let userPermissions = new Set();
 
