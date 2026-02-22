@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
+const config = require('./config');
 
 const connectDB = async () => {
     try {
-        const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/FashionHub365DB');
+        const conn = await mongoose.connect(config.mongoose.url);
         console.log(`MongoDB Connected: ${conn.connection.host}`);
         return conn;
     } catch (err) {

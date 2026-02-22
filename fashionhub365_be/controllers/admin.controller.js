@@ -1,9 +1,21 @@
+// ==========================================
+// 1. IMPORTS
+// ==========================================
+const httpStatus = require('http-status');
+const catchAsync = require('../utils/catchAsync');
+const ApiError = require('../utils/ApiError');
+
 const Order = require('../models/Order');
 const User = require('../models/User');
 const Product = require('../models/Product');
+const { Role, Permission } = require('../models');
+const { userService } = require('../services');
 
+// ==========================================
+// 2. SYSTEM STATS CONTROLLER
+// ==========================================
 // UC-50: Thống kê hệ thống mở rộng (doanh thu, đơn hàng, user, biểu đồ theo tháng)
-exports.getSystemStats = async (req, res) => {
+const getSystemStats = async (req, res) => {
     try {
         // 1. Tổng quan
         const [orderSummary, totalUsers, totalProducts] = await Promise.all([
@@ -81,4 +93,57 @@ exports.getSystemStats = async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
+};
+
+// ==========================================
+// 3. ROLES & PERMISSIONS CONTROLLERS
+// ==========================================
+// M1: Consistent response format
+const createRole = catchAsync(async (req, res) => {
+    if (await Role.findOne({ slug: req.body.slug })) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Role already exists');
+    }
+    const role = await Role.create(req.body);
+    res.status(httpStatus.CREATED).send({ success: true, data: { role } });
+});
+
+const getRoles = catchAsync(async (req, res) => {
+    const roles = await Role.find().populate('permission_ids');
+    res.send({ success: true, data: { roles } });
+});
+
+const createPermission = catchAsync(async (req, res) => {
+    if (await Permission.findOne({ code: req.body.code })) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Permission already exists');
+    }
+    const permission = await Permission.create(req.body);
+    res.status(httpStatus.CREATED).send({ success: true, data: { permission } });
+});
+
+const getPermissions = catchAsync(async (req, res) => {
+    const permissions = await Permission.find();
+    res.send({ success: true, data: { permissions } });
+});
+
+const assignGlobalRole = catchAsync(async (req, res) => {
+    const user = await userService.assignGlobalRole(req.params.userId, req.body.roleIds, req.user._id);
+    res.send({ success: true, data: { user } });
+});
+
+const assignStoreRole = catchAsync(async (req, res) => {
+    const member = await userService.assignStoreRole(req.params.userId, req.body.storeId, req.body.roleIds, req.user._id);
+    res.send({ success: true, data: { member } });
+});
+
+// ==========================================
+// 4. EXPORTS
+// ==========================================
+module.exports = {
+    getSystemStats,
+    createRole,
+    getRoles,
+    createPermission,
+    getPermissions,
+    assignGlobalRole,
+    assignStoreRole,
 };

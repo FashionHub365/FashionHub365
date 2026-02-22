@@ -1,64 +1,76 @@
 const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid');
+const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-  uuid: {
-    type: String,
-    default: uuidv4,
-    unique: true,
-    required: true
-  },
   username: {
-    type: String
+    type: String,
+    trim: true
   },
   email: {
     type: String,
+    required: true,
     unique: true,
-    required: true
+    trim: true,
+    lowercase: true
   },
   password_hash: {
     type: String,
-    required: true
+    required: true,
+    select: false // Do not return by default
+  },
+  is_email_verified: {
+    type: Boolean,
+    default: false
   },
   status: {
     type: String,
-    enum: ['ACTIVE', 'BANNED', 'PENDING'],
+    enum: ['ACTIVE', 'INACTIVE', 'BANNED', 'PENDING'],
     default: 'PENDING'
   },
-  role_ids: [{
+  global_role_ids: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Role'
   }],
   profile: {
-    fullName: String,
-    dob: Date,
+    full_name: String,
     phone: String,
+    avatar_url: String,
     gender: String,
-    avatarUrl: String,
+    dob: Date,
     bio: String
   },
-  addresses: [{
-    recipientName: String,
-    phone: String,
-    street: String,
-    city: String,
-    province: String,
-    country: String,
-    postalCode: String,
-    isDefault: {
-      type: Boolean,
-      default: false
-    },
-    created_at: {
-      type: Date,
-      default: Date.now
-    }
-  }]
+  last_login_at: Date,
+  login_attempts: {
+    type: Number,
+    default: 0
+  },
+  lock_until: Date,
+  password_changed_at: Date
 }, {
-  timestamps: {
-    createdAt: 'created_at',
-    updatedAt: 'updated_at'
-  }
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
+
+// Indexes
+
+userSchema.index({ username: 1 });
+
+// Methods
+userSchema.methods.matchPassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password_hash);
+};
+
+userSchema.methods.isPasswordChangedAfter = function (JWTTimestamp) {
+  if (this.password_changed_at) {
+    const changedTimestamp = parseInt(this.password_changed_at.getTime() / 1000, 10);
+    return JWTTimestamp < changedTimestamp;
+  }
+  return false;
+};
+
+// Statics
+userSchema.statics.isEmailTaken = async function (email, excludeUserId) {
+  const user = await this.findOne({ email, _id: { $ne: excludeUserId } });
+  return !!user;
+};
 
 module.exports = mongoose.model('User', userSchema);
