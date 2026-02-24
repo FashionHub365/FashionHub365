@@ -1,11 +1,13 @@
 const authService = require('./auth.service');
-const emailService = require('./email.service');
-const tokenService = require('./token.service');
 const userService = require('./user.service');
+const tokenService = require('./token.service');
+const emailService = require('./email.service');
+const cartService = require('./cart.service');
 
 module.exports = {
     authService,
-    emailService,
-    tokenService,
     userService,
+    tokenService,
+    emailService,
+    cartService,
 };
