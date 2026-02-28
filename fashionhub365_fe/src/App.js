@@ -12,6 +12,7 @@ import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { Profile } from "./pages/Profile";
 import VerifyEmail from "./pages/VerifyEmail"; // Correct default import
+import { Layout } from "./components/Layout";
 import "./App.css";
 import SellerOrders from "./pages/seller/SellerOrders";
 import SellerProducts from "./pages/seller/SellerProducts";
@@ -22,7 +23,7 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="App">
+        <Layout>
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Landing />} />
@@ -40,7 +41,7 @@ function App() {
             {/* Protected Routes */}
             <Route element={<PrivateRoute />}>
               <Route path="/profile" element={<Profile />} />
-              
+
               {/* Seller Routes */}
               <Route path="/seller/dashboard" element={<SellerDashboard />} />
               <Route path="/seller/orders" element={<SellerOrders />} />
@@ -51,7 +52,7 @@ function App() {
             </Route>
 
           </Routes>
-        </div>
+        </Layout>
       </AuthProvider>
     </Router>
   );
