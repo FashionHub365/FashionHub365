@@ -1,6 +1,4 @@
 import React from "react";
-import { FooterSection } from "../components/FooterSection";
-import { HeaderSection } from "../components/HeaderSection";
 import { IntroTextSection } from "../components/BlogPost/IntroTextSection";
 import { MainContentSection } from "../components/BlogPost/MainContentSection";
 import { ProductDescriptionSection } from "../components/BlogPost/ProductDescriptionSection";
@@ -17,9 +15,8 @@ export const BlogPost = () => {
 
   return (
     <div className="flex flex-col items-start relative bg-white w-full">
-      <HeaderSection />
       <IntroTextSection />
-      
+
       <section className="flex-col items-start gap-10 px-[60px] py-[115px] flex-[0_0_auto] flex relative self-stretch w-full">
         <div className="h-3.5 bg-x-600 relative self-stretch w-full" />
 
@@ -49,7 +46,7 @@ export const BlogPost = () => {
       </section>
 
       <MainContentSection />
-      
+
       <section className="items-center justify-center gap-2.5 px-[60px] py-[100px] flex-[0_0_auto] flex relative self-stretch w-full">
         <img
           className="relative w-[790px] h-[1054px] object-cover"
@@ -61,7 +58,6 @@ export const BlogPost = () => {
       <ProductDescriptionSection />
       <ProductImageSection />
       <RelatedProductsSection />
-      <FooterSection />
     </div>
   );
 };

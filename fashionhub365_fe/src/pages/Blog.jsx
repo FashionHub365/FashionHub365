@@ -1,5 +1,3 @@
-import { FooterSection } from "../components/FooterSection";
-import { HeaderSection } from "../components/HeaderSection";
 import { HeroSection } from "../components/BlogPage/HeroSection";
 import { LatestArticlesSection } from "../components/BlogPage/LatestArticlesSection";
 import { ProgressSection } from "../components/BlogPage/ProgressSection";
@@ -8,7 +6,6 @@ import { ProgressWrapperSection } from "../components/BlogPage/ProgressWrapperSe
 export const Blog = () => {
   return (
     <div className="flex flex-col items-start justify-end relative bg-white">
-      <HeaderSection />
       <HeroSection />
       <LatestArticlesSection />
       <img
@@ -18,7 +15,6 @@ export const Blog = () => {
       />
       <ProgressWrapperSection />
       <ProgressSection />
-      <FooterSection />
     </div>
   );
 };

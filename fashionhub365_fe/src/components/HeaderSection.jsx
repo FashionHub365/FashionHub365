@@ -240,13 +240,13 @@ export const HeaderSection = () => {
             </button>
           </div>
 
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 pointer-events-none">
+          <Link to="/" className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 block cursor-pointer z-10">
             <img
               className="w-full h-full object-contain"
               alt="FashionHub Logo"
               src="/textures/landingpage/vector-3.png"
             />
-          </div>
+          </Link>
         </nav>
 
         {isSearchOpen && <SearchOverlay onClose={() => setIsSearchOpen(false)} />}
