@@ -8,6 +8,7 @@ import { BlogPost } from "./pages/BlogPost";
 import { ProductDetail } from "./pages/ProductDetail";
 import { Stores } from "./pages/Stores";
 import { Listing } from "./pages/Listing";
+import { NotFound } from "./pages/NotFound";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { Profile } from "./pages/Profile";
@@ -50,6 +51,9 @@ function App() {
               {/* Admin Routes */}
               <Route path="/admin/categories" element={<AdminCategories />} />
             </Route>
+
+            {/* 404 Not Found */}
+            <Route path="*" element={<NotFound />} />
 
           </Routes>
         </Layout>
