@@ -6,6 +6,7 @@ import { BlogPost } from "./pages/BlogPost";
 import { ProductDetail } from "./pages/ProductDetail";
 import { Stores } from "./pages/Stores";
 import { Listing } from "./pages/Listing";
+import { NotFound } from "./pages/NotFound";
 import "./App.css";
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
           <Route path="/stores" element={<Stores />} />
           <Route path="/men" element={<Listing />} />
           <Route path="/listing" element={<Listing />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
     </Router>
