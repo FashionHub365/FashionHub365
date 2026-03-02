@@ -51,6 +51,9 @@ const SearchHistory = require('./SearchHistory');
 const Recommendation = require('./Recommendation');
 const SearchSuggestion = require('./SearchSuggestion');
 const File = require('./File');
+const StoreMember = require('./StoreMember');
+const EmailVerificationToken = require('./EmailVerificationToken');
+const PasswordResetToken = require('./PasswordResetToken');
 
 module.exports = {
     User,
@@ -105,5 +108,8 @@ module.exports = {
     SearchHistory,
     Recommendation,
     SearchSuggestion,
-    File
+    File,
+    StoreMember,
+    EmailVerificationToken,
+    PasswordResetToken
 };

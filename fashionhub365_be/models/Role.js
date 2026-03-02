@@ -1,28 +1,46 @@
 const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid');
 
 const roleSchema = new mongoose.Schema({
-    uuid: {
-        type: String,
-        default: uuidv4,
-        unique: true,
-        required: true
-    },
     name: {
         type: String,
+        required: true,
         unique: true,
-        required: true
+        trim: true
+    },
+    slug: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true
     },
     description: {
-        type: String
+        type: String,
+        trim: true
     },
-    permission_codes: [{
-        type: String
+    scope: {
+        type: String,
+        enum: ['GLOBAL', 'STORE'],
+        default: 'GLOBAL',
+        required: true
+    },
+    permission_ids: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Permission'
     }],
-    created_at: {
-        type: Date,
-        default: Date.now
+    is_system: {
+        type: Boolean,
+        default: false // System roles cannot be deleted
     }
+}, {
+    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
+});
+
+roleSchema.pre('save', function (next) {
+    if (this.slug) {
+        this.slug = this.slug.trim().toLowerCase();
+    }
+    next();
 });
 
 module.exports = mongoose.model('Role', roleSchema);

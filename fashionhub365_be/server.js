@@ -1,53 +1,84 @@
-// require('dotenv').config();
-// const express = require('express');
-// const connectDB = require('./config/db');
-// const initDB = require('./script/initDB');
+require("dotenv").config(); // Load biến môi trường đầu tiên
 
-// // Connect to Database
-// connectDB().then(() => {
-//     initDB();
-// });
+// ==========================================
+// 1. IMPORTS
+// ==========================================
+const express = require('express');
+const helmet = require('helmet');
+const cors = require('cors');
+const morgan = require('morgan');
 
-// const app = express();
+const config = require('./config/config');
+const connectDB = require('./config/db');
+const initDB = require('./script/initDB');
+const routes = require('./routes'); // Centralized routes của team
+const errorHandler = require('./middleware/error');
+const ApiError = require('./utils/ApiError');
 
-// // Init Middleware
-// app.use(express.json({ extended: false }));
-
-// app.get('/', (req, res) => res.send('API Running'));
-
-// // Define Routes (to be added)
-// // app.use('/api/users', require('./routes/api/users'));
-
-// const PORT = process.env.PORT || 5000;
-
-// app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
-
-require("dotenv").config();
-const express = require("express");
-const connectDB = require("./config/db");
-const initDB = require("./script/initDB");
-
-// Connect to Database
-connectDB().then(() => {
-  initDB();
-});
-
+// Khởi tạo app
 const app = express();
 
-// Init Middleware
-app.use(express.json({ extended: false }));
+// ==========================================
+// 2. MIDDLEWARES (Xử lý request trước khi vào Route)
+// ==========================================
+// Cấu hình bảo mật HTTP headers
+app.use(helmet());
 
-app.get("/", (req, res) => res.send("API Running"));
+// Cấu hình CORS cho frontend
+app.use(cors({
+  origin: "http://localhost:3000",
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  credentials: true,
+}));
 
-// Define Routes
-// --- Các route cũ của dự án (nếu có) ---
-// app.use('/api/users', require('./routes/api/users'));
+// Ghi log request (Chỉ chạy ở môi trường development)
+const env = config?.env || process.env.NODE_ENV || 'development';
+if (env === 'development') {
+    app.use(morgan('dev'));
+}
 
-// --- Các route mới cho Thành viên 4 (Quy trình Bán hàng & Thanh toán) ---
-app.use("/api/orders", require("./routes/order.routes")); // UC-29, 30, 32, 33, 35
-app.use("/api/payments", require("./routes/payment.routes")); // UC-36, 37, 38
-app.use("/api/admin", require("./routes/admin.routes")); // UC-50
+// Body parsers (Đọc dữ liệu từ body của request)
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-const PORT = process.env.PORT || 5000;
+// ==========================================
+// 3. ROUTES (Định tuyến API)
+// ==========================================
+// Health check
+app.get('/', (req, res) => res.send('FashionHub365 API Running'));
 
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+// Các route tổng của dự án
+app.use('/api/v1', routes);
+
+// ==========================================
+// 4. ERROR HANDLING (BẮT BUỘC PHẢI ĐỂ CUỐI CÙNG)
+// ==========================================
+// Bắt lỗi 404 (Không tìm thấy route)
+app.use((req, res, next) => {
+    next(new ApiError(404, 'Not found'));
+});
+
+// Hàm xử lý lỗi tập trung toàn cục
+app.use(errorHandler);
+
+// ==========================================
+// 5. KẾT NỐI DATABASE & KHỞI ĐỘNG SERVER
+// ==========================================
+const PORT = config?.port || process.env.PORT || 5000;
+
+connectDB()
+    .then(() => {
+        // Chạy script khởi tạo DB (nếu có)
+        if (typeof initDB === 'function') {
+            initDB();
+        }
+
+        // Chỉ bật server sau khi đã kết nối DB thành công
+        app.listen(PORT, () => {
+            console.log(`Server started on port ${PORT} in ${env} mode`);
+        });
+    })
+    .catch((err) => {
+        console.error("Failed to connect to database:", err);
+        process.exit(1); // Dừng app nếu không kết nối được DB
+    });

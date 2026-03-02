@@ -1,37 +1,23 @@
 const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid');
 
 const auditLogSchema = new mongoose.Schema({
-    uuid: {
-        type: String,
-        default: uuidv4,
-        unique: true,
-        required: true
-    },
-    actor_user_id: {
+    user_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
     },
-    entity: {
-        type: String
-    },
-    entity_id: {
-        type: String
-    },
     action: {
-        type: String
+        type: String,
+        required: true
     },
-    changes: {
-        type: String
-    },
-    ip_address: {
-        type: String
-    },
-    created_at: {
-        type: Date,
-        default: Date.now
-    }
+    target_collection: String,
+    target_id: mongoose.Schema.Types.ObjectId,
+    old_values: mongoose.Schema.Types.Mixed,
+    new_values: mongoose.Schema.Types.Mixed,
+    ip_address: String,
+    user_agent: String
+}, {
+    timestamps: { createdAt: 'created_at' }
 });
 
 module.exports = mongoose.model('AuditLog', auditLogSchema);
