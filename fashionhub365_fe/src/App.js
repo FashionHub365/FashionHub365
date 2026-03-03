@@ -8,10 +8,12 @@ import { BlogPost } from "./pages/BlogPost";
 import { ProductDetail } from "./pages/ProductDetail";
 import { Stores } from "./pages/Stores";
 import { Listing } from "./pages/Listing";
+import { NotFound } from "./pages/NotFound";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { Profile } from "./pages/Profile";
 import VerifyEmail from "./pages/VerifyEmail"; // Correct default import
+import { Layout } from "./components/Layout";
 import "./App.css";
 import SellerOrders from "./pages/seller/SellerOrders";
 import SellerProducts from "./pages/seller/SellerProducts";
@@ -22,7 +24,7 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="App">
+        <Layout>
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Landing />} />
@@ -51,8 +53,11 @@ function App() {
               <Route path="/admin/categories" element={<AdminCategories />} />
             </Route>
 
+            {/* 404 Not Found */}
+            <Route path="*" element={<NotFound />} />
+
           </Routes>
-        </div>
+        </Layout>
       </AuthProvider>
     </Router>
   );

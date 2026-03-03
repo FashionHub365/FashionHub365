@@ -3,13 +3,10 @@ import { EthicalApproachSection } from "../components/AboutPage/EthicalApproachS
 import { ProductShowcaseSection } from "../components/AboutPage/ProductShowcaseSection";
 import { ProductionProcessSection } from "../components/AboutPage/ProductionProcessSection";
 import { TransparencyInfoSection } from "../components/AboutPage/TransparencyInfoSection";
-import { HeaderSection } from "../components/HeaderSection";
-import { FooterSection } from "../components/FooterSection";
 
 export const About = () => {
   return (
     <div className="flex flex-col items-center relative bg-white w-full">
-      <HeaderSection />
       <BrandStorySection />
       <section className="items-center justify-center gap-2.5 px-[258px] py-[76px] flex-[0_0_auto] flex relative self-stretch w-full">
         <p className="relative flex-1 mt-[-1.00px] font-display-300 font-[number:var(--display-300-font-weight)] text-x-600 text-[length:var(--display-300-font-size)] text-center tracking-[var(--display-300-letter-spacing)] leading-[var(--display-300-line-height)] [font-style:var(--display-300-font-style)]">
@@ -38,7 +35,6 @@ export const About = () => {
 
       <ProductShowcaseSection />
       <TransparencyInfoSection />
-      <FooterSection />
     </div>
   );
 };

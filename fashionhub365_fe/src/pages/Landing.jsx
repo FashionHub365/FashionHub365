@@ -2,8 +2,6 @@ import { CategoryNavigationSection } from "../components/LandingPage/CategoryNav
 import { CustomerReviewsSection } from "../components/LandingPage/CustomerReviewsSection";
 import { FeaturedCollectionsSection } from "../components/LandingPage/FeaturedCollectionsSection";
 import { FeaturedProductsSection } from "../components/LandingPage/FeaturedProductsSection";
-import { FooterSection } from "../components/FooterSection";
-import { HeaderSection } from "../components/HeaderSection";
 import { HeroBannerSection } from "../components/LandingPage/HeroBannerSection";
 import { MissionStatementSection } from "../components/LandingPage/MissionStatementSection";
 import { NewArrivalsSection } from "../components/LandingPage/NewArrivalsSection";
@@ -13,7 +11,6 @@ import { PromotionalBannersSection } from "../components/LandingPage/Promotional
 export const Landing = () => {
   return (
     <main className="flex flex-col items-start relative bg-white">
-      <HeaderSection />
       <NewArrivalsSection />
       <CustomerReviewsSection />
       <FeaturedCollectionsSection />
@@ -23,7 +20,6 @@ export const Landing = () => {
       <HeroBannerSection />
       <CategoryNavigationSection />
       <FeaturedProductsSection />
-      <FooterSection />
     </main>
   );
 };
