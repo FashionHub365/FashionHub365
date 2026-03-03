@@ -1,0 +1,98 @@
+{
+  "stores": [
+    {
+      "_id": "69a5a557709d97df28140044",
+      "owner_user_id": "69a5a556709d97df2813ffff",
+      "name": "Fashion Central",
+      "slug": "fashion-central",
+      "description": "Your one-stop shop for trendy fashion",
+      "email": "contact@fashioncentral.com",
+      "phone": "0912345678",
+      "status": "active",
+      "is_draft": false,
+      "level": {
+        "value": "premium"
+      },
+      "information": {
+        "emails": []
+      },
+      "addresses": [],
+      "bank_accounts": [],
+      "rating_summary": {
+        "avgStars": 0,
+        "totalRatings": 0
+      },
+      "uuid": "9cb1aa2f-9eb2-416f-bd5e-dbc0ac587484",
+      "documents": [],
+      "__v": 0,
+      "created_at": "2026-03-02T14:57:27.949Z",
+      "updated_at": "2026-03-02T14:57:27.949Z"
+    },
+    {
+      "_id": "69a5a557709d97df28140045",
+      "owner_user_id": "69a5a556709d97df28140000",
+      "name": "Street Style Hub",
+      "slug": "street-style-hub",
+      "description": "Urban streetwear and casual fashion",
+      "email": "hello@streetstylehub.com",
+      "phone": "0923456789",
+      "status": "active",
+      "is_draft": false,
+      "level": {
+        "value": "trusted"
+      },
+      "information": {
+        "emails": []
+      },
+      "addresses": [],
+      "bank_accounts": [],
+      "rating_summary": {
+        "avgStars": 0,
+        "totalRatings": 0
+      },
+      "uuid": "de912006-db48-4874-8e69-0d7a39703615",
+      "documents": [],
+      "__v": 0,
+      "created_at": "2026-03-02T14:57:27.950Z",
+      "updated_at": "2026-03-02T14:57:27.950Z"
+    }
+  ],
+  "roles": [
+    {
+      "_id": "69a5a556898c359ca2758a99",
+      "slug": "admin",
+      "__v": 0,
+      "created_at": "2026-03-02T14:57:26.356Z",
+      "description": "System administrator with full access",
+      "is_system": true,
+      "name": "Admin",
+      "permission_ids": [],
+      "scope": "GLOBAL",
+      "updated_at": "2026-03-02T14:57:26.356Z"
+    },
+    {
+      "_id": "69a5a556898c359ca2758a9a",
+      "slug": "store-owner",
+      "__v": 0,
+      "created_at": "2026-03-02T14:57:26.826Z",
+      "description": "Store owner who can manage their store and products",
+      "is_system": true,
+      "name": "StoreOwner",
+      "permission_ids": [],
+      "scope": "STORE",
+      "updated_at": "2026-03-02T14:57:26.826Z"
+    },
+    {
+      "_id": "69a5a556898c359ca2758a9b",
+      "slug": "customer",
+      "__v": 0,
+      "created_at": "2026-03-02T14:57:26.906Z",
+      "description": "Regular customer who can browse and purchase",
+      "is_system": true,
+      "name": "Customer",
+      "permission_ids": [],
+      "scope": "GLOBAL",
+      "updated_at": "2026-03-02T14:57:26.906Z"
+    }
+  ]
+}

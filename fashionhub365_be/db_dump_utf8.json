@@ -1,0 +1,68 @@
+{
+  "members": [],
+  "users": [
+    {
+      "_id": "69a5a556709d97df2813fffe",
+      "email": "admin@fashionhub365.com",
+      "global_role_ids": [
+        "69a5a556898c359ca2758a99"
+      ]
+    },
+    {
+      "_id": "69a5a556709d97df2813ffff",
+      "email": "seller1@example.com",
+      "global_role_ids": [
+        "69a5a556898c359ca2758a9a"
+      ]
+    },
+    {
+      "_id": "69a5a556709d97df28140000",
+      "email": "seller2@example.com",
+      "global_role_ids": [
+        "69a5a556898c359ca2758a9a"
+      ]
+    },
+    {
+      "_id": "69a5a556709d97df28140001",
+      "email": "customer1@example.com",
+      "global_role_ids": [
+        "69a5a556898c359ca2758a9b"
+      ]
+    },
+    {
+      "_id": "69a5a556709d97df28140002",
+      "email": "customer2@example.com",
+      "global_role_ids": [
+        "69a5a556898c359ca2758a9b"
+      ]
+    },
+    {
+      "_id": "69a5cf3e6ee828e5ac8aa412",
+      "email": "hoahoahoag@gmail.com",
+      "global_role_ids": [
+        "69a5a556898c359ca2758a9b"
+      ]
+    },
+    {
+      "_id": "69a5d0216ee828e5ac8aa4f5",
+      "email": "cunhan465@gmail.com",
+      "global_role_ids": [
+        "69a5a556898c359ca2758a9b"
+      ]
+    },
+    {
+      "_id": "69a62f4ae47d9f55f49a2791",
+      "email": "levuminhhoang11112004@gmail.com",
+      "global_role_ids": [
+        "69a5a556898c359ca2758a9a"
+      ]
+    },
+    {
+      "_id": "69a6305ba28e0cfce8b81ef6",
+      "email": "tiendat562004@gmail.com",
+      "global_role_ids": [
+        "69a5a556898c359ca2758a9b"
+      ]
+    }
+  ]
+}

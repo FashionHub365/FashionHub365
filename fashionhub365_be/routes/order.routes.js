@@ -1,8 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const orderController = require("../controllers/order.controller");
-// Giả sử bạn đã có middleware xác thực (auth)
-// const auth = require('../middleware/auth');
+const auth = require("../middleware/auth");
+
+// Lấy thống kê cho Seller Dashboard (UC-50)
+router.get("/stats", auth.auth(), orderController.getStoreStats);
 
 // Lấy lịch sử đơn hàng của Seller (UC-33 & 35)
 router.get("/seller/history", orderController.getSellerOrderHistory);
