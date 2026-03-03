@@ -43,6 +43,7 @@ export const ProductDetail = () => {
   return (
     <div className="flex flex-col items-start relative bg-white w-full">
 
+
       {/* Loading state */}
       {loading && (
         <div className="flex items-center justify-center w-full py-40">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import wishlistApi from '../apis/wishlistApi';
@@ -10,26 +10,20 @@ export const Profile = () => {
     const [activeTab, setActiveTab] = useState('profile');
     const [wishlist, setWishlist] = useState([]);
     const [loadingWishlist, setLoadingWishlist] = useState(false);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalItems, setTotalItems] = useState(0);
-    const itemsPerPage = 6;
 
     // ── FETCH WISHLIST ───────────────────────────────────────────
-    useEffect(() => {
+    React.useEffect(() => {
         if (activeTab === 'wishlist' && user) {
-            fetchWishlist(currentPage);
+            fetchWishlist();
         }
-    }, [activeTab, user, currentPage]);
+    }, [activeTab, user]);
 
-    const fetchWishlist = async (page) => {
+    const fetchWishlist = async () => {
         setLoadingWishlist(true);
         try {
-            const response = await wishlistApi.getWishlist(page, itemsPerPage);
+            const response = await wishlistApi.getWishlist();
             if (response.success) {
                 setWishlist(response.data.items || []);
-                setTotalPages(response.data.pagination.totalPages);
-                setTotalItems(response.data.pagination.totalItems);
             }
         } catch (err) {
             console.error("Error fetching wishlist:", err);
@@ -42,8 +36,6 @@ export const Profile = () => {
         try {
             await wishlistApi.removeFromWishlist(productId);
             setWishlist(prev => prev.filter(item => (item.productId._id || item.productId) !== productId));
-            // Re-fetch to update pagination totals
-            fetchWishlist(currentPage);
         } catch (err) {
             console.error("Error removing from wishlist:", err);
         }
@@ -198,7 +190,7 @@ export const Profile = () => {
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
                                     {[
                                         { label: 'Total Orders', value: '0', icon: '🛍️', color: 'bg-blue-50 text-blue-600' },
-                                        { label: 'Wishlist Items', value: totalItems.toString(), icon: '💖', color: 'bg-pink-50 text-pink-600' },
+                                        { label: 'Wishlist Items', value: wishlist.length.toString(), icon: '💖', color: 'bg-pink-50 text-pink-600' },
                                         { label: 'Reward Points', value: '100', icon: '⭐', color: 'bg-yellow-50 text-yellow-600' },
                                     ].map((stat, i) => (
                                         <div key={i} className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex items-center space-x-4">
@@ -282,83 +274,49 @@ export const Profile = () => {
                                         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-pink-500"></div>
                                     </div>
                                 ) : wishlist.length > 0 ? (
-                                    <>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {wishlist.map((item) => {
-                                                const p = item.productId;
-                                                if (!p) return null;
-                                                return (
-                                                    <div key={p._id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                                                        <div className="relative aspect-[3/4] overflow-hidden">
-                                                            <img
-                                                                src={p.media?.[0]?.url || 'https://via.placeholder.com/300x400'}
-                                                                alt={p.name}
-                                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                                            />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {wishlist.map((item) => {
+                                            const p = item.productId;
+                                            if (!p) return null;
+                                            return (
+                                                <div key={p._id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                                                    <div className="relative aspect-[3/4] overflow-hidden">
+                                                        <img
+                                                            src={p.media?.[0]?.url || 'https://via.placeholder.com/300x400'}
+                                                            alt={p.name}
+                                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                        />
+                                                        <button
+                                                            onClick={() => handleRemoveFromWishlist(p._id)}
+                                                            className="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-md rounded-full text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-lg"
+                                                            title="Remove from wishlist"
+                                                        >
+                                                            <Trash className="w-5 h-5" />
+                                                        </button>
+                                                    </div>
+                                                    <div className="p-4">
+                                                        <h4 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-1">{p.name}</h4>
+                                                        <p className="text-gray-500 text-sm mt-1 line-clamp-2">{p.description}</p>
+                                                        <div className="mt-4 flex items-center justify-between">
+                                                            <span className="text-lg font-bold text-gray-900">{p.base_price?.toLocaleString('vi-VN')}₫</span>
                                                             <button
-                                                                onClick={() => handleRemoveFromWishlist(p._id)}
-                                                                className="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-md rounded-full text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-lg"
-                                                                title="Remove from wishlist"
+                                                                onClick={() => navigate(`/product/${p._id}`)}
+                                                                className="text-xs font-bold uppercase tracking-widest text-indigo-600 hover:text-indigo-800"
                                                             >
-                                                                <Trash className="w-5 h-5" />
+                                                                View Product
                                                             </button>
                                                         </div>
-                                                        <div className="p-4">
-                                                            <h4 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-1">{p.name}</h4>
-                                                            <p className="text-gray-500 text-sm mt-1 line-clamp-2">{p.description}</p>
-                                                            <div className="mt-4 flex items-center justify-between">
-                                                                <span className="text-lg font-bold text-gray-900">{p.base_price?.toLocaleString('vi-VN')}₫</span>
-                                                                <button
-                                                                    onClick={() => navigate(`/product/${p._id}`)}
-                                                                    className="text-xs font-bold uppercase tracking-widest text-indigo-600 hover:text-indigo-800"
-                                                                >
-                                                                    View Product
-                                                                </button>
-                                                            </div>
-                                                        </div>
                                                     </div>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {/* Pagination Controls */}
-                                        {totalPages > 1 && (
-                                            <div className="mt-12 flex justify-center items-center space-x-2">
-                                                <button
-                                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                                                    disabled={currentPage === 1}
-                                                    className="px-4 py-2 border rounded-xl disabled:opacity-50 hover:bg-gray-50 transition-colors font-medium text-sm"
-                                                >
-                                                    Previous
-                                                </button>
-                                                {[...Array(totalPages)].map((_, i) => (
-                                                    <button
-                                                        key={i + 1}
-                                                        onClick={() => setCurrentPage(i + 1)}
-                                                        className={`w-10 h-10 rounded-xl font-bold text-sm transition-all ${currentPage === i + 1
-                                                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-                                                            : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-600'
-                                                            }`}
-                                                    >
-                                                        {i + 1}
-                                                    </button>
-                                                ))}
-                                                <button
-                                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                                                    disabled={currentPage === totalPages}
-                                                    className="px-4 py-2 border rounded-xl disabled:opacity-50 hover:bg-gray-50 transition-colors font-medium text-sm"
-                                                >
-                                                    Next
-                                                </button>
-                                            </div>
-                                        )}
-                                    </>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 ) : (
                                     <div className="text-center py-24">
                                         <div className="relative mx-auto w-32 h-32 mb-6 group cursor-pointer">
                                             <div className="absolute inset-0 bg-pink-50 rounded-full transform group-hover:scale-110 transition-transform duration-300"></div>
                                             <div className="relative flex items-center justify-center h-full w-full">
-                                                <svg className="w-12 h-12 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                                <svg className="w-12 h-12 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 0 0 0 6.364L12 20.364l7.682-7.682a4.5 4.5 0 0 0-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 0 0-6.364 0z" /></svg>
                                             </div>
                                         </div>
                                         <h3 className="text-2xl font-bold text-gray-900">Your Wishlist is Empty</h3>
