@@ -1,6 +1,10 @@
 import React from "react";
 
-export const ListingHeader = () => {
+/**
+ * ListingHeader - Hiển thị breadcrumb, tiêu đề và tổng số sản phẩm
+ * Nhận total từ ProductGridSection để hiển thị số SP thực từ API
+ */
+export const ListingHeader = ({ total = 0 }) => {
   return (
     <header className="flex flex-col items-start pt-4 pb-2 px-0 relative self-stretch w-full flex-[0_0_auto]">
       <nav
@@ -13,7 +17,7 @@ export const ListingHeader = () => {
         Men&apos;s Clothing &amp; Apparel - New Arrivals
       </h1>
       <div className="relative self-stretch font-text-400 font-[number:var(--text-400-font-weight)] text-x-600 text-[length:var(--text-400-font-size)] tracking-[var(--text-400-letter-spacing)] leading-[var(--text-400-line-height)] [font-style:var(--text-400-font-style)]">
-        Featured
+        Featured &mdash; {total} sản phẩm
       </div>
     </header>
   );
