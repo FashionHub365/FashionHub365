@@ -14,6 +14,7 @@ const getPublicProducts = async (query) => {
         color,
         size,
         search,
+        storeId,
         sort = 'newest',
         page = 1,
         limit = 9,
@@ -21,6 +22,11 @@ const getPublicProducts = async (query) => {
 
     // 1. Build filter
     const filter = { status: 'active' };
+
+    // Filter theo storeId
+    if (storeId) {
+        filter.store_id = storeId;
+    }
 
     // Filter theo category slug hoặc id
     if (category) {
@@ -68,6 +74,7 @@ const getPublicProducts = async (query) => {
         Product.find(filter)
             .populate('primary_category_id', 'name slug')
             .populate('brand_id', 'name')
+            .populate('store_id', 'name slug')
             .sort(sortOption)
             .skip(skip)
             .limit(parseInt(limit)),
@@ -103,6 +110,7 @@ const getPublicProductById = async (productId) => {
     const product = await Product.findOne({ _id: productId, status: 'active' })
         .populate('primary_category_id', 'name slug')
         .populate('brand_id', 'name')
+        .populate('store_id', 'name slug description rating_summary')
         .populate('tag_ids', 'name');
 
     if (!product) {
@@ -126,6 +134,7 @@ const getRecommendedProducts = async (categoryId, excludeId, limit = 4) => {
     })
         .populate('primary_category_id', 'name slug')
         .populate('brand_id', 'name')
+        .populate('store_id', 'name slug')
         .limit(parseInt(limit))
         .sort({ created_at: -1 });
 
