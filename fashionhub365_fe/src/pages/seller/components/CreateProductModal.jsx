@@ -1,22 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { getCategories, uploadImage } from '../../../services/productService';
 
-const STATUS_LABELS = {
-    draft: { label: 'Nháp', className: 'bg-gray-100 text-gray-700' },
-    active: { label: 'Đang bán', className: 'bg-green-100 text-green-700' },
-    inactive: { label: 'Hết hàng', className: 'bg-red-100 text-red-700' },
-    blocked: { label: 'Bị khóa', className: 'bg-orange-100 text-orange-700' },
-};
-
-const EditProductModal = ({ product, onClose, onSave }) => {
+const CreateProductModal = ({ onClose, onSave }) => {
     const [form, setForm] = useState({
-        name: product.name || '',
-        short_description: product.short_description || '',
-        description: product.description || '',
-        base_price: product.base_price ? product.base_price / 1000 : '', // Divide by 1000 for display
-        status: product.status || 'draft',
-        primary_category_id: product.primary_category_id || '',
-        media: product.media || [],
+        name: '',
+        short_description: '',
+        description: '',
+        base_price: '',
+        status: 'active',
+        primary_category_id: '',
+        media: [],
+        variants: []
     });
     const [categories, setCategories] = useState([]);
     const [uploading, setUploading] = useState(false);
@@ -59,7 +53,7 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                 return {
                     url: res.url,
                     publicId: res.publicId,
-                    isPrimary: false
+                    isPrimary: false // Will set primary later if needed
                 };
             });
 
@@ -74,7 +68,8 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                 return { ...prev, media: newMedia };
             });
         } catch (err) {
-            setError('Lỗi khi tải một hoặc nhiều ảnh lên.');
+            setError('Lỗi khi tải một hoặc nhiều ảnh lên. Thử lại sau.');
+            console.error(err);
         } finally {
             setUploading(false);
         }
@@ -95,17 +90,18 @@ const EditProductModal = ({ product, onClose, onSave }) => {
         e.preventDefault();
         if (!form.name.trim()) { setError('Tên sản phẩm không được để trống'); return; }
         if (!form.base_price || Number(form.base_price) <= 0) { setError('Giá phải lớn hơn 0'); return; }
+        if (!form.primary_category_id) { setError('Vui lòng chọn danh mục'); return; }
 
         setLoading(true);
         setError('');
         try {
-            await onSave(product._id, {
+            await onSave({
                 ...form,
                 base_price: Number(form.base_price) * 1000, // Multiply by 1000 as requested
             });
             onClose();
         } catch (err) {
-            setError(err?.response?.data?.message || 'Có lỗi xảy ra khi lưu.');
+            setError(err?.response?.data?.message || 'Có lỗi xảy ra khi tạo sản phẩm.');
         } finally {
             setLoading(false);
         }
@@ -116,7 +112,7 @@ const EditProductModal = ({ product, onClose, onSave }) => {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8">
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-20">
-                    <h2 className="text-xl font-bold text-gray-900">Chỉnh sửa sản phẩm</h2>
+                    <h2 className="text-xl font-bold text-gray-900">Đăng sản phẩm mới</h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -143,7 +139,7 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Danh mục</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Danh mục *</label>
                             <select
                                 name="primary_category_id" value={form.primary_category_id} onChange={handleChange}
                                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white"
@@ -213,18 +209,7 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                                 </label>
                             )}
                         </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
-                        <select
-                            name="status" value={form.status} onChange={handleChange}
-                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white"
-                        >
-                            {Object.entries(STATUS_LABELS).map(([val, { label }]) => (
-                                <option key={val} value={val}>{label}</option>
-                            ))}
-                        </select>
+                        <p className="text-[10px] text-gray-400 mt-2 italic">* Tối đa 5 hình ảnh. Ảnh đầu tiên sẽ là ảnh chính.</p>
                     </div>
 
                     <div>
@@ -232,7 +217,7 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                         <input
                             type="text" name="short_description" value={form.short_description} onChange={handleChange}
                             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
-                            placeholder="Mô tả sơ lược"
+                            placeholder="Mô tả sơ lược sản phẩm"
                         />
                     </div>
 
@@ -242,19 +227,18 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                             name="description" value={form.description} onChange={handleChange}
                             rows={3}
                             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm resize-none"
-                            placeholder="Mô tả chi tiết sản phẩm"
+                            placeholder="Mô tả đầy đủ về chất liệu, kích thước,..."
                         />
                     </div>
 
-                    {/* Footer */}
                     <div className="flex gap-3 pt-4 border-t border-gray-100">
                         <button type="button" onClick={onClose}
                             className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm">
                             Hủy
                         </button>
                         <button type="submit" disabled={loading || uploading}
-                            className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
-                            {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
+                            className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-200">
+                            {loading ? 'Đang xử lý...' : 'Đăng sản phẩm'}
                         </button>
                     </div>
                 </form>
@@ -263,4 +247,4 @@ const EditProductModal = ({ product, onClose, onSave }) => {
     );
 };
 
-export default EditProductModal;
+export default CreateProductModal;

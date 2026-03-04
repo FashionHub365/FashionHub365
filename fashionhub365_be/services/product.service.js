@@ -132,9 +132,143 @@ const getRecommendedProducts = async (categoryId, excludeId, limit = 4) => {
     return products;
 };
 
+/**
+ * Tạo sản phẩm cho người bán
+ * @param {Object} productBody
+ * @param {string} storeId
+ * @returns {Promise<Product>}
+ */
+const createProductForSeller = async (productBody, storeId) => {
+    // Generate slug from name
+    const baseSlug = productBody.name
+        .toLowerCase()
+        .replace(/ /g, '-')
+        .replace(/[^\w-]+/g, '');
+    
+    let slug = baseSlug;
+    let counter = 1;
+    while (await Product.findOne({ slug })) {
+        slug = `${baseSlug}-${counter}`;
+        counter++;
+    }
+
+    return Product.create({
+        ...productBody,
+        store_id: storeId,
+        slug,
+        status: 'active' // Default to active for simplicity, can be changed to 'draft'
+    });
+};
+
+/**
+ * Lấy danh sách sản phẩm của người bán theo storeId
+ * @param {string} storeId
+ * @param {Object} filter
+ * @param {Object} options
+ * @returns {Promise<QueryResult>}
+ */
+const querySellerProducts = async (storeId, filter, options) => {
+    const { page = 1, limit = 10, search, status, primary_category_id } = filter;
+    const query = { store_id: storeId };
+
+    if (search) {
+        query.name = { $regex: search, $options: 'i' };
+    }
+    if (status && status !== 'all') {
+        query.status = status;
+    }
+    if (primary_category_id && primary_category_id !== 'all') {
+        query.primary_category_id = primary_category_id;
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const [products, total] = await Promise.all([
+        Product.find(query)
+            .sort({ created_at: -1 })
+            .skip(skip)
+            .limit(parseInt(limit)),
+        Product.countDocuments(query)
+    ]);
+
+    return {
+        products,
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit))
+    };
+};
+
+/**
+ * Lấy chi tiết sản phẩm của người bán (có kiểm tra storeId)
+ * @param {string} productId
+ * @param {string} storeId
+ * @returns {Promise<Product>}
+ */
+const getProductByIdForSeller = async (productId, storeId) => {
+    const product = await Product.findOne({ _id: productId, store_id: storeId });
+    if (!product) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'Không tìm thấy sản phẩm trong cửa hàng của bạn.');
+    }
+    return product;
+};
+
+/**
+ * Cập nhật sản phẩm cho người bán
+ * @param {string} productId
+ * @param {string} storeId
+ * @param {Object} updateBody
+ * @returns {Promise<Product>}
+ */
+const updateProductBySeller = async (productId, storeId, updateBody) => {
+    const product = await getProductByIdForSeller(productId, storeId);
+    
+    // Nếu đổi tên, cập nhật lại slug
+    if (updateBody.name && updateBody.name !== product.name) {
+        const baseSlug = updateBody.name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+        const existing = await Product.findOne({ slug: baseSlug, _id: { $ne: productId } });
+        updateBody.slug = existing ? `${baseSlug}-${Date.now()}` : baseSlug;
+    }
+
+    Object.assign(product, updateBody);
+    await product.save();
+    return product;
+};
+
+/**
+ * Xóa sản phẩm cho người bán
+ * @param {string} productId
+ * @param {string} storeId
+ * @returns {Promise<Product>}
+ */
+const deleteProductBySeller = async (productId, storeId) => {
+    const product = await getProductByIdForSeller(productId, storeId);
+    await product.deleteOne();
+    return product;
+};
+
+/**
+ * Bật/tắt trạng thái kinh doanh của sản phẩm
+ * @param {string} productId
+ * @param {string} storeId
+ * @returns {Promise<Product>}
+ */
+const toggleProductStatusBySeller = async (productId, storeId) => {
+    const product = await getProductByIdForSeller(productId, storeId);
+    product.status = product.status === 'active' ? 'inactive' : 'active';
+    await product.save();
+    return product;
+};
+
 module.exports = {
     getPublicProducts,
     getAllCategories,
     getPublicProductById,
     getRecommendedProducts,
+    createProductForSeller,
+    querySellerProducts,
+    getProductByIdForSeller,
+    updateProductBySeller,
+    deleteProductBySeller,
+    toggleProductStatusBySeller
 };
