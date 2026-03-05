@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const axiosClient = axios.create({
     baseURL: 'http://localhost:5000/api/v1', // Adjusted to match BE prefix
+    withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -29,29 +30,25 @@ axiosClient.interceptors.response.use(
 
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
-            const tokens = JSON.parse(localStorage.getItem('tokens'));
+            try {
+                const response = await axios.post(
+                    'http://localhost:5000/api/v1/auth/refresh',
+                    {},
+                    { withCredentials: true }
+                );
 
-            if (tokens && tokens.refresh && tokens.refresh.token) {
-                try {
-                    const response = await axios.post('http://localhost:5000/api/v1/auth/refresh-token', {
-                        refreshToken: tokens.refresh.token,
-                    });
-
-                    if (response.data.success) {
-                        const newTokens = response.data.data.tokens;
-                        localStorage.setItem('tokens', JSON.stringify(newTokens));
-
-                        // Retry original request with new token
-                        originalRequest.headers.Authorization = `Bearer ${newTokens.access.token}`;
-                        return axiosClient(originalRequest);
-                    }
-                } catch (refreshError) {
-                    console.error('Token refresh failed:', refreshError);
-                    localStorage.removeItem('tokens');
-                    localStorage.removeItem('user');
-                    window.location.href = '/login';
+                if (response.data.success) {
+                    const currentTokens = JSON.parse(localStorage.getItem('tokens') || '{}');
+                    const newTokens = {
+                        ...currentTokens,
+                        ...response.data.data.tokens,
+                    };
+                    localStorage.setItem('tokens', JSON.stringify(newTokens));
+                    originalRequest.headers.Authorization = `Bearer ${newTokens.access.token}`;
+                    return axiosClient(originalRequest);
                 }
-            } else {
+            } catch (refreshError) {
+                console.error('Token refresh failed:', refreshError);
                 localStorage.removeItem('tokens');
                 localStorage.removeItem('user');
                 window.location.href = '/login';

@@ -7,8 +7,21 @@ const authApi = {
     login: (data) => {
         return axiosClient.post('/auth/login', data);
     },
-    logout: (refreshToken) => {
-        return axiosClient.post('/auth/logout', { refreshToken });
+    verifyOtp: (data) => {
+        return axiosClient.post('/auth/verify-otp', data);
+    },
+    googleLogin: (code) => {
+        return axiosClient.post('/auth/google', { code });
+    },
+    logout: () => {
+        return axiosClient.post('/auth/logout', {});
+    },
+    forgotPassword: (email) => {
+        return axiosClient.post('/auth/forgot-password', { email });
+    },
+    resetPassword: (data) => {
+        // data should be { token, newPassword }
+        return axiosClient.post('/auth/reset-password', data);
     },
     getMe: () => {
         return axiosClient.get('/auth/me');
