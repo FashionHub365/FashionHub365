@@ -38,8 +38,6 @@ const AffiliateCommission = require('./AffiliateCommission');
 const Referral = require('./Referral');
 const Wallet = require('./Wallet');
 const WalletTransaction = require('./WalletTransaction');
-const ChatSession = require('./ChatSession');
-const ChatMessage = require('./ChatMessage');
 const Notification = require('./Notification');
 const AuditLog = require('./AuditLog');
 const ActivityLog = require('./ActivityLog');
@@ -96,8 +94,6 @@ module.exports = {
     Referral,
     Wallet,
     WalletTransaction,
-    ChatSession,
-    ChatMessage,
     Notification,
     AuditLog,
     ActivityLog,
