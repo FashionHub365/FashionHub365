@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { Heart } from "../Icons";
+import wishlistApi from "../../apis/wishlistApi";
+import { useAuth } from "../../contexts/AuthContext";
 
 /**
  * ProductCard - Hiển thị thông tin 1 sản phẩm
@@ -11,6 +14,10 @@ import { Link } from "react-router-dom";
  *   - product.variants[].attributes.color / size / price
  */
 export const ProductCard = ({ product, activeColor = "" }) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
   // Sắp xếp media theo sortOrder để ứng đúng thứ tự màu
   const sortedMedia = product.media
     ? [...product.media].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
@@ -54,6 +61,51 @@ export const ProductCard = ({ product, activeColor = "" }) => {
     );
     setSelectedColorIndex(matchIndex >= 0 ? matchIndex : 0);
   }, [activeColor]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Check if product is in wishlist
+  useEffect(() => {
+    const checkWishlist = async () => {
+      if (!user || !product?._id) return;
+      try {
+        const response = await wishlistApi.getWishlist();
+        if (response.success && response.data) {
+          const exists = response.data.items.some(item =>
+            (item.productId._id || item.productId) === product._id
+          );
+          setIsInWishlist(exists);
+        }
+      } catch (err) {
+        console.error("Error checking wishlist in ProductCard:", err);
+      }
+    };
+    checkWishlist();
+  }, [user, product?._id]);
+
+  const handleToggleWishlist = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    if (!product?._id) return;
+
+    setWishlistLoading(true);
+    try {
+      if (isInWishlist) {
+        await wishlistApi.removeFromWishlist(product._id);
+        setIsInWishlist(false);
+      } else {
+        await wishlistApi.addToWishlist(product._id);
+        setIsInWishlist(true);
+      }
+    } catch (err) {
+      console.error("Error toggling wishlist in ProductCard:", err);
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
 
   /**
    * Ảnh hiển thị thay đổi theo màu đang chọn:
@@ -103,6 +155,7 @@ export const ProductCard = ({ product, activeColor = "" }) => {
             </span>
           </div>
         )}
+<<<<<<< HEAD
 
         {/* Badges Động (New Arrival, Trending, Best Seller) - Premium Style */}
         <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 items-end z-10 pointer-events-none">
@@ -137,6 +190,16 @@ export const ProductCard = ({ product, activeColor = "" }) => {
             </div>
           )}
         </div>
+=======
+        <button
+          onClick={handleToggleWishlist}
+          disabled={wishlistLoading}
+          className={`absolute top-2 right-2 p-2 rounded-full bg-white shadow-md transition-all hover:scale-110 ${isInWishlist ? 'text-red-500' : 'text-gray-400'}`}
+          aria-label="Toggle wishlist"
+        >
+          <Heart className="!relative !w-5 !h-5" filled={isInWishlist} />
+        </button>
+>>>>>>> a1636724df8a6b9076ebb5db810f4a3434e0a473
       </Link>
 
       <div className="flex flex-col items-start gap-[3px] relative self-stretch w-full flex-[0_0_auto]">
