@@ -3,7 +3,6 @@ import { FilterSidebar } from "./FilterSidebar";
 import { ProductCard } from "./ProductCard";
 import { ListingHeader } from "./ListingHeader";
 import listingApi from "../../apis/listingApi";
-import Loading from "../common/Loading";
 import Skeleton from "../common/Skeleton";
 
 export const ProductGridSection = () => {

@@ -10,7 +10,7 @@ export const Blog = () => {
       <LatestArticlesSection />
       <img
         className="h-[225px] relative self-stretch w-full object-cover"
-        alt="Image"
+        alt="Blog collage banner"
         src="/textures/blogpage/image6.jpg"
       />
       <ProgressWrapperSection />

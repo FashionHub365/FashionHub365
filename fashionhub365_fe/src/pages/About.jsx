@@ -22,14 +22,14 @@ export const About = () => {
       <EthicalApproachSection />
       <img
         className="w-[1400] h-[637px] relative self-stretch object-cover"
-        alt="Image"
+        alt="Garment workers in factory"
         src="/textures/aboutpage/image7.jpg"
       />
 
       <ProductionProcessSection />
       <img
         className="w-full h-[560px] relative self-stretch object-cover"
-        alt="Image"
+        alt="Fabric production process"
         src="/textures/aboutpage/image5.jpg"
       />
 

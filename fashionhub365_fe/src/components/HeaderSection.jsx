@@ -294,12 +294,12 @@ export const HeaderSection = () => {
               <ul className="contents">
                 {highlightsData.map((item, index) => (
                   <li key={index} className="contents">
-                    <a
-                      href="#"
+                    <button
+                      type="button"
                       className="relative self-stretch font-text-300 font-[number:var(--text-300-font-weight)] text-x-500 text-[length:var(--text-300-font-size)] tracking-[var(--text-300-letter-spacing)] leading-[var(--text-300-line-height)] [font-style:var(--text-300-font-style)] hover:underline focus:outline-none focus:underline"
                     >
                       {item}
-                    </a>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -319,21 +319,21 @@ export const HeaderSection = () => {
               <ul className="contents">
                 {featuredShopsData.map((item, index) => (
                   <li key={index} className="contents">
-                    <a
-                      href="#"
+                    <button
+                      type="button"
                       className="relative self-stretch font-text-300 font-[number:var(--text-300-font-weight)] text-x-500 text-[length:var(--text-300-font-size)] tracking-[var(--text-300-letter-spacing)] leading-[var(--text-300-line-height)] [font-style:var(--text-300-font-style)] hover:underline focus:outline-none focus:underline"
                     >
                       {item}
-                    </a>
+                    </button>
                   </li>
                 ))}
               </ul>
             </nav>
 
             {featuredCardsData.map((card, index) => (
-              <a
+              <Link
                 key={index}
-                href="#"
+                to="/listing"
                 className="flex h-[300px] left-5 items-end gap-3 px-4 py-3 relative flex-1 grow bg-cover bg-[50%_50%] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-x-500 transition-opacity"
                 style={{ backgroundImage: `url(${card.image})` }}
                 aria-label={card.title.replace("\n", " ")}
@@ -348,7 +348,7 @@ export const HeaderSection = () => {
                 </span>
 
                 <IconComponentNode className="absolute bottom-4 right-4 w-6 h-6 text-white -rotate-90" />
-              </a>
+              </Link>
             ))}
           </section>
         </div>

@@ -244,6 +244,7 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
             </div>
             <span className="text-sm text-gray-500">5.0 (2 reviews)</span>
           </div>
+          <p className="text-sm text-gray-600 pt-2">{description}</p>
         </header>
 
         <div className="w-full py-4 space-y-3">
@@ -292,7 +293,11 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
             >
               {addingToCart ? "ADDING..." : "ADD TO BAG"}
             </button>
-            <button onClick={handleToggleWishlist} className="p-4 border">
+            <button
+              onClick={handleToggleWishlist}
+              disabled={wishlistLoading}
+              className="p-4 border disabled:opacity-50"
+            >
               <Heart filled={isInWishlist} className={isInWishlist ? "text-red-500" : ""} />
             </button>
           </div>
