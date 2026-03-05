@@ -1,5 +1,6 @@
 const express = require('express');
 const listingController = require('../controllers/listing.controller');
+const auth = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -14,5 +15,14 @@ router.get('/products/:id/recommended', listingController.getRecommendedProducts
 
 // GET /api/v1/listing/categories       - Danh sách categories (không cần auth)
 router.get('/categories', listingController.getCategories);
+
+// POST /api/v1/listing/products/:id/view - Tăng view_count (fire-and-forget, không cần auth)
+router.post('/products/:id/view', listingController.trackProductView);
+
+// GET /api/v1/listing/products/:id/reviews - Lấy danh sách đánh giá
+router.get('/products/:id/reviews', listingController.getProductReviews);
+
+// POST /api/v1/listing/products/:id/reviews - Thêm một đánh giá mới (cần đăng nhập)
+router.post('/products/:id/reviews', auth.auth(), listingController.createProductReview);
 
 module.exports = router;

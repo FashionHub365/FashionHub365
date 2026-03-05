@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Star, Heart } from "../Icons";
-import axiosClient from "../../apis/axiosClient";
+import { Heart } from "../Icons";
 import wishlistApi from "../../apis/wishlistApi";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Skeleton from "../common/Skeleton";
+import { useCart } from "../../contexts/CartContext";
 
 /**
  * ProductDetailsSection
@@ -15,15 +15,16 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // ── STATE (Hooks must be called first and in the same order) ───────
+  // ── STATE ─────────────────────────────────────────────────────────
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState(null);
-  const [addingToCart, setAddingToCart] = useState(false);
+  const [quantity, setQuantity] = useState(1);
   const [cartMessage, setCartMessage] = useState(null);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+  const { addToCart, loading: cartLoading } = useCart();
 
-  // ── FETCH WISHLIST STATUS ─────────────────────────────────────────
+  // ── FETCH WISHLIST STATUS ─────────────────────────────────────────────
   useEffect(() => {
     const checkWishlist = async () => {
       if (!user || !product?._id) return;
@@ -48,7 +49,6 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
       return;
     }
     if (!product?._id) return;
-
     setWishlistLoading(true);
     try {
       if (isInWishlist) {
@@ -112,6 +112,7 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
     { id: 3, icon: "/textures/productdetailpage/gift.jpg", title: "Send It As A Gift", description: "Add a free personalized note during checkout" },
   ];
 
+  // ── VARIANT & STOCK ──────────────────────────────────────
   const selectedColor = colorVariants[selectedColorIndex]?.name;
   const matchedVariant = product?.variants?.find(
     (v) =>
@@ -119,12 +120,27 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
       (selectedSize ? v.attributes?.size === selectedSize : true)
   ) || product?.variants?.[0];
 
+  // Stock của variant hiện tại
+  const currentStock = matchedVariant?.stock ?? null;
+  const isOutOfStock = currentStock !== null && currentStock === 0;
+
+  // Reset quantity về 1 mỗi khi đổi size hoặc màu
+  useEffect(() => {
+    setQuantity(1);
+  }, [selectedSize, selectedColorIndex]);
+
   const originalPrice = product?.base_price || 238;
   const salePrice = matchedVariant?.price || originalPrice;
   const productName = product?.name || "The ReWool® Oversized Shirt Jacket";
   const description = product?.description || "Meet your new chilly weather staple...";
   const categoryName = product?.primary_category_id?.name || "Men / Outerwear";
 
+  // ── STATS & BADGES ────────────────────────────────────────────────
+  const storeName = typeof product?.store_id === "object" ? product.store_id?.name : null;
+  const rating = product?.rating || { average: 0, count: 0 };
+  const soldCount = product?.sold_count || 0;
+
+  // ── ADD TO BAG (via CartContext) ──────────────────────────────────
   const handleAddToCart = async () => {
     if (!product) return;
     if (!selectedSize) {
@@ -132,6 +148,11 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
       setTimeout(() => setCartMessage(null), 3000);
       return;
     }
+    if (isOutOfStock) {
+      setCartMessage({ type: "error", text: "Sản phẩm đã hết hàng." });
+      return;
+    }
+
     const variant = product.variants?.find(
       (v) => v.attributes?.color === selectedColor && v.attributes?.size === selectedSize
     );
@@ -139,20 +160,14 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
       setCartMessage({ type: "error", text: "Không tìm thấy biến thể sản phẩm này." });
       return;
     }
-    setAddingToCart(true);
-    try {
-      await axiosClient.post("/cart/items", {
-        productId: product._id,
-        variantId: variant._id,
-        quantity: 1,
-      });
-      setCartMessage({ type: "success", text: "Đã thêm vào giỏ hàng! 🎉" });
-    } catch (err) {
-      setCartMessage({ type: "error", text: "Lỗi khi thêm vào giỏ hàng." });
-    } finally {
-      setAddingToCart(false);
+
+    // Dùng CartContext – tự động mở sidebar khi thành công
+    const result = await addToCart(product._id, variant._id, quantity);
+    if (!result.success) {
+      setCartMessage({ type: "error", text: result.message });
       setTimeout(() => setCartMessage(null), 3000);
     }
+    // Không cần message success vì sidebar đã mở
   };
 
   // ── RENDER LOADING SKELETON ───────────────────────────────────────
@@ -227,98 +242,327 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
       </div>
 
       <aside className="flex flex-col w-96 items-start gap-px relative">
-        <header className="flex flex-col items-start gap-1 pt-0 pb-4 px-0 relative self-stretch w-full border-b border-gray-200">
-          <p className="text-gray-500">{categoryName}</p>
-          <div className="flex items-start gap-2.5 w-full justify-between">
-            <h1 className="text-2xl font-bold flex-1">{productName}</h1>
-            <div className="flex items-end flex-col">
-              {salePrice < originalPrice && (
-                <span className="text-gray-400 line-through">{originalPrice.toLocaleString()}₫</span>
+        <header className="flex flex-col items-start gap-3 pb-5 border-b border-x-100 w-full">
+
+          {/* Breadcrumbs & Store */}
+          <nav aria-label="Breadcrumb" className="flex flex-col items-start gap-1 w-full">
+            {storeName && (
+              <span className="text-[11px] font-bold text-x-400 uppercase tracking-widest mt-1">
+                {storeName}
+              </span>
+            )}
+            <p className="font-text-100 text-x-300 text-[13px] tracking-wide mt-0.5">
+              {categoryName}
+            </p>
+          </nav>
+
+          {/* Title */}
+          <h1 className="font-display-100 text-[26px] text-x-600 tracking-wide leading-snug">
+            {productName}
+          </h1>
+
+          {/* Badges Động */}
+          {(product?.isBestSeller || product?.isTrending || product?.isNewArrival) && (
+            <div className="flex flex-wrap items-center gap-2 mt-1 -mb-1">
+              {product?.isBestSeller && (
+                <span className="bg-black text-white text-[10px] font-semibold px-2 py-1 uppercase tracking-widest leading-none">
+                  Best Seller
+                </span>
               )}
-              <span className="text-xl font-bold">{salePrice.toLocaleString()}₫</span>
+              {product?.isTrending && (
+                <span className="bg-white text-black border border-x-200 text-[10px] font-semibold px-2 py-1 uppercase tracking-widest leading-none shadow-sm">
+                  Trending
+                </span>
+              )}
+              {product?.isNewArrival && (
+                <span className="bg-white text-emerald-600 border border-emerald-400 text-[10px] font-semibold px-2 py-1 uppercase tracking-widest leading-none shadow-sm">
+                  New Arrival
+                </span>
+              )}
             </div>
+          )}
+
+          {/* Price */}
+          <div className="flex items-end gap-3 mt-1 w-full">
+            <span className="font-display-200 text-[22px] text-x-600 tracking-wide font-medium leading-none">
+              {salePrice.toLocaleString("vi-VN")}₫
+            </span>
+            {salePrice < originalPrice && (
+              <span className="font-text-200 text-x-300 line-through text-[15px] mb-0.5">
+                {originalPrice.toLocaleString("vi-VN")}₫
+              </span>
+            )}
           </div>
-          <div className="flex items-center gap-2.5 pt-2">
-            <div className="flex items-center gap-1">
-              {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3" />)}
+
+          {/* Rating & Sold count */}
+          <div className="flex items-center gap-3 mt-1 pt-1 border-t border-x-100 w-full">
+            <div className="flex items-center gap-1.5" role="img" aria-label={`${rating.average} out of 5 stars`}>
+              <StarRating value={rating.average} />
+              <div className="flex items-center ml-1">
+                <span className="text-[13.5px] font-medium text-x-600 mr-1.5">{rating.average.toFixed(1)}</span>
+                <span className="text-[13px] text-x-400 decoration-x-200 underline-offset-2 hover:underline cursor-pointer transition-colors">
+                  ({rating.count} reviews)
+                </span>
+              </div>
             </div>
-            <span className="text-sm text-gray-500">5.0 (2 reviews)</span>
+
+            {soldCount > 0 && (
+              <div className="flex items-center gap-2 pl-3 border-l border-x-200 h-4">
+                <span className="text-[13px] text-x-500">
+                  <span className="font-semibold text-x-600">{soldCount.toLocaleString()}</span> sold
+                </span>
+              </div>
+            )}
           </div>
           <p className="text-sm text-gray-600 pt-2">{description}</p>
         </header>
 
-        <div className="w-full py-4 space-y-3">
-          <p className="font-bold">Color: {selectedColor}</p>
-          <div className="flex gap-3">
-            {colorVariants.map((c, i) => (
+        {/* Chọn màu */}
+        <div className="flex flex-col items-start gap-2.5 px-0 py-[18px] relative self-stretch w-full flex-[0_0_auto]">
+          <div className="flex items-start gap-3 relative self-stretch w-full flex-[0_0_auto]">
+            <span className="font-text-200">
+              Color: {colorVariants[selectedColorIndex]?.name}
+            </span>
+          </div>
+
+          <fieldset className="flex items-start gap-3 relative self-stretch w-full flex-[0_0_auto]">
+            <legend className="sr-only">Select color</legend>
+            {colorVariants.map((colorOption, index) => (
               <button
-                key={c.name}
-                onClick={() => setSelectedColorIndex(i)}
-                className={`w-8 h-8 rounded-full border-2 ${selectedColorIndex === i ? "border-black" : "border-transparent"}`}
-                style={{ backgroundColor: c.color }}
+                key={colorOption.name}
+                onClick={() => setSelectedColorIndex(index)}
+                className={`w-8 h-8 rounded-full border-2 ${selectedColorIndex === index ? "border-black" : "border-transparent"}`}
+                style={{ backgroundColor: colorOption.color }}
+                aria-label={colorOption.name}
               />
             ))}
-          </div>
+          </fieldset>
         </div>
 
-        <div className="w-full py-4 space-y-3">
-          <div className="flex justify-between underline cursor-pointer">
-            <p className="font-bold">Size</p>
-            <p>Size Guide</p>
+        {/* Chọn size */}
+        <div className="flex flex-col items-start gap-2.5 px-0 py-[18px] relative self-stretch w-full flex-[0_0_auto]">
+          <div className="flex items-start justify-between relative self-stretch w-full flex-[0_0_auto]">
+            <span className="font-text-200">Size</span>
+            <span className="font-text-200 underline cursor-pointer">Size Guide</span>
           </div>
-          <div className="flex gap-3 flex-wrap">
-            {sizeVariants.map(s => (
+          <fieldset className="flex items-start gap-2 flex-wrap relative self-stretch w-full flex-[0_0_auto]">
+            <legend className="sr-only">Select size</legend>
+            {sizeVariants.map(s => {
+              // Kiểm tra stock của từng size
+              const sizeVariant = product?.variants?.find(
+                v => v.attributes?.color === selectedColor && v.attributes?.size === s
+              );
+              const sizeStock = sizeVariant?.stock ?? null;
+              const isSizeOutOfStock = sizeStock !== null && sizeStock === 0;
+              return (
+                <button
+                  key={s}
+                  onClick={() => !isSizeOutOfStock && setSelectedSize(s)}
+                  disabled={isSizeOutOfStock}
+                  title={isSizeOutOfStock ? 'Hết hàng' : ''}
+                  className={`w-12 h-12 flex items-center justify-center border font-text-200 relative
+                    ${selectedSize === s ? "bg-black text-white border-black" : ""}
+                    ${isSizeOutOfStock
+                      ? "border-x-100 text-x-300 cursor-not-allowed bg-gray-50 line-through"
+                      : selectedSize !== s ? "bg-white border-x-200 hover:border-black" : ""
+                    }`}
+                >
+                  {s}
+                  {isSizeOutOfStock && (
+                    <span className="absolute inset-0 flex items-center justify-center">
+                      <span className="absolute w-full h-px bg-x-300 rotate-45 transform" />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </fieldset>
+
+          {/* Stock indicator */}
+          {selectedSize && currentStock !== null && (
+            <div className="flex items-center gap-2 mt-1">
+              {isOutOfStock ? (
+                <span className="text-red-600 text-sm font-semibold flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Hết hàng
+                </span>
+              ) : currentStock <= 5 ? (
+                <span className="text-orange-500 text-sm font-medium flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  Chỉ còn {currentStock} sản phẩm!
+                </span>
+              ) : (
+                <span className="text-green-600 text-sm flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Còn hàng ({currentStock} sản phẩm)
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Chọn số lượng - luôn hiện khi đã chọn size */}
+        {selectedSize && !isOutOfStock && (
+          <div className="flex items-center gap-4 py-3 px-0 self-stretch w-full border-t border-x-100">
+            <span className="font-text-200 text-x-500">Số lượng</span>
+            <div className="flex items-center border border-x-200">
               <button
-                key={s}
-                onClick={() => setSelectedSize(s)}
-                className={`w-12 h-12 flex items-center justify-center border ${selectedSize === s ? "bg-black text-white" : "bg-gray-100"}`}
+                onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                disabled={quantity <= 1}
+                className="w-9 h-9 flex items-center justify-center text-x-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg font-light"
+                aria-label="Giảm số lượng"
               >
-                {s}
+                −
               </button>
-            ))}
+              <input
+                type="number"
+                min="1"
+                max={currentStock ?? 99}
+                value={quantity}
+                onChange={e => {
+                  const v = parseInt(e.target.value, 10);
+                  if (!isNaN(v) && v >= 1) {
+                    setQuantity(Math.min(v, currentStock ?? 99));
+                  } else if (e.target.value === '') {
+                    setQuantity('');
+                  }
+                }}
+                onBlur={e => {
+                  const v = parseInt(e.target.value, 10);
+                  setQuantity(isNaN(v) || v < 1 ? 1 : Math.min(v, currentStock ?? 99));
+                }}
+                onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}
+                className="w-10 h-9 text-center font-text-200 font-semibold text-x-600 border-x border-x-200 bg-transparent focus:outline-none focus:bg-gray-50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                aria-label="Quantity"
+              />
+              <button
+                onClick={() => setQuantity(q => Math.min(currentStock ?? 99, q + 1))}
+                disabled={currentStock !== null && quantity >= currentStock}
+                className="w-9 h-9 flex items-center justify-center text-x-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg font-light"
+                aria-label="Tăng số lượng"
+              >
+                +
+              </button>
+            </div>
+            {currentStock !== null && (
+              <span className="text-xs text-x-300">(tối đa {currentStock})</span>
+            )}
           </div>
-        </div>
+        )}
 
-        <div className="w-full py-8 space-y-4">
+        {/* Nút ADD TO BAG + Wishlist */}
+        <div className="flex flex-col items-center justify-center gap-2.5 px-0 py-8 relative self-stretch w-full flex-[0_0_auto]">
           {cartMessage && (
-            <p className={`text-center ${cartMessage.type === "success" ? "text-green-600" : "text-red-600"}`}>
+            <p className={`text-center font-text-200 ${cartMessage.type === "success" ? "text-green-600" : "text-red-600"}`}>
               {cartMessage.text}
             </p>
           )}
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full">
             <button
+              type="button"
               onClick={handleAddToCart}
-              disabled={addingToCart}
-              className="flex-1 bg-black text-white py-4 font-bold disabled:bg-gray-400"
+              disabled={cartLoading || isOutOfStock}
+              className={`flex-1 flex items-center justify-center gap-2.5 px-0 py-3 transition-colors
+                ${isOutOfStock
+                  ? "bg-gray-300 cursor-not-allowed"
+                  : "bg-x-500 cursor-pointer hover:bg-black"
+                } disabled:opacity-60`}
+              aria-label={isOutOfStock ? "Hết hàng" : "Add to bag"}
             >
-              {addingToCart ? "ADDING..." : "ADD TO BAG"}
+              <span className="font-text-300 text-white text-center tracking-[var(--text-300-letter-spacing)]">
+                {cartLoading ? "ĐANG THÊM..." : isOutOfStock ? "HẾ́T HÀNG" : "ADD TO BAG"}
+              </span>
             </button>
             <button
               onClick={handleToggleWishlist}
               disabled={wishlistLoading}
-              className="p-4 border disabled:opacity-50"
+              className="p-3 border border-x-200 hover:border-black transition-colors"
+              aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
             >
-              <Heart filled={isInWishlist} className={isInWishlist ? "text-red-500" : ""} />
+              <Heart filled={isInWishlist} className={isInWishlist ? "text-red-500 w-5 h-5" : "w-5 h-5"} />
             </button>
           </div>
         </div>
 
-        <div className="w-full py-6 border-t space-y-6">
-          {features.map(f => (
-            <div key={f.id} className="flex items-center gap-4">
-              <img src={f.icon} alt="" className="w-8 h-8" />
-              <div>
-                <p className="font-bold">{f.title}</p>
-                <p className="text-sm text-gray-600">{f.description}</p>
+        {/* Features: Free Shipping / Easy Returns / Gift */}
+        <div className="flex flex-col items-start gap-6 px-0 py-6 relative self-stretch w-full flex-[0_0_auto] ml-[-1.00px] mr-[-1.00px] border-t [border-top-style:solid] border-x-200">
+          {features.map((feature) => (
+            <div key={feature.id} className="flex items-center gap-4 relative self-stretch w-full flex-[0_0_auto]">
+              <img src={feature.icon} alt={feature.title} className="relative w-[34px] h-[34px] object-contain" />
+              <div className="flex flex-col items-start relative flex-1 grow">
+                <span className="font-text-200 font-bold">{feature.title}</span>
+                <span className="font-text-200">{feature.description}</span>
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Mô tả sản phẩm */}
+        <article className="flex-col gap-4 pt-10 pb-3 px-0 ml-[-1.00px] mr-[-1.00px] border-t [border-top-style:solid] border-x-200 flex items-start relative self-stretch w-full flex-[0_0_auto]">
+          <span className="font-text-200 font-bold">{product?.short_description || "Part shirt, part jacket, all style."}</span>
+          <p className="font-text-200 text-left">{description}</p>
+        </article>
+
+        {/* Model / Fit / Sustainability */}
+        <div className="flex items-center text-left px-0 py-5 relative self-stretch w-full flex-[0_0_auto] ml-[-1.00px] mr-[-1.00px] border-b [border-bottom-style:solid] border-x-200">
+          <span className="font-text-200 font-bold w-20">Model</span>
+          <span className="font-text-200">Model is 6'2" wearing a size M</span>
+        </div>
+
+        <div className="flex items-start text-left px-0 py-5 relative self-stretch w-full flex-[0_0_auto] ml-[-1.00px] mr-[-1.00px] border-b [border-bottom-style:solid] border-x-200">
+          <span className="font-text-200 font-bold w-20">Fit</span>
+          <span className="font-text-200">Questions about fit? Contact Us</span>
+        </div>
+
+        <div className="flex flex-col items-start px-0 py-5 relative self-stretch w-full flex-[0_0_auto] mb-[-1.00px] ml-[-1.00px] mr-[-1.00px] border-b [border-bottom-style:solid] border-x-200">
+          <span className="font-text-200 font-bold">Sustainability</span>
+          <img src="/textures/productdetailpage/Sustainability.jpg" alt="Sustainability" className="mt-2 w-full object-contain" />
         </div>
       </aside>
     </section>
   );
 };
 
+// ── Star Rating Component ────────────────────────────────────────────────
+function StarRating({ value }) {
+  const full = Math.floor(value);
+  const half = value - full >= 0.3 && value - full < 0.8;
+  const empty = 5 - full - (half ? 1 : 0);
+
+  return (
+    <span className="flex items-center gap-0.5 text-amber-400" aria-hidden="true">
+      {Array(full).fill(0).map((_, i) => (
+        <svg key={`f${i}`} className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      ))}
+      {half && (
+        <svg key="h" className="w-3.5 h-3.5" viewBox="0 0 20 20">
+          <defs>
+            <linearGradient id="half-grad-detail">
+              <stop offset="50%" stopColor="#f59e0b" />
+              <stop offset="50%" stopColor="#e5e7eb" />
+            </linearGradient>
+          </defs>
+          <path fill="url(#half-grad-detail)" d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      )}
+      {Array(empty).fill(0).map((_, i) => (
+        <svg key={`e${i}`} className="w-3.5 h-3.5 fill-gray-200" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      ))}
+    </span>
+  );
+}
+
+// ── Helper: map tên màu → hex ────────────────────────────────────────
 const COLOR_MAP = {
   black: "#1a1a1a", white: "#ffffff", blue: "#21558d", brown: "#925c37",
   green: "#585b45", grey: "#e1e1e3", gray: "#e1e1e3", orange: "#d38632",

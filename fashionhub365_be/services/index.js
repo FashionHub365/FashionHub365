@@ -8,6 +8,8 @@ const userService = require('./user.service');
 const vnpayService = require('./vnpay.service');
 const cartService = require('./cart.service');
 const productService = require('./product.service');
+const orderService = require('./order.service');
+
 module.exports = {
     authService,
     emailService,
@@ -19,4 +21,5 @@ module.exports = {
     vnpayService,
     cartService,
     productService,
+    orderService,
 };
