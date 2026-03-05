@@ -1,4 +1,17 @@
+import React, { useState } from "react";
+import Loading from "../common/Loading";
+
 export const LatestArticlesSection = () => {
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const handleLoadMore = () => {
+    setLoadingMore(true);
+    // Giả lập loading 2 giây
+    setTimeout(() => {
+      setLoadingMore(false);
+    }, 2000);
+  };
+
   const articlesRow1 = [
     {
       id: 1,
@@ -105,13 +118,19 @@ export const LatestArticlesSection = () => {
         </div>
 
         <button
-          className="all-[unset] box-border bg-x-500 flex w-60 items-center justify-center gap-2.5 px-[100px] py-5 relative flex-[0_0_auto] rounded-lg"
+          className="all-[unset] box-border bg-x-500 flex w-60 items-center justify-center gap-2.5 px-6 py-4 relative flex-[0_0_auto] rounded-lg cursor-pointer disabled:opacity-70"
           type="button"
+          onClick={handleLoadMore}
+          disabled={loadingMore}
           aria-label="Load more articles"
         >
-          <span className="relative w-fit mt-[-1.00px] ml-[-43.00px] mr-[-43.00px] font-text-300-demi font-[number:var(--text-300-demi-font-weight)] text-white text-[length:var(--text-300-demi-font-size)] text-center tracking-[var(--text-300-demi-letter-spacing)] leading-[var(--text-300-demi-line-height)] whitespace-nowrap [font-style:var(--text-300-demi-font-style)]">
-            Load more Articals
-          </span>
+          {loadingMore ? (
+            <Loading size="sm" className="!text-white" />
+          ) : (
+            <span className="relative w-fit font-text-300-demi font-[number:var(--text-300-demi-font-weight)] text-white text-[length:var(--text-300-demi-font-size)] text-center tracking-[var(--text-300-demi-letter-spacing)] leading-[var(--text-300-demi-line-height)] whitespace-nowrap [font-style:var(--text-300-demi-font-style)]">
+              Load more Articles
+            </span>
+          )}
         </button>
       </div>
     </section>
