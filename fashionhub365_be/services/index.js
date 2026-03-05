@@ -6,7 +6,8 @@ const paymentService = require('./payment.service');
 const tokenService = require('./token.service');
 const userService = require('./user.service');
 const vnpayService = require('./vnpay.service');
-
+const cartService = require('./cart.service');
+const productService = require('./product.service');
 module.exports = {
     authService,
     emailService,
@@ -16,4 +17,6 @@ module.exports = {
     tokenService,
     userService,
     vnpayService,
+    cartService,
+    productService,
 };

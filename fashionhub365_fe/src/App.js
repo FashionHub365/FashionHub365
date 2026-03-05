@@ -10,12 +10,14 @@ import { ProductDetail } from "./pages/ProductDetail";
 import { PaymentResult } from "./pages/PaymentResult";
 import { Stores } from "./pages/Stores";
 import { Listing } from "./pages/Listing";
+import { NotFound } from "./pages/NotFound";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { Profile } from "./pages/Profile";
 import { ForgotPassword } from "./pages/ForgotPassword";
 import { ResetPassword } from "./pages/ResetPassword";
-import VerifyEmail from "./pages/VerifyEmail"; // Correct default import
+import VerifyEmail from "./pages/VerifyEmail";
+import { Layout } from "./components/Layout";
 import "./App.css";
 import SellerOrders from "./pages/seller/SellerOrders";
 import SellerProducts from "./pages/seller/SellerProducts";
@@ -28,36 +30,38 @@ function App() {
       <Router>
         <AuthProvider>
           <div className="App">
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Landing />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/verify-email" element={<VerifyEmail />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/blog/how-to-style-winter-whites" element={<BlogPost />} />
-              <Route path="/product-detail" element={<ProductDetail />} />
-              <Route path="/payment-result" element={<PaymentResult />} />
-              <Route path="/stores" element={<Stores />} />
-              <Route path="/men" element={<Listing />} />
-              <Route path="/listing" element={<Listing />} />
+            <Layout>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<Landing />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/verify-email" element={<VerifyEmail />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/blog/how-to-style-winter-whites" element={<BlogPost />} />
+                <Route path="/product-detail" element={<ProductDetail />} />
+                <Route path="/product/:id" element={<ProductDetail />} />
+                <Route path="/payment-result" element={<PaymentResult />} />
+                <Route path="/stores" element={<Stores />} />
+                <Route path="/men" element={<Listing />} />
+                <Route path="/listing" element={<Listing />} />
 
-              {/* Protected Routes */}
-              <Route element={<PrivateRoute />}>
-                <Route path="/profile" element={<Profile />} />
+                {/* Protected Routes */}
+                <Route element={<PrivateRoute />}>
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/seller/dashboard" element={<SellerDashboard />} />
+                  <Route path="/seller/orders" element={<SellerOrders />} />
+                  <Route path="/seller/products" element={<SellerProducts />} />
+                  <Route path="/admin/categories" element={<AdminCategories />} />
+                </Route>
 
-                {/* Seller Routes */}
-                <Route path="/seller/dashboard" element={<SellerDashboard />} />
-                <Route path="/seller/orders" element={<SellerOrders />} />
-                <Route path="/seller/products" element={<SellerProducts />} />
-
-                {/* Admin Routes */}
-                <Route path="/admin/categories" element={<AdminCategories />} />
-              </Route>
-            </Routes>
+                {/* 404 */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Layout>
           </div>
         </AuthProvider>
       </Router>

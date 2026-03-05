@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import wishlistApi from '../apis/wishlistApi';
+import { Trash } from '../components/Icons';
 
 export const Profile = () => {
     const { user, logout } = useAuth();
@@ -11,6 +13,45 @@ export const Profile = () => {
     useEffect(() => {
         setIsLoaded(true);
     }, []);
+    const [wishlist, setWishlist] = useState([]);
+    const [loadingWishlist, setLoadingWishlist] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const itemsPerPage = 6;
+
+    useEffect(() => {
+        if (activeTab === 'wishlist' && user) {
+            fetchWishlist(currentPage);
+        }
+    }, [activeTab, user, currentPage]);
+
+    const fetchWishlist = async (page) => {
+        setLoadingWishlist(true);
+        try {
+            const response = await wishlistApi.getWishlist(page, itemsPerPage);
+            if (response.success) {
+                setWishlist(response.data.items || []);
+                setTotalPages(response.data.pagination.totalPages);
+                setTotalItems(response.data.pagination.totalItems);
+            }
+        } catch (err) {
+            console.error("Error fetching wishlist:", err);
+        } finally {
+            setLoadingWishlist(false);
+        }
+    };
+
+    const handleRemoveFromWishlist = async (productId) => {
+        try {
+            await wishlistApi.removeFromWishlist(productId);
+            setWishlist(prev => prev.filter(item => (item.productId._id || item.productId) !== productId));
+            // Re-fetch to update pagination totals
+            fetchWishlist(currentPage);
+        } catch (err) {
+            console.error("Error removing from wishlist:", err);
+        }
+    };
 
     const handleLogout = () => {
         logout();
@@ -27,28 +68,28 @@ export const Profile = () => {
 
     const tabs = [
         {
-            id: 'profile', label: 'Tổng Quan', icon: (
+            id: 'profile', label: 'Tá»•ng Quan', icon: (
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
                 </svg>
             )
         },
         {
-            id: 'orders', label: 'Đơn Hàng', icon: (
+            id: 'orders', label: 'ÄÆ¡n HÃ ng', icon: (
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                 </svg>
             )
         },
         {
-            id: 'details', label: 'Hồ Sơ', icon: (
+            id: 'details', label: 'Há»“ SÆ¡', icon: (
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                 </svg>
             )
         },
         {
-            id: 'addresses', label: 'Sổ Địa Chỉ', icon: (
+            id: 'addresses', label: 'Sá»• Äá»‹a Chá»‰', icon: (
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
@@ -63,16 +104,31 @@ export const Profile = () => {
             )
         },
         {
-            id: 'notifications', label: 'Thông Báo', hasNotification: true, icon: (
+            id: 'notifications', label: 'ThÃ´ng BÃ¡o', hasNotification: true, icon: (
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                 </svg>
             )
         },
         {
-            id: 'reviews', label: 'Đánh Giá', icon: (
+            id: 'reviews', label: 'ÄÃ¡nh GiÃ¡', icon: (
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                </svg>
+            )
+        },
+        {
+            id: 'wishlist', label: 'Wishlist', icon: (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.239-4.5-5-4.5-1.74 0-3.272.801-4.165 2.02A4.986 4.986 0 007.67 3.75C4.91 3.75 2.67 5.765 2.67 8.25c0 7.22 9.33 12 9.33 12s9-4.78 9-12z" />
+                </svg>
+            )
+        },
+        {
+            id: 'settings', label: 'Settings', icon: (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.592c.55 0 1.02.398 1.11.94l.213 1.277c.058.347.287.64.607.78.32.138.687.11.98-.076l1.08-.684c.466-.295 1.08-.224 1.467.17l1.832 1.832c.39.39.462 1.003.17 1.468l-.685 1.08a1.125 1.125 0 00-.075.98c.139.32.433.548.78.607l1.277.213c.542.09.94.56.94 1.11v2.592c0 .55-.398 1.02-.94 1.11l-1.277.213a1.125 1.125 0 00-.78.607 1.125 1.125 0 00.076.98l.684 1.08c.295.466.224 1.08-.17 1.467l-1.832 1.832c-.39.39-1.003.462-1.468.17l-1.08-.685a1.125 1.125 0 00-.98-.075 1.125 1.125 0 00-.607.78l-.213 1.277c-.09.542-.56.94-1.11.94h-2.592c-.55 0-1.02-.398-1.11-.94l-.213-1.277a1.125 1.125 0 00-.607-.78 1.125 1.125 0 00-.98.076l-1.08.684c-.466.295-1.08.224-1.467-.17l-1.832-1.832a1.125 1.125 0 01-.17-1.468l.685-1.08c.185-.293.214-.66.075-.98a1.125 1.125 0 00-.78-.607l-1.277-.213a1.125 1.125 0 01-.94-1.11v-2.592c0-.55.398-1.02.94-1.11l1.277-.213c.347-.058.64-.287.78-.607.138-.32.11-.687-.076-.98l-.684-1.08a1.125 1.125 0 01.17-1.467l1.832-1.832c.39-.39 1.003-.462 1.468-.17l1.08.685c.293.185.66.214.98.075.32-.139.548-.433.607-.78l.213-1.277z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12a3 3 0 116 0 3 3 0 01-6 0z" />
                 </svg>
             )
         },
@@ -103,7 +159,7 @@ export const Profile = () => {
                             <div className="w-20 h-20 rounded-full bg-x-600 text-white flex items-center justify-center text-3xl font-bold mb-4">
                                 {user.profile?.full_name?.charAt(0) || user.username?.charAt(0) || 'U'}
                             </div>
-                            <p className="text-xs text-x-400 uppercase tracking-widest font-bold mb-1">XIN CHÀO,</p>
+                            <p className="text-xs text-x-400 uppercase tracking-widest font-bold mb-1">XIN CHÃ€O,</p>
                             <h2 className="text-lg font-bold text-x-600 leading-tight mb-1">{user.profile?.full_name || user.username}</h2>
                             <p className="text-[13px] text-x-500 mb-3">{user.email}</p>
                             <span className="inline-block px-3 py-1 bg-x-100 border border-x-200 rounded-full text-xs font-bold text-x-600 uppercase shadow-sm">
@@ -144,7 +200,7 @@ export const Profile = () => {
                                 <svg className="w-[18px] h-[18px] text-x-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
                                 </svg>
-                                <span>Đăng xuất</span>
+                                <span>ÄÄƒng xuáº¥t</span>
                             </button>
                         </nav>
                     </aside>
@@ -220,7 +276,7 @@ export const Profile = () => {
                                                     </div>
                                                     <div>
                                                         <p className="text-sm font-bold text-x-600 mb-1">#FWN-10293</p>
-                                                        <p className="text-xs text-x-500 mb-1">12/10/2023 • 14:30</p>
+                                                        <p className="text-xs text-x-500 mb-1">12/10/2023 â€¢ 14:30</p>
                                                         <p className="text-sm text-x-600">The Holiday Outfit Edit x1</p>
                                                     </div>
                                                 </div>
@@ -286,7 +342,7 @@ export const Profile = () => {
                         )}
 
                         {/* Other Tabs Placeholder */}
-                        {activeTab !== 'profile' && (
+                        {activeTab !== 'profile' && activeTab !== 'wishlist' && activeTab !== 'settings' && (
                             <div className="h-full flex flex-col items-center justify-center min-h-[400px] animate-fade-in text-center">
                                 <div className="w-16 h-16 bg-x-100 rounded-full flex items-center justify-center text-x-400 mb-4">
                                     <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
@@ -297,10 +353,144 @@ export const Profile = () => {
                                 <p className="text-sm text-x-500 max-w-sm">This section is currently under construction. Check back soon for updates to your {activeTab}.</p>
                             </div>
                         )}
+                        {activeTab === 'wishlist' && (
+                            <div className="animate-fadeIn">
+                                {loadingWishlist ? (
+                                    <div className="flex justify-center items-center py-20">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-pink-500"></div>
+                                    </div>
+                                ) : wishlist.length > 0 ? (
+                                    <>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {wishlist.map((item) => {
+                                                const p = item.productId;
+                                                if (!p) return null;
+                                                return (
+                                                    <div key={p._id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                                                        <div className="relative aspect-[3/4] overflow-hidden">
+                                                            <img
+                                                                src={p.media?.[0]?.url || 'https://via.placeholder.com/300x400'}
+                                                                alt={p.name}
+                                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                            />
+                                                            <button
+                                                                onClick={() => handleRemoveFromWishlist(p._id)}
+                                                                className="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-md rounded-full text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-lg"
+                                                                title="Remove from wishlist"
+                                                            >
+                                                                <Trash className="w-5 h-5" />
+                                                            </button>
+                                                        </div>
+                                                        <div className="p-4">
+                                                            <h4 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-1">{p.name}</h4>
+                                                            <p className="text-gray-500 text-sm mt-1 line-clamp-2">{p.description}</p>
+                                                            <div className="mt-4 flex items-center justify-between">
+                                                                <span className="text-lg font-bold text-gray-900">{p.base_price?.toLocaleString('vi-VN')}₫</span>
+                                                                <button
+                                                                    onClick={() => navigate(`/product/${p._id}`)}
+                                                                    className="text-xs font-bold uppercase tracking-widest text-indigo-600 hover:text-indigo-800"
+                                                                >
+                                                                    View Product
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
 
+                                        {/* Pagination Controls */}
+                                        {totalPages > 1 && (
+                                            <div className="mt-12 flex justify-center items-center space-x-2">
+                                                <button
+                                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                                    disabled={currentPage === 1}
+                                                    className="px-4 py-2 border rounded-xl disabled:opacity-50 hover:bg-gray-50 transition-colors font-medium text-sm"
+                                                >
+                                                    Previous
+                                                </button>
+                                                {[...Array(totalPages)].map((_, i) => (
+                                                    <button
+                                                        key={i + 1}
+                                                        onClick={() => setCurrentPage(i + 1)}
+                                                        className={`w-10 h-10 rounded-xl font-bold text-sm transition-all ${currentPage === i + 1
+                                                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                                                            : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-600'
+                                                            }`}
+                                                    >
+                                                        {i + 1}
+                                                    </button>
+                                                ))}
+                                                <button
+                                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                                    disabled={currentPage === totalPages}
+                                                    className="px-4 py-2 border rounded-xl disabled:opacity-50 hover:bg-gray-50 transition-colors font-medium text-sm"
+                                                >
+                                                    Next
+                                                </button>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <div className="text-center py-24">
+                                        <div className="relative mx-auto w-32 h-32 mb-6 group cursor-pointer">
+                                            <div className="absolute inset-0 bg-pink-50 rounded-full transform group-hover:scale-110 transition-transform duration-300"></div>
+                                            <div className="relative flex items-center justify-center h-full w-full">
+                                                <svg className="w-12 h-12 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                            </div>
+                                        </div>
+                                        <h3 className="text-2xl font-bold text-gray-900">Your Wishlist is Empty</h3>
+                                        <p className="text-gray-500 mt-3 max-w-sm mx-auto leading-relaxed">Keep track of your favorite items here. If you see something you like, tap the heart!</p>
+                                        <button
+                                            onClick={() => navigate('/listing')}
+                                            className="mt-8 px-8 py-3 border-2 border-gray-900 text-gray-900 font-bold rounded-full hover:bg-gray-900 hover:text-white transition-all duration-300"
+                                        >
+                                            Explore Trends
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'settings' && (
+                            <div className="space-y-8 animate-fadeIn max-w-2xl">
+                                <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-lg shadow-gray-100/50">
+                                    <h4 className="font-bold text-xl text-gray-900 mb-6 flex items-center text-indigo-900">
+                                        <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                        Security Settings
+                                    </h4>
+                                    <div className="space-y-5">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+                                            <input disabled type="password" placeholder="••••••••" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                                            <input disabled type="password" placeholder="••••••••" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all" />
+                                        </div>
+                                        <div className="pt-4">
+                                            <button disabled className="w-full px-6 py-3 bg-gray-200 text-gray-500 font-bold rounded-xl cursor-not-allowed">
+                                                Update Credentials (Coming Soon)
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-red-50 p-6 rounded-2xl border border-red-100 flex items-start space-x-4">
+                                    <div className="p-2 bg-white rounded-lg text-red-500 shadow-sm">
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-red-800">Delete Account</h4>
+                                        <p className="text-sm text-red-600 mt-1">Once you delete your account, there is no going back. Please be certain.</p>
+                                        <button disabled className="mt-3 text-sm font-semibold text-red-600 hover:text-red-800 underline">Deactivate Account</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </main>
                 </div>
             </div>
         </div>
     );
 };
+

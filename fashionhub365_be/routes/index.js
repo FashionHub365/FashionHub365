@@ -11,6 +11,9 @@ const productRoute = require('./product.routes');
 const uploadRoute = require('./upload.routes');
 const vnpayRoute = require('./vnpay.route');
 const webhookRoute = require('./webhook.route');
+const cartRoute = require('./cart.routes');
+const listingRoute = require('./listing.routes');
+const wishlistRoute = require('./wishlist.routes');
 
 const router = express.Router();
 
@@ -27,6 +30,9 @@ const defaultRoutes = [
     { path: '/products', route: productRoute },
     { path: '/upload', route: uploadRoute },
     { path: '/webhook', route: webhookRoute },
+    { path: '/cart', route: cartRoute },
+    { path: '/listing', route: listingRoute },
+    { path: '/wishlist', route: wishlistRoute },
 ];
 
 defaultRoutes.forEach((route) => {
