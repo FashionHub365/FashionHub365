@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { Star } from "../Icons";
-import axiosClient from "../../apis/axiosClient";
+import { useCart } from "../../contexts/CartContext";
 
 /**
  * ProductDetailsSection
@@ -65,8 +64,8 @@ export const ProductDetailsSection = ({ product }) => {
   // ── STATE ─────────────────────────────────────────────────────────
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState(null);
-  const [addingToCart, setAddingToCart] = useState(false);
   const [cartMessage, setCartMessage] = useState(null);
+  const { addToCart, loading: cartLoading } = useCart();
 
   // ── THÔNG TIN GIÁ ─────────────────────────────────────────────────
   // Tìm variant tương ứng với màu + size đang chọn
@@ -83,7 +82,12 @@ export const ProductDetailsSection = ({ product }) => {
   const description = product?.description || "Meet your new chilly weather staple. The ReWool® Oversized Shirt Jacket has all the classic shirt detailing...";
   const categoryName = product?.primary_category_id?.name || "Men / Outerwear - Jackets & Coats";
 
-  // ── ADD TO BAG ────────────────────────────────────────────────────
+  // ── STATS & BADGES ────────────────────────────────────────────────
+  const storeName = typeof product?.store_id === "object" ? product.store_id?.name : null;
+  const rating = product?.rating || { average: 0, count: 0 };
+  const soldCount = product?.sold_count || 0;
+
+  // ── ADD TO BAG (via CartContext) ─────────────────────────────────────────────
   const handleAddToCart = async () => {
     if (!product) return;
     if (!selectedSize) {
@@ -92,7 +96,6 @@ export const ProductDetailsSection = ({ product }) => {
       return;
     }
 
-    // Tìm variantId tương ứng với màu + size đã chọn
     const variant = product.variants?.find(
       (v) => v.attributes?.color === selectedColor && v.attributes?.size === selectedSize
     );
@@ -102,27 +105,13 @@ export const ProductDetailsSection = ({ product }) => {
       return;
     }
 
-    setAddingToCart(true);
-    setCartMessage(null);
-    try {
-      await axiosClient.post("/cart/items", {
-        productId: product._id,
-        variantId: variant._id,
-        quantity: 1,
-      });
-      setCartMessage({ type: "success", text: "Đã thêm vào giỏ hàng! 🎉" });
-    } catch (err) {
-      const msg = err.response?.data?.message || "Lỗi khi thêm vào giỏ hàng.";
-      // Nếu 401 → chưa đăng nhập
-      if (err.response?.status === 401) {
-        setCartMessage({ type: "error", text: "Vui lòng đăng nhập để thêm vào giỏ hàng." });
-      } else {
-        setCartMessage({ type: "error", text: msg });
-      }
-    } finally {
-      setAddingToCart(false);
+    // Dùng CartContext – tự động mở sidebar khi thành công
+    const result = await addToCart(product._id, variant._id, 1);
+    if (!result.success) {
+      setCartMessage({ type: "error", text: result.message });
       setTimeout(() => setCartMessage(null), 3000);
     }
+    // Không cần message success vì sidebar đã mở
   };
 
   // ── RENDER ────────────────────────────────────────────────────────
@@ -160,43 +149,82 @@ export const ProductDetailsSection = ({ product }) => {
 
       {/* Sidebar thông tin sản phẩm */}
       <aside className="flex flex-col w-96 items-start gap-px relative">
-        {/* Header: tên, giá, rating */}
-        <header className="flex flex-col items-start gap-1 pt-0 pb-4 px-0 relative self-stretch w-full flex-[0_0_auto] mt-[-1.00px] ml-[-1.00px] mr-[-1.00px] border-b [border-bottom-style:solid] border-x-100">
-          <nav aria-label="Breadcrumb">
-            <p className="relative self-stretch font-text-200 font-[number:var(--text-200-font-weight)] text-x-300 text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] [font-style:var(--text-200-font-style)]">
+        <header className="flex flex-col items-start gap-3 pb-5 border-b border-x-100 w-full">
+
+          {/* Breadcrumbs & Store */}
+          <nav aria-label="Breadcrumb" className="flex flex-col items-start gap-1 w-full">
+            {storeName && (
+              <span className="text-[11px] font-bold text-x-400 uppercase tracking-widest mt-1">
+                {storeName}
+              </span>
+            )}
+            <p className="font-text-100 text-x-300 text-[13px] tracking-wide mt-0.5">
               {categoryName}
             </p>
           </nav>
 
-          <div className="flex items-start gap-2.5 relative self-stretch w-full flex-[0_0_auto]">
-            <h1 className="relative text-left flex-1 mt-[-1.00px] font-display-100 font-[number:var(--display-100-font-weight)] text-x-600 text-[length:var(--display-100-font-size)] tracking-[var(--display-100-letter-spacing)] leading-[var(--display-100-line-height)] [font-style:var(--display-100-font-style)]">
-              {productName}
-            </h1>
+          {/* Title */}
+          <h1 className="font-display-100 text-[26px] text-x-600 tracking-wide leading-snug">
+            {productName}
+          </h1>
 
-            <div className="inline-flex items-center justify-end gap-1 relative flex-[0_0_auto]">
-              {salePrice < originalPrice && (
-                <span className="w-fit font-display-100-strikethrough text-x-300 text-[length:var(--display-100-strikethrough-font-size)] tracking-[var(--display-100-strikethrough-letter-spacing)] leading-[var(--display-100-strikethrough-line-height)] line-through whitespace-nowrap relative mt-[-1.00px] font-[number:var(--display-100-strikethrough-font-weight)] [font-style:var(--display-100-strikethrough-font-style)]">
-                  {originalPrice.toLocaleString("vi-VN")}₫
+          {/* Badges Động */}
+          {(product?.isBestSeller || product?.isTrending || product?.isNewArrival) && (
+            <div className="flex flex-wrap items-center gap-2 mt-1 -mb-1">
+              {product?.isBestSeller && (
+                <span className="bg-black text-white text-[10px] font-semibold px-2 py-1 uppercase tracking-widest leading-none">
+                  Best Seller
                 </span>
               )}
-              <span className="w-fit font-display-100 text-x-600 text-[length:var(--display-100-font-size)] tracking-[var(--display-100-letter-spacing)] leading-[var(--display-100-line-height)] whitespace-nowrap relative mt-[-1.00px] font-[number:var(--display-100-font-weight)] [font-style:var(--display-100-font-style)]">
-                {salePrice.toLocaleString("vi-VN")}₫
-              </span>
+              {product?.isTrending && (
+                <span className="bg-white text-black border border-x-200 text-[10px] font-semibold px-2 py-1 uppercase tracking-widest leading-none shadow-sm">
+                  Trending
+                </span>
+              )}
+              {product?.isNewArrival && (
+                <span className="bg-white text-black border border-x-200 text-[10px] font-semibold px-2 py-1 uppercase tracking-widest leading-none shadow-sm">
+                  New Arrival
+                </span>
+              )}
             </div>
+          )}
+
+          {/* Price */}
+          <div className="flex items-end gap-3 mt-1 w-full">
+            <span className="font-display-200 text-[22px] text-x-600 tracking-wide font-medium leading-none">
+              {salePrice.toLocaleString("vi-VN")}₫
+            </span>
+            {salePrice < originalPrice && (
+              <span className="font-text-200 text-x-300 line-through text-[15px] mb-0.5">
+                {originalPrice.toLocaleString("vi-VN")}₫
+              </span>
+            )}
           </div>
 
-          <div className="flex items-center gap-2.5 relative self-stretch w-full flex-[0_0_auto]">
-            <div className="inline-flex items-center gap-1 relative flex-[0_0_auto]" role="img" aria-label="5 out of 5 stars">
-              {[...Array(5)].map((_, index) => (
-                <Star key={index} className="!relative !w-3 !h-3" />
-              ))}
+          {/* Rating & Sold count */}
+          <div className="flex items-center gap-3 mt-1 pt-1 border-t border-x-100 w-full">
+            <div className="flex items-center gap-1.5" role="img" aria-label={`${rating.average} out of 5 stars`}>
+              <StarRating value={rating.average} />
+              <div className="flex items-center ml-1">
+                <span className="text-[13.5px] font-medium text-x-600 mr-1.5">{rating.average.toFixed(1)}</span>
+                <span className="text-[13px] text-x-400 decoration-x-200 underline-offset-2 hover:underline cursor-pointer transition-colors">
+                  ({rating.count} reviews)
+                </span>
+              </div>
             </div>
-            <span className="text-sm text-x-500">5.0 (2 reviews)</span>
+
+            {soldCount > 0 && (
+              <div className="flex items-center gap-2 pl-3 border-l border-x-200 h-4">
+                <span className="text-[13px] text-x-500">
+                  <span className="font-semibold text-x-600">{soldCount.toLocaleString()}</span> sold
+                </span>
+              </div>
+            )}
           </div>
         </header>
 
         {/* Chọn màu */}
-        <div className="flex flex-col items-start gap-2.5 px-0 py-[18px] relative self-stretch w-full flex-[0_0_auto]">
+        < div className="flex flex-col items-start gap-2.5 px-0 py-[18px] relative self-stretch w-full flex-[0_0_auto]" >
           <div className="flex items-start gap-3 relative self-stretch w-full flex-[0_0_auto]">
             <span className="font-text-200">
               Color: {colorVariants[selectedColorIndex]?.name}
@@ -222,10 +250,10 @@ export const ProductDetailsSection = ({ product }) => {
               </button>
             ))}
           </fieldset>
-        </div>
+        </div >
 
         {/* Chọn size */}
-        <div className="flex flex-col items-start gap-2.5 px-0 py-[18px] relative self-stretch w-full flex-[0_0_auto]">
+        < div className="flex flex-col items-start gap-2.5 px-0 py-[18px] relative self-stretch w-full flex-[0_0_auto]" >
           <div className="flex items-start justify-between relative self-stretch w-full flex-[0_0_auto]">
             <span className="font-text-200">Size</span>
             <span className="font-text-200 underline cursor-pointer">Size Guide</span>
@@ -252,10 +280,10 @@ export const ProductDetailsSection = ({ product }) => {
               </button>
             ))}
           </fieldset>
-        </div>
+        </div >
 
         {/* Nút ADD TO BAG */}
-        <div className="flex flex-col items-center justify-center gap-2.5 px-0 py-8 relative self-stretch w-full flex-[0_0_auto]">
+        < div className="flex flex-col items-center justify-center gap-2.5 px-0 py-8 relative self-stretch w-full flex-[0_0_auto]" >
           {cartMessage && (
             <p className={`text-sm font-text-200 ${cartMessage.type === "success" ? "text-green-600" : "text-red-500"}`}>
               {cartMessage.text}
@@ -264,40 +292,42 @@ export const ProductDetailsSection = ({ product }) => {
           <button
             type="button"
             onClick={handleAddToCart}
-            disabled={addingToCart}
-            className="all-[unset] box-border flex items-center justify-center gap-2.5 px-0 py-3 relative self-stretch w-full flex-[0_0_auto] bg-x-500 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            disabled={cartLoading}
+            className="all-[unset] box-border flex items-center justify-center gap-2.5 px-0 py-3 relative self-stretch w-full flex-[0_0_auto] bg-x-500 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed hover:bg-black transition-colors"
             aria-label="Add to bag"
           >
             <span className="relative w-fit mt-[-1.00px] font-text-300 font-[number:var(--text-300-font-weight)] text-white text-[length:var(--text-300-font-size)] text-center tracking-[var(--text-300-letter-spacing)] leading-[var(--text-300-line-height)] whitespace-nowrap [font-style:var(--text-300-font-style)]">
-              {addingToCart ? "ĐANG THÊM..." : "ADD TO BAG"}
+              {cartLoading ? "ĐANG THÊM..." : "ADD TO BAG"}
             </span>
           </button>
-        </div>
+        </div >
 
         {/* Features: Free Shipping / Easy Returns / Gift */}
-        <div className="flex flex-col items-start gap-6 px-0 py-6 relative self-stretch w-full flex-[0_0_auto] ml-[-1.00px] mr-[-1.00px] border-t [border-top-style:solid] border-x-200">
-          {features.map((feature) => (
-            <div key={feature.id} className="flex items-center gap-4 relative self-stretch w-full flex-[0_0_auto]">
-              <img src={feature.icon} alt={feature.title} className="relative w-[34px] h-[34px] object-contain" />
-              <div className="flex flex-col items-start relative flex-1 grow">
-                <span className="font-text-200 font-bold">{feature.title}</span>
-                <span className="font-text-200">{feature.description}</span>
+        < div className="flex flex-col items-start gap-6 px-0 py-6 relative self-stretch w-full flex-[0_0_auto] ml-[-1.00px] mr-[-1.00px] border-t [border-top-style:solid] border-x-200" >
+          {
+            features.map((feature) => (
+              <div key={feature.id} className="flex items-center gap-4 relative self-stretch w-full flex-[0_0_auto]">
+                <img src={feature.icon} alt={feature.title} className="relative w-[34px] h-[34px] object-contain" />
+                <div className="flex flex-col items-start relative flex-1 grow">
+                  <span className="font-text-200 font-bold">{feature.title}</span>
+                  <span className="font-text-200">{feature.description}</span>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))
+          }
+        </div >
 
         {/* Mô tả sản phẩm */}
-        <article className="flex-col gap-4 pt-10 pb-3 px-0 ml-[-1.00px] mr-[-1.00px] border-t [border-top-style:solid] border-x-200 flex items-start relative self-stretch w-full flex-[0_0_auto]">
+        < article className="flex-col gap-4 pt-10 pb-3 px-0 ml-[-1.00px] mr-[-1.00px] border-t [border-top-style:solid] border-x-200 flex items-start relative self-stretch w-full flex-[0_0_auto]" >
           <span className="font-text-200 font-bold">{product?.short_description || "Part shirt, part jacket, all style."}</span>
           <p className="font-text-200 text-left">{description}</p>
-        </article>
+        </article >
 
         {/* Model / Fit / Sustainability (tĩnh – giữ nguyên thiết kế nhóm) */}
-        <div className="flex items-center text-left px-0 py-5 relative self-stretch w-full flex-[0_0_auto] ml-[-1.00px] mr-[-1.00px] border-b [border-bottom-style:solid] border-x-200">
+        < div className="flex items-center text-left px-0 py-5 relative self-stretch w-full flex-[0_0_auto] ml-[-1.00px] mr-[-1.00px] border-b [border-bottom-style:solid] border-x-200" >
           <span className="font-text-200 font-bold w-20">Model</span>
           <span className="font-text-200">Model is 6'2" wearing a size M</span>
-        </div>
+        </div >
 
         <div className="flex items-start text-left px-0 py-5 relative self-stretch w-full flex-[0_0_auto] ml-[-1.00px] mr-[-1.00px] border-b [border-bottom-style:solid] border-x-200">
           <span className="font-text-200 font-bold w-20">Fit</span>
@@ -308,10 +338,43 @@ export const ProductDetailsSection = ({ product }) => {
           <span className="font-text-200 font-bold">Sustainability</span>
           <img src="/textures/productdetailpage/Sustainability.jpg" alt="Sustainability" className="mt-2 w-full object-contain" />
         </div>
-      </aside>
-    </section>
+      </aside >
+    </section >
   );
 };
+
+// ── Star Rating Component ────────────────────────────────────────────────
+function StarRating({ value }) {
+  const full = Math.floor(value);
+  const half = value - full >= 0.3 && value - full < 0.8;
+  const empty = 5 - full - (half ? 1 : 0);
+
+  return (
+    <span className="flex items-center gap-0.5 text-amber-400" aria-hidden="true">
+      {Array(full).fill(0).map((_, i) => (
+        <svg key={`f${i}`} className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      ))}
+      {half && (
+        <svg key="h" className="w-3.5 h-3.5" viewBox="0 0 20 20">
+          <defs>
+            <linearGradient id="half-grad-detail">
+              <stop offset="50%" stopColor="#f59e0b" />
+              <stop offset="50%" stopColor="#e5e7eb" />
+            </linearGradient>
+          </defs>
+          <path fill="url(#half-grad-detail)" d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      )}
+      {Array(empty).fill(0).map((_, i) => (
+        <svg key={`e${i}`} className="w-3.5 h-3.5 fill-gray-200" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      ))}
+    </span>
+  );
+}
 
 // ── Helper: map tên màu → hex ────────────────────────────────────────
 const COLOR_MAP = {

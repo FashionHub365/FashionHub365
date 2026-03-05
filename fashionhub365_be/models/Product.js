@@ -73,7 +73,32 @@ const productSchema = new mongoose.Schema({
         condition: String,
         defects: String,
         measurements: mongoose.Schema.Types.Mixed
-    }]
+    }],
+
+    // ── Thống kê sản phẩm ──────────────────────────────────────────
+    sold_count: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    view_count: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    rating: {
+        average: {
+            type: Number,
+            default: 0,
+            min: 0,
+            max: 5
+        },
+        count: {
+            type: Number,
+            default: 0,
+            min: 0
+        }
+    }
 }, {
     timestamps: {
         createdAt: 'created_at',

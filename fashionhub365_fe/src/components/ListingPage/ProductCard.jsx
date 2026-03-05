@@ -79,6 +79,15 @@ export const ProductCard = ({ product, activeColor = "" }) => {
       ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
       : null;
 
+  // ── Store & Stats ──────────────────────────────────────────────────
+  const storeName =
+    typeof product.store_id === "object"
+      ? product.store_id?.name
+      : null;
+
+  const rating = product.rating || { average: 0, count: 0 };
+  const soldCount = product.sold_count || 0;
+
   return (
     <article className="flex flex-col items-start gap-2.5 relative flex-1 grow">
       <Link to={`/product/${product._id}`} className="block relative self-stretch w-full">
@@ -94,9 +103,48 @@ export const ProductCard = ({ product, activeColor = "" }) => {
             </span>
           </div>
         )}
+
+        {/* Badges Động (New Arrival, Trending, Best Seller) - Premium Style */}
+        <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 items-end z-10 pointer-events-none">
+          {product.isBestSeller && (
+            <div className="flex items-center gap-1 bg-black/90 backdrop-blur-md px-2 py-1.5 shadow-md">
+              <svg className="w-2.5 h-2.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+              </svg>
+              <span className="text-white text-[10px] font-bold uppercase tracking-widest leading-none mt-0.5">
+                Best Seller
+              </span>
+            </div>
+          )}
+          {product.isTrending && (
+            <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md border border-gray-100 px-2 py-1.5 shadow-md">
+              <svg className="w-2.5 h-2.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              <span className="text-x-600 text-[10px] font-bold uppercase tracking-widest leading-none mt-0.5">
+                Trending
+              </span>
+            </div>
+          )}
+          {product.isNewArrival && (
+            <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md border border-gray-100 px-2 py-1.5 shadow-md">
+              <svg className="w-2.5 h-2.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+              </svg>
+              <span className="text-x-600 text-[10px] font-bold uppercase tracking-widest leading-none mt-0.5">
+                New
+              </span>
+            </div>
+          )}
+        </div>
       </Link>
 
       <div className="flex flex-col items-start gap-[3px] relative self-stretch w-full flex-[0_0_auto]">
+        {storeName && (
+          <span className="text-[11px] font-semibold text-x-300 uppercase tracking-widest px-0">
+            {storeName}
+          </span>
+        )}
         <div className="flex items-start gap-3 px-0 py-2 relative self-stretch w-full flex-[0_0_auto]">
           <h3 className="relative flex-1 mt-[-1.00px] font-text-200 font-[number:var(--text-200-font-weight)] text-x-500 text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] [font-style:var(--text-200-font-style)]">
             {product.name}
@@ -117,6 +165,26 @@ export const ProductCard = ({ product, activeColor = "" }) => {
         <span className="relative self-stretch h-4 font-text-200 font-[number:var(--text-200-font-weight)] text-x-300 text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] whitespace-nowrap [font-style:var(--text-200-font-style)]">
           {colorVariants[selectedColorIndex]?.name || ""}
         </span>
+
+        {/* Rating & Sold count */}
+        <div className="flex items-center gap-3 pt-1">
+          {rating.count > 0 && (
+            <div className="flex items-center gap-1">
+              <StarRating value={rating.average} />
+              <span className="text-[11px] text-x-400 font-medium">
+                {rating.average.toFixed(1)}
+              </span>
+              <span className="text-[11px] text-x-300">
+                ({rating.count})
+              </span>
+            </div>
+          )}
+          {soldCount > 0 && (
+            <span className="text-[11px] text-x-300">
+              <span className="text-x-500 font-semibold">{soldCount.toLocaleString()}</span> sold
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Color swatches */}
@@ -137,29 +205,45 @@ export const ProductCard = ({ product, activeColor = "" }) => {
         </div>
       )}
 
-      {/* Badges từ tag_ids (nếu có) */}
-      {product.tag_ids && product.tag_ids.length > 0 && (
-        <div className="flex items-start gap-2 relative self-stretch w-full flex-[0_0_auto]">
-          {product.tag_ids.slice(0, 2).map((tag, index) => (
-            <div
-              key={index}
-              className={`${index === 0 ? "ml-[-1.00px]" : ""
-                } inline-flex items-center justify-center gap-2.5 px-2 py-1.5 relative flex-[0_0_auto] mt-[-1.00px] mb-[-1.00px] border border-solid border-x-200`}
-            >
-              <span className="relative w-fit font-text-100 font-[number:var(--text-100-font-weight)] text-x-300 text-[length:var(--text-100-font-size)] text-center tracking-[var(--text-100-letter-spacing)] leading-[var(--text-100-line-height)] whitespace-nowrap [font-style:var(--text-100-font-style)]">
-                {typeof tag === "object" ? tag.name : tag}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
     </article>
   );
 };
 
+// ── Star Rating Component ────────────────────────────────────────────────
+function StarRating({ value }) {
+  const full = Math.floor(value);
+  const half = value - full >= 0.3 && value - full < 0.8;
+  const empty = 5 - full - (half ? 1 : 0);
+
+  return (
+    <span className="flex items-center gap-px text-amber-400" aria-hidden="true">
+      {Array(full).fill(0).map((_, i) => (
+        <svg key={`f${i}`} className="w-3 h-3 fill-current" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      ))}
+      {half && (
+        <svg key="h" className="w-3 h-3" viewBox="0 0 20 20">
+          <defs>
+            <linearGradient id="half-grad">
+              <stop offset="50%" stopColor="#f59e0b" />
+              <stop offset="50%" stopColor="#d1d5db" />
+            </linearGradient>
+          </defs>
+          <path fill="url(#half-grad)" d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      )}
+      {Array(empty).fill(0).map((_, i) => (
+        <svg key={`e${i}`} className="w-3 h-3 fill-gray-200" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      ))}
+    </span>
+  );
+}
+
 /**
  * Helper: Map tên màu tiếng Anh sang mã HEX
- * Dùng cho việc hiển thị color swatch từ dữ liệu variants.attributes.color
  */
 const COLOR_MAP = {
   black: "#1a1a1a",

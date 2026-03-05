@@ -21,7 +21,7 @@ export const ProductDetail = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!id) return; // Không có ID → hiển thị UI tĩnh (fallback)
+    if (!id) return;
 
     const fetchProduct = async () => {
       setLoading(true);
@@ -30,6 +30,8 @@ export const ProductDetail = () => {
         const response = await listingApi.getProductById(id);
         if (response.success) {
           setProduct(response.data);
+          // Track view count — fire-and-forget, không block UI
+          listingApi.trackView(id).catch(() => { });
         }
       } catch (err) {
         console.error("Error fetching product detail:", err);
@@ -68,7 +70,7 @@ export const ProductDetail = () => {
         <>
           <ProductDetailsSection product={product} />
           {product && <RecommendedProductsSection productId={product._id} />}
-          <ReviewsSection />
+          {product && <ReviewsSection productId={product._id} product={product} />}
           <TransparentPricingSection />
         </>
       )}

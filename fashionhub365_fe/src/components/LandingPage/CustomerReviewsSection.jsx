@@ -1,11 +1,12 @@
+import { Link } from "react-router-dom";
+
 export const CustomerReviewsSection = () => {
   const categories = [
-    { image: "/textures/landingpage/image.jpg", label: "SHIRTS" },
-    { image: "/textures/landingpage/image-2.jpg", label: "DENIM" },
-    { image: "/textures/landingpage/image-3.jpg", label: "TEES" },
-    { image: "/textures/landingpage/image-4.jpg", label: "PANTS" },
-    { image: "/textures/landingpage/image-5.jpg", label: "SWEATERS" },
-    { image: "/textures/landingpage/image-6.jpg", label: "OUTERWEAR" },
+    { image: "/textures/landingpage/image-2.jpg", label: "JEANS", slug: "jeans" },
+    { image: "/textures/landingpage/image-3.jpg", label: "JACKETS", slug: "jackets" },
+    { image: "/textures/landingpage/image-4.jpg", label: "SNEAKERS", slug: "sneakers" },
+    { image: "/textures/landingpage/image-5.jpg", label: "BOOTS", slug: "boots" },
+    { image: "/textures/landingpage/image-6.jpg", label: "MEN ACCESSORIES", slug: "men-accessories" },
   ];
 
   return (
@@ -19,10 +20,10 @@ export const CustomerReviewsSection = () => {
         aria-label="Product categories"
       >
         {categories.map((category, index) => (
-          <a
+          <Link
             key={index}
-            href={`#${category.label.toLowerCase()}`}
-            className="flex flex-col items-center gap-3 relative flex-1 grow"
+            to={`/listing?category=${category.slug}`}
+            className="flex flex-col items-center gap-3 relative flex-1 grow no-underline"
             aria-label={`Shop ${category.label}`}
           >
             <img
@@ -34,7 +35,7 @@ export const CustomerReviewsSection = () => {
             <span className="relative self-stretch font-text-300-underline font-[number:var(--text-300-underline-font-weight)] text-x-500 text-[length:var(--text-300-underline-font-size)] text-center tracking-[var(--text-300-underline-letter-spacing)] leading-[var(--text-300-underline-line-height)] underline [font-style:var(--text-300-underline-font-style)]">
               {category.label}
             </span>
-          </a>
+          </Link>
         ))}
       </nav>
     </section>

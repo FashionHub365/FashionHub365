@@ -1,93 +1,85 @@
 import React, { useState } from "react";
 import { Minus, Plus, Trash } from "../Icons";
+import { useCart } from "../../contexts/CartContext";
 
-export const CartItem = ({ product }) => {
-  const [quantity, setQuantity] = useState(product.quantity || 1);
+export const CartItem = ({ item }) => {
+  const { updateItem, removeItem } = useCart();
+  const [localQty, setLocalQty] = useState(item.quantity);
+  const [updating, setUpdating] = useState(false);
 
-  const handleIncrement = () => {
-    setQuantity((prev) => prev + 1);
+  const handleChange = async (newQty) => {
+    if (newQty < 1) return;
+    setLocalQty(newQty);
+    setUpdating(true);
+    await updateItem(item.itemId, newQty);
+    setUpdating(false);
   };
 
-  const handleDecrement = () => {
-    if (quantity > 1) {
-      setQuantity((prev) => prev - 1);
-    }
-  };
+  const handleRemove = () => removeItem(item.itemId);
 
-  const handleRemove = () => {
-    console.log("Remove item from cart");
-  };
+  const subtotal = (item.price * localQty).toLocaleString("vi-VN");
 
   return (
     <article className="flex items-start gap-4 self-stretch w-full relative flex-[0_0_auto]">
       <img
-        className="w-[70px] h-[100px] relative object-cover"
-        alt={product.name}
-        src={product.image}
+        className="w-[70px] h-[100px] relative object-cover flex-shrink-0"
+        alt={item.name}
+        src={item.image || "/textures/cartpage/image.jpg"}
       />
 
-      <div className="flex flex-col items-start text-left justify-between relative flex-1 self-stretch grow">
-        <div className="flex items-center gap-3 relative self-stretch w-full flex-[0_0_auto]">
-          <div className="flex flex-col items-start relative flex-1 grow">
-            <p className="relative self-stretch mt-[-1.00px] font-text-300 font-[number:var(--text-300-font-weight)] text-x-600 text-[length:var(--text-300-font-size)] tracking-[var(--text-300-letter-spacing)] leading-[var(--text-300-line-height)] [font-style:var(--text-300-font-style)]">
-              {product.name}
+      <div className="flex flex-col items-start text-left justify-between relative flex-1 self-stretch grow min-w-0">
+        <div className="flex items-start gap-2 relative self-stretch w-full flex-[0_0_auto]">
+          <div className="flex flex-col items-start relative flex-1 grow min-w-0">
+            <p className="relative self-stretch font-text-300 font-[number:var(--text-300-font-weight)] text-x-600 text-[length:var(--text-300-font-size)] tracking-[var(--text-300-letter-spacing)] leading-[var(--text-300-line-height)] [font-style:var(--text-300-font-style)] truncate">
+              {item.name}
             </p>
 
-            <div className="relative self-stretch font-text-200 font-[number:var(--text-200-font-weight)] text-x-300 text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] [font-style:var(--text-200-font-style)]">
-              {product.size} | {product.color}
+            <div className="relative self-stretch font-text-200 font-[number:var(--text-200-font-weight)] text-x-300 text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] [font-style:var(--text-200-font-style)] mt-0.5">
+              {item.variantName || "—"}
             </div>
+
+            {!item.inStock && (
+              <span className="text-red-500 text-xs mt-0.5 font-medium">Out of stock</span>
+            )}
           </div>
 
           <button
             type="button"
             onClick={handleRemove}
             aria-label="Remove item from cart"
-            className="bg-transparent border-0 p-0 cursor-pointer"
+            className="bg-transparent border-0 p-1 cursor-pointer flex-shrink-0 hover:opacity-60 transition-opacity mt-0.5"
           >
-            <Trash className="!relative !w-3.5 !h-3.5" />
+            <Trash className="!relative !w-4 !h-4" />
           </button>
         </div>
 
-        <div className="flex items-center justify-between relative self-stretch w-full flex-[0_0_auto]">
-          <div className="flex flex-col items-start relative flex-1 grow">
-            <div className="items-center gap-0.5 flex relative self-stretch w-full flex-[0_0_auto]">
-              {product.originalPrice && (
-                <div className="mt-[-1.00px] font-text-200-strikethrough text-x-300 text-[length:var(--text-200-strikethrough-font-size)] tracking-[var(--text-200-strikethrough-letter-spacing)] leading-[var(--text-200-strikethrough-line-height)] line-through relative w-fit font-[number:var(--text-200-strikethrough-font-weight)] whitespace-nowrap [font-style:var(--text-200-strikethrough-font-style)]">
-                  ${product.originalPrice}
-                </div>
-              )}
-
-              <div className="mt-[-1.00px] font-text-200-demi text-x-500 text-[length:var(--text-200-demi-font-size)] tracking-[var(--text-200-demi-letter-spacing)] leading-[var(--text-200-demi-line-height)] relative w-fit font-[number:var(--text-200-demi-font-weight)] whitespace-nowrap [font-style:var(--text-200-demi-font-style)]">
-                ${product.price}
-              </div>
+        <div className="flex items-center justify-between relative self-stretch w-full flex-[0_0_auto] mt-3">
+          <div className="flex flex-col items-start relative">
+            <div className="font-text-200-demi text-x-600 text-[length:var(--text-200-demi-font-size)] tracking-[var(--text-200-demi-letter-spacing)] leading-[var(--text-200-demi-line-height)] font-[number:var(--text-200-demi-font-weight)] whitespace-nowrap [font-style:var(--text-200-demi-font-style)]">
+              {subtotal}₫
             </div>
-
-            {product.discountLabel && (
-              <div className="relative self-stretch font-text-200 font-[number:var(--text-200-font-weight)] text-red text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] [font-style:var(--text-200-font-style)]">
-                {product.discountLabel}
-              </div>
-            )}
+            <div className="text-xs text-x-300 mt-0.5">{item.price.toLocaleString("vi-VN")}₫ / item</div>
           </div>
 
-          <div className="inline-flex items-center gap-2 px-4 py-2 border border-solid border-x-200 rounded-sm">
+          <div className={`inline-flex items-center gap-2 px-3 py-1.5 border border-solid border-x-200 rounded-sm transition-opacity ${updating ? "opacity-50" : ""}`}>
             <button
               type="button"
-              onClick={handleDecrement}
+              onClick={() => handleChange(localQty - 1)}
               aria-label="Decrease quantity"
-              disabled={quantity <= 1}
-              className="flex items-center justify-center p-1 hover:bg-x-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={localQty <= 1 || updating}
+              className="flex items-center justify-center p-0.5 hover:bg-x-100 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Minus className="w-3 h-3" />
             </button>
-            <div className="min-w-[20px] text-center font-text-200 font-[number:var(--text-200-font-weight)] text-x-600 text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] [font-style:var(--text-200-font-style)]">
-              {quantity}
-            </div>
-
+            <span className="min-w-[20px] text-center font-text-200 text-x-600 text-sm">
+              {localQty}
+            </span>
             <button
               type="button"
-              onClick={handleIncrement}
+              onClick={() => handleChange(localQty + 1)}
               aria-label="Increase quantity"
-              className="flex items-center justify-center p-1 hover:bg-x-100 rounded transition-colors"
+              disabled={updating}
+              className="flex items-center justify-center p-0.5 hover:bg-x-100 rounded transition-colors disabled:opacity-40"
             >
               <Plus className="w-3 h-3" />
             </button>

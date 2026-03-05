@@ -1,28 +1,50 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { FilterSidebar } from "./FilterSidebar";
 import { ProductCard } from "./ProductCard";
 import { ListingHeader } from "./ListingHeader";
 import listingApi from "../../apis/listingApi";
 
 export const ProductGridSection = () => {
+  const [searchParams] = useSearchParams();
+
   const [products, setProducts] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Giá trị search input (hiển thị ngay trên UI)
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useState(
+    () => searchParams.get("search") || ""
+  );
 
-  // Filter state - được chia sẻ xuống FilterSidebar
-  const [filters, setFilters] = useState({
-    category: "",
-    color: "",
-    size: "",
-    search: "",
-    sort: "newest",
+  // Filter state — đọc URL query params ngay từ initial state
+  const [filters, setFilters] = useState(() => ({
+    category: searchParams.get("category") || "",
+    color: searchParams.get("color") || "",
+    size: searchParams.get("size") || "",
+    search: searchParams.get("search") || "",
+    sort: searchParams.get("sort") || "newest",
     page: 1,
     limit: 9,
-  });
+  }));
+
+  /**
+   * Sync filters từ URL mỗi khi searchParams thay đổi
+   * (ví dụ: navigate từ Landing → /listing?category=shirts)
+   */
+  useEffect(() => {
+    setFilters({
+      category: searchParams.get("category") || "",
+      color: searchParams.get("color") || "",
+      size: searchParams.get("size") || "",
+      search: searchParams.get("search") || "",
+      sort: searchParams.get("sort") || "newest",
+      page: 1,
+      limit: 9,
+    });
+    setSearchInput(searchParams.get("search") || "");
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounce timer ref
   const debounceTimer = useRef(null);
@@ -117,7 +139,7 @@ export const ProductGridSection = () => {
     <section className="flex items-start gap-4 px-4 md:px-20 py-[30px] relative self-stretch w-full flex-[0_0_auto]">
       <FilterSidebar onFilterChange={handleFilterChange} activeFilters={filters} />
       <main className="flex flex-col items-start relative flex-1 grow">
-        <ListingHeader total={total} />
+        <ListingHeader total={total} activeCategory={filters.category} />
 
         {/* Thanh Search + Sort */}
         <div className="flex items-center gap-3 relative self-stretch w-full flex-[0_0_auto] pb-4">
@@ -199,6 +221,8 @@ export const ProductGridSection = () => {
               aria-label="Sắp xếp sản phẩm"
             >
               <option value="newest">Mới nhất</option>
+              <option value="best_sellers">Bán chạy nhất</option>
+              <option value="top_rated">Đánh giá cao nhất</option>
               <option value="price_asc">Giá thấp → cao</option>
               <option value="price_desc">Giá cao → thấp</option>
             </select>

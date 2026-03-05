@@ -90,6 +90,7 @@
 
 // tạm thời bỏ qua đăng nhập để test api với postman
 const Order = require("../models/Order");
+const { productService } = require("../services");
 
 // UC-29: Xác nhận đơn hàng
 exports.confirmOrder = async (req, res) => {
@@ -152,21 +153,31 @@ exports.cancelOrder = async (req, res) => {
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { status, note } = req.body;
-    const order = await Order.findOneAndUpdate(
-      { uuid: req.params.id },
-      {
-        $set: { status: status },
-        $push: {
-          status_history: {
-            oldStatus: "updated",
-            newStatus: status,
-            changedBy: "seller_test",
-            note: note,
-          },
-        },
-      },
-      { new: true },
-    );
+
+    // Lấy order hiện tại để có items (dùng cho sold_count)
+    const order = await Order.findOne({ uuid: req.params.id });
+    if (!order) {
+      return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
+    }
+
+    // Cập nhật status
+    order.status = status;
+    order.status_history.push({
+      oldStatus: order.status,
+      newStatus: status,
+      changedBy: "seller_test",
+      note: note,
+    });
+    await order.save();
+
+    // ── Khi giao hàng thành công → tăng sold_count các sản phẩm ──
+    if (status === "delivered" && order.items && order.items.length > 0) {
+      // Fire-and-forget: không block response
+      productService.incrementSoldCount(order.items).catch((err) => {
+        console.error("[sold_count] Lỗi khi tăng sold_count:", err.message);
+      });
+    }
+
     res.json(order);
   } catch (error) {
     res.status(500).json({ error: error.message });
