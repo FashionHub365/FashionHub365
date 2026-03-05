@@ -156,36 +156,34 @@ export const ProductCard = ({ product, activeColor = "" }) => {
           </div>
         )}
 
-        {/* Badges Động (New Arrival, Trending, Best Seller) - Premium Style */}
-        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 items-start z-10 pointer-events-none">
+        {/* Badges tròn góc trái trên - giống style wishlist button */}
+        <div className="absolute top-2 left-2 flex flex-col gap-1.5 z-10 pointer-events-none">
           {product.isBestSeller && (
-            <div className="flex items-center gap-1 bg-black/90 backdrop-blur-md px-2 py-1.5 shadow-md">
-              <svg className="w-2.5 h-2.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+            <div
+              className="w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center"
+              title="Best Seller"
+            >
+              <svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
               </svg>
-              <span className="text-white text-[10px] font-bold uppercase tracking-widest leading-none mt-0.5">
-                Best Seller
-              </span>
             </div>
           )}
           {product.isTrending && (
-            <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md border border-gray-100 px-2 py-1.5 shadow-md">
-              <svg className="w-2.5 h-2.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div
+              className="w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center"
+              title="Trending"
+            >
+              <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
-              <span className="text-x-600 text-[10px] font-bold uppercase tracking-widest leading-none mt-0.5">
-                Trending
-              </span>
             </div>
           )}
           {product.isNewArrival && (
-            <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md border border-gray-100 px-2 py-1.5 shadow-md">
-              <svg className="w-2.5 h-2.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-              </svg>
-              <span className="text-x-600 text-[10px] font-bold uppercase tracking-widest leading-none mt-0.5">
-                New
-              </span>
+            <div
+              className="w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center"
+              title="New Arrival"
+            >
+              <span className="text-[9px] font-extrabold text-emerald-500 tracking-widest leading-none">NEW</span>
             </div>
           )}
         </div>
@@ -199,6 +197,7 @@ export const ProductCard = ({ product, activeColor = "" }) => {
         >
           <Heart className="!relative !w-5 !h-5" filled={isInWishlist} />
         </button>
+
       </Link>
 
       <div className="flex flex-col items-start gap-[3px] relative self-stretch w-full flex-[0_0_auto]">

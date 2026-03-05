@@ -202,22 +202,13 @@ export const HeaderSection = () => {
                       Admin Panel
                     </Link>
 
-                    <Link
-                      to="/profile"
-                      className="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 transition-colors"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    >
-                      <svg className="mr-3 h-4 w-4 text-gray-400 group-hover:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-                      My Orders
-                    </Link>
-                    <Link
-                      to="/profile"
-                      className="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 transition-colors"
-                      onClick={() => setIsUserMenuOpen(false)}
+                    <button
+                      className="group flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-pink-600 transition-colors text-left"
+                      onClick={() => { setIsUserMenuOpen(false); navigate('/profile', { state: { tab: 'wishlist' } }); }}
                     >
                       <svg className="mr-3 h-4 w-4 text-gray-400 group-hover:text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                       Wishlist
-                    </Link>
+                    </button>
                   </div>
                   <div className="py-1 border-t border-gray-100">
                     <button
@@ -231,6 +222,20 @@ export const HeaderSection = () => {
                 </div>
               )}
             </div>
+
+            {/* My Orders icon */}
+            {isAuthenticated && (
+              <button
+                className="inline-flex items-center justify-center gap-2.5 p-3 relative flex-[0_0_auto]"
+                aria-label="My Orders"
+                title="My Orders"
+                onClick={() => navigate('/profile', { state: { tab: 'orders' } })}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </button>
+            )}
 
             <button
               className="inline-flex items-center justify-center gap-2.5 p-3 relative flex-[0_0_auto]"

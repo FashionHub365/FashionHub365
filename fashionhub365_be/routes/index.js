@@ -21,7 +21,7 @@ const defaultRoutes = [
     { path: '/upload', route: uploadRoute },
     { path: '/cart', route: cartRoute },
     { path: '/listing', route: listingRoute },
-    { path: '/customer-orders', route: customerOrderRoute },
+    { path: '/orders', route: customerOrderRoute },
     { path: '/wishlist', route: wishlistRoute },
 ];
 

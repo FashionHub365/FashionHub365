@@ -54,6 +54,7 @@ const getCartByUserId = async (userId) => {
             price,
             quantity: item.quantity,
             subtotal,
+            stock: variant ? variant.stock : 0,
             inStock: variant ? variant.stock >= item.quantity : false,
             // dùng cho CartRecommendations engine
             storeId: product.store_id?.toString() || '',

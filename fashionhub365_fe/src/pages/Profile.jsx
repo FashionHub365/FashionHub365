@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import checkoutApi from '../apis/checkoutApi';
 import wishlistApi from '../apis/wishlistApi';
 import { Trash } from '../components/Icons';
@@ -238,7 +238,15 @@ const OrdersTab = ({ orders, loading, error, onShop }) => {
 export const Profile = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('orders');
+    const location = useLocation();
+    const [activeTab, setActiveTab] = useState(location.state?.tab || 'orders');
+
+    // Khi navigate đến /profile với state khác trong khi đang ở profile
+    useEffect(() => {
+        if (location.state?.tab) {
+            setActiveTab(location.state.tab);
+        }
+    }, [location.state]);
 
     // ── Orders state ──────────────────────────────────────────────
     const [orders, setOrders] = useState([]);
