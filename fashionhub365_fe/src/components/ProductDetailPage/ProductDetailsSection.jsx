@@ -4,70 +4,18 @@ import axiosClient from "../../apis/axiosClient";
 import wishlistApi from "../../apis/wishlistApi";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import Skeleton from "../common/Skeleton";
 
 /**
  * ProductDetailsSection
  * Nhận prop `product` từ ProductDetail page (dữ liệu từ API)
  * Nếu product === null → hiển thị UI tĩnh như thiết kế gốc (fallback cho /product-detail)
- * 
- * Chức năng:
- *  - Hiển thị gallery ảnh từ product.media
- *  - Chọn màu sắc từ variants
- *  - Chọn kích thước từ variants
- *  - Nút "ADD TO BAG" gọi Cart API (POST /cart/items)
  */
-export const ProductDetailsSection = ({ product }) => {
+export const ProductDetailsSection = ({ product, loading = false }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  // ── STATIC FALLBACK DATA (khi không có product từ API) ────────────
-  const staticImages = [
-    { id: 1, src: "/textures/productdetailpage/image.jpg", alt: "Product image 1" },
-    { id: 2, src: "/textures/productdetailpage/image2.jpg", alt: "Product image 2" },
-    { id: 3, src: "/textures/productdetailpage/image3.jpg", alt: "Product image 3" },
-    { id: 4, src: "/textures/productdetailpage/image4.jpg", alt: "Product image 4" },
-    { id: 5, src: "/textures/productdetailpage/image5.jpg", alt: "Product image 5" },
-    { id: 6, src: "/textures/productdetailpage/image6.jpg", alt: "Product image 6" },
-  ];
 
-  const staticColors = [
-    { id: 1, name: "Navy Blue", color: "#103080" },
-    { id: 2, name: "Brown", color: "#7c3c0e" },
-  ];
-
-  const staticSizes = ["XS", "S", "M", "L", "XL", "XXL"];
-
-  // ── DỮ LIỆU TỪ API (khi có product) ─────────────────────────────
-  // Gallery ảnh: lấy từ product.media, sort theo sortOrder
-  const productImages = product?.media?.length
-    ? product.media
-      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
-      .map((m, i) => ({ id: i + 1, src: m.url, alt: `${product.name} - ${i + 1}` }))
-    : staticImages;
-
-  // Màu sắc: extract từ variants.attributes.color (lấy unique color)
-  const colorVariants = product?.variants
-    ? [
-      ...new Map(
-        product.variants
-          .filter((v) => v.attributes?.color)
-          .map((v) => [v.attributes.color, { name: v.attributes.color, color: getColorHex(v.attributes.color) }])
-      ).values(),
-    ]
-    : staticColors.map((c) => ({ name: c.name, color: c.color }));
-
-  // Kích thước: extract từ variants.attributes.size (lấy unique size)
-  const sizeVariants = product?.variants
-    ? [...new Set(product.variants.filter((v) => v.attributes?.size).map((v) => v.attributes.size))]
-    : staticSizes;
-
-  // Features section (tĩnh - thiết kế của nhóm)
-  const features = [
-    { id: 1, icon: "/textures/productdetailpage/ship.jpg", title: "Free Shipping", description: "On all orders over 1.000.000₫" },
-    { id: 2, icon: "/textures/productdetailpage/return.jpg", title: "Easy Returns", description: "Extended returns within 30 days" },
-    { id: 3, icon: "/textures/productdetailpage/gift.jpg", title: "Send It As A Gift", description: "Add a free personalized note during checkout" },
-  ];
-
-  // ── STATE ─────────────────────────────────────────────────────────
+  // ── STATE (Hooks must be called first and in the same order) ───────
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState(null);
   const [addingToCart, setAddingToCart] = useState(false);
@@ -120,8 +68,50 @@ export const ProductDetailsSection = ({ product }) => {
     }
   };
 
-  // ── THÔNG TIN GIÁ ─────────────────────────────────────────────────
-  // Tìm variant tương ứng với màu + size đang chọn
+  // ── STATIC FALLBACK DATA ──────────────────────────────────────────
+  const staticImages = [
+    { id: 1, src: "/textures/productdetailpage/image.jpg", alt: "Product image 1" },
+    { id: 2, src: "/textures/productdetailpage/image2.jpg", alt: "Product image 2" },
+    { id: 3, src: "/textures/productdetailpage/image3.jpg", alt: "Product image 3" },
+    { id: 4, src: "/textures/productdetailpage/image4.jpg", alt: "Product image 4" },
+    { id: 5, src: "/textures/productdetailpage/image5.jpg", alt: "Product image 5" },
+    { id: 6, src: "/textures/productdetailpage/image6.jpg", alt: "Product image 6" },
+  ];
+
+  const staticColors = [
+    { id: 1, name: "Navy Blue", color: "#103080" },
+    { id: 2, name: "Brown", color: "#7c3c0e" },
+  ];
+
+  const staticSizes = ["XS", "S", "M", "L", "XL", "XXL"];
+
+  // ── DỮ LIỆU TỪ API ────────────────────────────────────────────────
+  const productImages = product?.media?.length
+    ? [...product.media]
+      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+      .map((m, i) => ({ id: i + 1, src: m.url, alt: `${product.name} - ${i + 1}` }))
+    : staticImages;
+
+  const colorVariants = product?.variants
+    ? [
+      ...new Map(
+        product.variants
+          .filter((v) => v.attributes?.color)
+          .map((v) => [v.attributes.color, { name: v.attributes.color, color: getColorHex(v.attributes.color) }])
+      ).values(),
+    ]
+    : staticColors.map((c) => ({ name: c.name, color: c.color }));
+
+  const sizeVariants = product?.variants
+    ? [...new Set(product.variants.filter((v) => v.attributes?.size).map((v) => v.attributes.size))]
+    : staticSizes;
+
+  const features = [
+    { id: 1, icon: "/textures/productdetailpage/ship.jpg", title: "Free Shipping", description: "On all orders over 1.000.000₫" },
+    { id: 2, icon: "/textures/productdetailpage/return.jpg", title: "Easy Returns", description: "Extended returns within 30 days" },
+    { id: 3, icon: "/textures/productdetailpage/gift.jpg", title: "Send It As A Gift", description: "Add a free personalized note during checkout" },
+  ];
+
   const selectedColor = colorVariants[selectedColorIndex]?.name;
   const matchedVariant = product?.variants?.find(
     (v) =>
@@ -132,10 +122,9 @@ export const ProductDetailsSection = ({ product }) => {
   const originalPrice = product?.base_price || 238;
   const salePrice = matchedVariant?.price || originalPrice;
   const productName = product?.name || "The ReWool® Oversized Shirt Jacket";
-  const description = product?.description || "Meet your new chilly weather staple. The ReWool® Oversized Shirt Jacket has all the classic shirt detailing...";
-  const categoryName = product?.primary_category_id?.name || "Men / Outerwear - Jackets & Coats";
+  const description = product?.description || "Meet your new chilly weather staple...";
+  const categoryName = product?.primary_category_id?.name || "Men / Outerwear";
 
-  // ── ADD TO BAG ────────────────────────────────────────────────────
   const handleAddToCart = async () => {
     if (!product) return;
     if (!selectedSize) {
@@ -143,19 +132,14 @@ export const ProductDetailsSection = ({ product }) => {
       setTimeout(() => setCartMessage(null), 3000);
       return;
     }
-
-    // Tìm variantId tương ứng với màu + size đã chọn
     const variant = product.variants?.find(
       (v) => v.attributes?.color === selectedColor && v.attributes?.size === selectedSize
     );
     if (!variant) {
       setCartMessage({ type: "error", text: "Không tìm thấy biến thể sản phẩm này." });
-      setTimeout(() => setCartMessage(null), 3000);
       return;
     }
-
     setAddingToCart(true);
-    setCartMessage(null);
     try {
       await axiosClient.post("/cart/items", {
         productId: product._id,
@@ -164,44 +148,76 @@ export const ProductDetailsSection = ({ product }) => {
       });
       setCartMessage({ type: "success", text: "Đã thêm vào giỏ hàng! 🎉" });
     } catch (err) {
-      const msg = err.response?.data?.message || "Lỗi khi thêm vào giỏ hàng.";
-      // Nếu 401 → chưa đăng nhập
-      if (err.response?.status === 401) {
-        setCartMessage({ type: "error", text: "Vui lòng đăng nhập để thêm vào giỏ hàng." });
-      } else {
-        setCartMessage({ type: "error", text: msg });
-      }
+      setCartMessage({ type: "error", text: "Lỗi khi thêm vào giỏ hàng." });
     } finally {
       setAddingToCart(false);
       setTimeout(() => setCartMessage(null), 3000);
     }
   };
 
-  // ── RENDER ────────────────────────────────────────────────────────
+  // ── RENDER LOADING SKELETON ───────────────────────────────────────
+  if (loading) {
+    return (
+      <section className="items-start gap-6 px-20 py-[30px] flex relative self-stretch w-full flex-[0_0_auto]">
+        <div className="flex flex-col items-start gap-2 relative flex-1 grow">
+          {[1, 2, 3].map((row) => (
+            <div key={row} className="flex items-start gap-2 relative self-stretch w-full flex-[0_0_auto]">
+              <Skeleton className="h-[508px] flex-1 grow" />
+              <Skeleton className="h-[508px] flex-1 grow" />
+            </div>
+          ))}
+        </div>
+        <aside className="flex flex-col w-96 items-start gap-6 relative">
+          <div className="w-full space-y-4 pb-4 border-b border-gray-200">
+            <Skeleton className="h-4 w-1/3" />
+            <div className="flex justify-between items-center">
+              <Skeleton className="h-8 w-1/2" />
+              <Skeleton className="h-8 w-1/4" />
+            </div>
+            <Skeleton className="h-4 w-1/4" />
+          </div>
+          <div className="w-full space-y-4">
+            <Skeleton className="h-4 w-1/4" />
+            <div className="flex gap-2">
+              <Skeleton className="w-8 h-8 rounded-full" />
+              <Skeleton className="w-8 h-8 rounded-full" />
+            </div>
+          </div>
+          <div className="w-full space-y-4">
+            <Skeleton className="h-4 w-1/4" />
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="w-12 h-12" />)}
+            </div>
+          </div>
+          <Skeleton className="h-14 w-full" />
+          <div className="w-full space-y-4 pt-6 border-t border-gray-200">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="flex gap-4 items-center">
+                <Skeleton className="w-8 h-8 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-3 w-1/3" />
+                  <Skeleton className="h-3 w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </aside>
+      </section>
+    );
+  }
+
+  // ── RENDER ACTUAL CONTENT ─────────────────────────────────────────
   return (
     <section className="items-start gap-6 px-20 py-[30px] flex relative self-stretch w-full flex-[0_0_auto]">
-      {/* Gallery ảnh: giữ nguyên layout 2 cột × 3 hàng của nhóm */}
       <div className="flex flex-col items-start gap-2 relative flex-1 grow">
         {[0, 2, 4].map((startIndex) => (
-          <div
-            key={startIndex}
-            className="flex items-start gap-2 relative self-stretch w-full flex-[0_0_auto]"
-          >
+          <div key={startIndex} className="flex items-start gap-2 relative self-stretch w-full flex-[0_0_auto]">
             {productImages.slice(startIndex, startIndex + 2).map((img, index) => (
-              <div
-                key={img.id}
-                className="flex h-[508px] items-start gap-2.5 relative flex-1 grow"
-              >
-                <img
-                  className="flex-1 grow relative self-stretch object-cover"
-                  alt={img.alt}
-                  src={img.src}
-                />
+              <div key={img.id} className="flex h-[508px] items-start gap-2.5 relative flex-1 grow">
+                <img className="flex-1 grow relative self-stretch object-cover" alt={img.alt} src={img.src} />
                 {startIndex === 0 && index === 0 && salePrice < originalPrice && (
-                  <div className="inline-flex items-center justify-center gap-2.5 px-1.5 py-1 absolute top-2 left-2 bg-white">
-                    <div className="relative w-fit mt-[-1.00px] font-text-200 font-[number:var(--text-200-font-weight)] text-red text-[length:var(--text-200-font-size)] text-center tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] whitespace-nowrap [font-style:var(--text-200-font-style)]">
-                      {Math.round(((originalPrice - salePrice) / originalPrice) * 100)}% off
-                    </div>
+                  <div className="inline-flex items-center justify-center gap-2.5 px-1.5 py-1 absolute top-2 left-2 bg-white text-red font-bold">
+                    {Math.round(((originalPrice - salePrice) / originalPrice) * 100)}% off
                   </div>
                 )}
               </div>
@@ -210,173 +226,94 @@ export const ProductDetailsSection = ({ product }) => {
         ))}
       </div>
 
-      {/* Sidebar thông tin sản phẩm */}
       <aside className="flex flex-col w-96 items-start gap-px relative">
-        {/* Header: tên, giá, rating */}
-        <header className="flex flex-col items-start gap-1 pt-0 pb-4 px-0 relative self-stretch w-full flex-[0_0_auto] mt-[-1.00px] ml-[-1.00px] mr-[-1.00px] border-b [border-bottom-style:solid] border-x-100">
-          <nav aria-label="Breadcrumb">
-            <p className="relative self-stretch font-text-200 font-[number:var(--text-200-font-weight)] text-x-300 text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] [font-style:var(--text-200-font-style)]">
-              {categoryName}
-            </p>
-          </nav>
-
-          <div className="flex items-start gap-2.5 relative self-stretch w-full flex-[0_0_auto]">
-            <h1 className="relative text-left flex-1 mt-[-1.00px] font-display-100 font-[number:var(--display-100-font-weight)] text-x-600 text-[length:var(--display-100-font-size)] tracking-[var(--display-100-letter-spacing)] leading-[var(--display-100-line-height)] [font-style:var(--display-100-font-style)]">
-              {productName}
-            </h1>
-
-            <div className="inline-flex items-center justify-end gap-1 relative flex-[0_0_auto]">
+        <header className="flex flex-col items-start gap-1 pt-0 pb-4 px-0 relative self-stretch w-full border-b border-gray-200">
+          <p className="text-gray-500">{categoryName}</p>
+          <div className="flex items-start gap-2.5 w-full justify-between">
+            <h1 className="text-2xl font-bold flex-1">{productName}</h1>
+            <div className="flex items-end flex-col">
               {salePrice < originalPrice && (
-                <span className="w-fit font-display-100-strikethrough text-x-300 text-[length:var(--display-100-strikethrough-font-size)] tracking-[var(--display-100-strikethrough-letter-spacing)] leading-[var(--display-100-strikethrough-line-height)] line-through whitespace-nowrap relative mt-[-1.00px] font-[number:var(--display-100-strikethrough-font-weight)] [font-style:var(--display-100-strikethrough-font-style)]">
-                  {originalPrice.toLocaleString("vi-VN")}₫
-                </span>
+                <span className="text-gray-400 line-through">{originalPrice.toLocaleString()}₫</span>
               )}
-              <span className="w-fit font-display-100 text-x-600 text-[length:var(--display-100-font-size)] tracking-[var(--display-100-letter-spacing)] leading-[var(--display-100-line-height)] whitespace-nowrap relative mt-[-1.00px] font-[number:var(--display-100-font-weight)] [font-style:var(--display-100-font-style)]">
-                {salePrice.toLocaleString("vi-VN")}₫
-              </span>
+              <span className="text-xl font-bold">{salePrice.toLocaleString()}₫</span>
             </div>
           </div>
-
-          <div className="flex items-center gap-2.5 relative self-stretch w-full flex-[0_0_auto]">
-            <div className="inline-flex items-center gap-1 relative flex-[0_0_auto]" role="img" aria-label="5 out of 5 stars">
-              {[...Array(5)].map((_, index) => (
-                <Star key={index} className="!relative !w-3 !h-3" />
-              ))}
+          <div className="flex items-center gap-2.5 pt-2">
+            <div className="flex items-center gap-1">
+              {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3" />)}
             </div>
-            <span className="text-sm text-x-500">5.0 (2 reviews)</span>
+            <span className="text-sm text-gray-500">5.0 (2 reviews)</span>
           </div>
         </header>
 
-        {/* Chọn màu */}
-        <div className="flex flex-col items-start gap-2.5 px-0 py-[18px] relative self-stretch w-full flex-[0_0_auto]">
-          <div className="flex items-start gap-3 relative self-stretch w-full flex-[0_0_auto]">
-            <span className="font-text-200">
-              Color: {colorVariants[selectedColorIndex]?.name}
-            </span>
-          </div>
-
-          <fieldset className="flex items-start gap-3 relative self-stretch w-full flex-[0_0_auto]">
-            <legend className="sr-only">Select color</legend>
-            {colorVariants.map((colorOption, index) => (
+        <div className="w-full py-4 space-y-3">
+          <p className="font-bold">Color: {selectedColor}</p>
+          <div className="flex gap-3">
+            {colorVariants.map((c, i) => (
               <button
-                key={colorOption.name}
-                type="button"
-                onClick={() => setSelectedColorIndex(index)}
-                className={`relative w-8 h-8 rounded-2xl border border-solid ${selectedColorIndex === index ? "border-x-600" : "border-x-200"
-                  }`}
-                aria-label={`Select ${colorOption.name} color`}
-                aria-pressed={selectedColorIndex === index}
-              >
-                <div
-                  className="h-full rounded-2xl"
-                  style={{ backgroundColor: colorOption.color, border: "2px solid white" }}
-                />
-              </button>
+                key={c.name}
+                onClick={() => setSelectedColorIndex(i)}
+                className={`w-8 h-8 rounded-full border-2 ${selectedColorIndex === i ? "border-black" : "border-transparent"}`}
+                style={{ backgroundColor: c.color }}
+              />
             ))}
-          </fieldset>
+          </div>
         </div>
 
-        {/* Chọn size */}
-        <div className="flex flex-col items-start gap-2.5 px-0 py-[18px] relative self-stretch w-full flex-[0_0_auto]">
-          <div className="flex items-start justify-between relative self-stretch w-full flex-[0_0_auto]">
-            <span className="font-text-200">Size</span>
-            <span className="font-text-200 underline cursor-pointer">Size Guide</span>
+        <div className="w-full py-4 space-y-3">
+          <div className="flex justify-between underline cursor-pointer">
+            <p className="font-bold">Size</p>
+            <p>Size Guide</p>
           </div>
-
-          <fieldset className="flex items-start gap-3 flex-wrap relative self-stretch w-full flex-[0_0_auto]">
-            <legend className="sr-only">Select size</legend>
-            {sizeVariants.map((sizeOption) => (
+          <div className="flex gap-3 flex-wrap">
+            {sizeVariants.map(s => (
               <button
-                key={sizeOption}
-                type="button"
-                onClick={() => setSelectedSize(sizeOption)}
-                className={`flex w-[45px] items-center justify-center gap-2.5 p-3 relative ${selectedSize === sizeOption ? "bg-x-500" : "bg-x-100"
-                  }`}
-                aria-label={`Select size ${sizeOption}`}
-                aria-pressed={selectedSize === sizeOption}
+                key={s}
+                onClick={() => setSelectedSize(s)}
+                className={`w-12 h-12 flex items-center justify-center border ${selectedSize === s ? "bg-black text-white" : "bg-gray-100"}`}
               >
-                <span
-                  className={`relative w-fit mt-[-1.00px] font-text-200 font-[number:var(--text-200-font-weight)] text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] whitespace-nowrap [font-style:var(--text-200-font-style)] ${selectedSize === sizeOption ? "text-white" : "text-x-500"
-                    }`}
-                >
-                  {sizeOption}
-                </span>
+                {s}
               </button>
             ))}
-          </fieldset>
+          </div>
         </div>
 
-        {/* Nút ADD TO BAG */}
-        <div className="flex flex-col items-center justify-center gap-2.5 px-0 py-8 relative self-stretch w-full flex-[0_0_auto]">
+        <div className="w-full py-8 space-y-4">
           {cartMessage && (
-            <p className={`text-sm font-text-200 ${cartMessage.type === "success" ? "text-green-600" : "text-red-500"}`}>
+            <p className={`text-center ${cartMessage.type === "success" ? "text-green-600" : "text-red-600"}`}>
               {cartMessage.text}
             </p>
           )}
-          <div className="flex gap-2 w-full">
+          <div className="flex gap-2">
             <button
-              type="button"
               onClick={handleAddToCart}
               disabled={addingToCart}
-              className="box-border flex items-center justify-center gap-2.5 px-0 py-3 relative flex-1 bg-x-500 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-              aria-label="Add to bag"
+              className="flex-1 bg-black text-white py-4 font-bold disabled:bg-gray-400"
             >
-              <span className="relative w-fit mt-[-1.00px] font-text-300 font-[number:var(--text-300-font-weight)] text-white text-[length:var(--text-300-font-size)] text-center tracking-[var(--text-300-letter-spacing)] leading-[var(--text-300-line-height)] whitespace-nowrap [font-style:var(--text-300-font-style)]">
-                {addingToCart ? "ĐANG THÊM..." : "ADD TO BAG"}
-              </span>
+              {addingToCart ? "ADDING..." : "ADD TO BAG"}
             </button>
-            <button
-              type="button"
-              onClick={handleToggleWishlist}
-              disabled={wishlistLoading}
-              className={`flex items-center justify-center p-3 relative bg-x-100 border border-x-200 hover:bg-x-200 transition-colors ${isInWishlist ? 'text-red-500' : 'text-x-500'}`}
-              aria-label="Toggle wishlist"
-            >
-              <Heart className="!relative !w-6 !h-6" filled={isInWishlist} />
+            <button onClick={handleToggleWishlist} className="p-4 border">
+              <Heart filled={isInWishlist} className={isInWishlist ? "text-red-500" : ""} />
             </button>
           </div>
         </div>
 
-        {/* Features: Free Shipping / Easy Returns / Gift */}
-        <div className="flex flex-col items-start gap-6 px-0 py-6 relative self-stretch w-full flex-[0_0_auto] ml-[-1.00px] mr-[-1.00px] border-t [border-top-style:solid] border-x-200">
-          {features.map((feature) => (
-            <div key={feature.id} className="flex items-center gap-4 relative self-stretch w-full flex-[0_0_auto]">
-              <img src={feature.icon} alt={feature.title} className="relative w-[34px] h-[34px] object-contain" />
-              <div className="flex flex-col items-start relative flex-1 grow">
-                <span className="font-text-200 font-bold">{feature.title}</span>
-                <span className="font-text-200">{feature.description}</span>
+        <div className="w-full py-6 border-t space-y-6">
+          {features.map(f => (
+            <div key={f.id} className="flex items-center gap-4">
+              <img src={f.icon} alt="" className="w-8 h-8" />
+              <div>
+                <p className="font-bold">{f.title}</p>
+                <p className="text-sm text-gray-600">{f.description}</p>
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Mô tả sản phẩm */}
-        <article className="flex-col gap-4 pt-10 pb-3 px-0 ml-[-1.00px] mr-[-1.00px] border-t [border-top-style:solid] border-x-200 flex items-start relative self-stretch w-full flex-[0_0_auto]">
-          <span className="font-text-200 font-bold">{product?.short_description || "Part shirt, part jacket, all style."}</span>
-          <p className="font-text-200 text-left">{description}</p>
-        </article>
-
-        {/* Model / Fit / Sustainability (tĩnh – giữ nguyên thiết kế nhóm) */}
-        <div className="flex items-center text-left px-0 py-5 relative self-stretch w-full flex-[0_0_auto] ml-[-1.00px] mr-[-1.00px] border-b [border-bottom-style:solid] border-x-200">
-          <span className="font-text-200 font-bold w-20">Model</span>
-          <span className="font-text-200">Model is 6'2" wearing a size M</span>
-        </div>
-
-        <div className="flex items-start text-left px-0 py-5 relative self-stretch w-full flex-[0_0_auto] ml-[-1.00px] mr-[-1.00px] border-b [border-bottom-style:solid] border-x-200">
-          <span className="font-text-200 font-bold w-20">Fit</span>
-          <span className="font-text-200">Questions about fit? Contact Us</span>
-        </div>
-
-        <div className="flex flex-col items-start px-0 py-5 relative self-stretch w-full flex-[0_0_auto] mb-[-1.00px] ml-[-1.00px] mr-[-1.00px] border-b [border-bottom-style:solid] border-x-200">
-          <span className="font-text-200 font-bold">Sustainability</span>
-          <img src="/textures/productdetailpage/Sustainability.jpg" alt="Sustainability" className="mt-2 w-full object-contain" />
         </div>
       </aside>
     </section>
   );
 };
 
-// ── Helper: map tên màu → hex ────────────────────────────────────────
 const COLOR_MAP = {
   black: "#1a1a1a", white: "#ffffff", blue: "#21558d", brown: "#925c37",
   green: "#585b45", grey: "#e1e1e3", gray: "#e1e1e3", orange: "#d38632",
