@@ -12,6 +12,7 @@ const Category = require('./Category');
 const Collection = require('./Collection');
 const Tag = require('./Tag');
 const Product = require('./Product');
+const ProductReview = require('./ProductReview');
 const Inventory = require('./Inventory');
 const PricingRule = require('./PricingRule');
 const Voucher = require('./Voucher');
@@ -68,6 +69,7 @@ module.exports = {
     Collection,
     Tag,
     Product,
+    ProductReview,
     Inventory,
     PricingRule,
     Voucher,

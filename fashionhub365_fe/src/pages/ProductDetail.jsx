@@ -5,7 +5,6 @@ import { ProductDetailsSection } from "../components/ProductDetailPage/ProductDe
 import { ReviewsSection } from "../components/ProductDetailPage/ReviewsSection";
 import { TransparentPricingSection } from "../components/ProductDetailPage/TransparentPricingSection";
 import { RecommendedProductsSection } from "../components/ProductDetailPage/RecommendedProductsSection";
-import Loading from "../components/common/Loading";
 
 /**
  * ProductDetail Page
@@ -20,7 +19,7 @@ export const ProductDetail = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!id) return; // Không có ID → hiển thị UI tĩnh (fallback)
+    if (!id) return;
 
     const fetchProduct = async () => {
       setLoading(true);
@@ -29,6 +28,8 @@ export const ProductDetail = () => {
         const response = await listingApi.getProductById(id);
         if (response.success) {
           setProduct(response.data);
+          // Track view count — fire-and-forget, không block UI
+          listingApi.trackView(id).catch(() => { });
         }
       } catch (err) {
         console.error("Error fetching product detail:", err);
@@ -60,12 +61,8 @@ export const ProductDetail = () => {
         <>
           <ProductDetailsSection product={product} loading={loading} />
           {product && !loading && <RecommendedProductsSection productId={product._id} />}
-          {!loading && (
-            <>
-              <ReviewsSection />
-              <TransparentPricingSection />
-            </>
-          )}
+          {product && !loading && <ReviewsSection productId={product._id} product={product} />}
+          {!loading && <TransparentPricingSection />}
         </>
       )}
     </div>

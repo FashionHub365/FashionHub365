@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export const FeaturedCollectionsSection = () => {
   const collections = [
     {
@@ -5,18 +7,21 @@ export const FeaturedCollectionsSection = () => {
       title: "New Arrivals",
       buttonText: "SHOP THE LATEST",
       backgroundImage: "/textures/landingpage/frame-1.jpg",
+      link: "/listing?sort=newest",
     },
     {
       id: 2,
       title: "Best-Sellers",
       buttonText: "SHOP YOUR FAVORITES",
       backgroundImage: "/textures/landingpage/frame-2.jpg",
+      link: "/listing?sort=best_sellers",
     },
     {
       id: 3,
-      title: "The Holiday Outfit",
-      buttonText: "SHOP OCCASION",
-      backgroundImage: "/textures/landingpage/frame-3.jpg",
+      title: "Top Rated",
+      buttonText: "SHOP TOP PICKS",
+      backgroundImage: "/textures/landingpage/frame-5.jpg",
+      link: "/listing?sort=top_rated",
     },
   ];
 
@@ -32,14 +37,15 @@ export const FeaturedCollectionsSection = () => {
             {collection.title}
           </h2>
 
-          <button
-            className="all-[unset] box-border flex w-60 items-center justify-center gap-2.5 px-0 py-3 relative flex-[0_0_auto] bg-white cursor-pointer"
+          <Link
+            to={collection.link}
+            className="all-[unset] box-border flex w-60 items-center justify-center gap-2.5 px-0 py-3 relative flex-[0_0_auto] bg-white cursor-pointer hover:opacity-90 transition-opacity no-underline"
             aria-label={`${collection.buttonText} for ${collection.title}`}
           >
             <span className="relative w-fit mt-[-1.00px] font-text-300 font-[number:var(--text-300-font-weight)] text-x-500 text-[length:var(--text-300-font-size)] text-center tracking-[var(--text-300-letter-spacing)] leading-[var(--text-300-line-height)] whitespace-nowrap [font-style:var(--text-300-font-style)]">
               {collection.buttonText}
             </span>
-          </button>
+          </Link>
         </article>
       ))}
     </section>

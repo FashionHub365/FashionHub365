@@ -22,11 +22,11 @@ const getOrCreateCart = async (userId) => {
  */
 const getCartByUserId = async (userId) => {
     const cart = await getOrCreateCart(userId);
-    
+
     // Populate product details for each item
     await cart.populate({
         path: 'items.productId',
-        select: 'name media base_price variants'
+        select: 'name media base_price variants store_id category_ids',
     });
 
     let totalAmount = 0;
@@ -54,7 +54,11 @@ const getCartByUserId = async (userId) => {
             price,
             quantity: item.quantity,
             subtotal,
-            inStock: variant ? variant.stock >= item.quantity : false
+            stock: variant ? variant.stock : 0,
+            inStock: variant ? variant.stock >= item.quantity : false,
+            // dùng cho CartRecommendations engine
+            storeId: product.store_id?.toString() || '',
+            categoryIds: (product.category_ids || []).map(c => c.toString()),
         };
     }).filter(item => item !== null);
 
@@ -74,7 +78,7 @@ const getCartByUserId = async (userId) => {
  */
 const addItemToCart = async (userId, itemBody) => {
     const { productId, variantId, quantity } = itemBody;
-    
+
     // 1. Check product and stock
     const product = await Product.findById(productId);
     if (!product) {
@@ -138,7 +142,7 @@ const updateItemQuantity = async (userId, itemId, quantity) => {
     // Check stock for update
     const product = await Product.findById(item.productId);
     const variant = product?.variants.find(v => v._id.toString() === item.variantId.toString());
-    
+
     if (!variant || variant.stock < quantity) {
         throw new ApiError(httpStatus.BAD_REQUEST, `Cannot update to ${quantity} items. Stock available: ${variant?.stock || 0}`);
     }
