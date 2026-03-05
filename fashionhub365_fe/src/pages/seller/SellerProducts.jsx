@@ -76,8 +76,8 @@ const SellerProducts = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="animate-fadeIn">
+            <div className="max-w-7xl mx-auto">
 
                 {/* Header */}
                 <div className="mb-8 flex items-center justify-between">
@@ -119,8 +119,8 @@ const SellerProducts = () => {
                                 <button key={key}
                                     onClick={() => setStatusFilter(key)}
                                     className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${statusFilter === key
-                                            ? 'bg-white text-gray-900 shadow-sm'
-                                            : 'text-gray-500 hover:text-gray-700'
+                                        ? 'bg-white text-gray-900 shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-700'
                                         }`}>
                                     {label}
                                 </button>

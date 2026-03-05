@@ -1,0 +1,106 @@
+import React from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+
+const SellerLayout = () => {
+    const location = useLocation();
+
+    const menuItems = [
+        {
+            path: '/seller/dashboard',
+            name: 'Dashboard',
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+            )
+        },
+        {
+            path: '/seller/orders',
+            name: 'Orders',
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+            )
+        },
+        {
+            path: '/seller/products',
+            name: 'Products',
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+            )
+        }
+    ];
+
+    return (
+        <div className="flex min-h-screen bg-gray-50">
+            {/* Sidebar */}
+            <aside className="w-64 bg-white border-r border-gray-200 hidden md:block flex-shrink-0">
+                <div className="h-full flex flex-col">
+                    <div className="p-6">
+                        <h2 className="text-xl font-bold text-gray-800">Seller Center</h2>
+                        <p className="text-xs text-gray-500 mt-1">Manage your business</p>
+                    </div>
+
+                    <nav className="flex-1 px-4 space-y-1">
+                        {menuItems.map((item) => (
+                            <NavLink
+                                key={item.path}
+                                to={item.path}
+                                className={({ isActive }) =>
+                                    `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
+                                        ? 'bg-indigo-50 text-indigo-700'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                    }`
+                                }
+                            >
+                                {item.icon}
+                                {item.name}
+                            </NavLink>
+                        ))}
+                    </nav>
+
+                    <div className="p-4 border-t border-gray-100">
+                        <NavLink
+                            to="/profile"
+                            className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-xl transition-colors"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                            Back to Profile
+                        </NavLink>
+                    </div>
+                </div>
+            </aside>
+
+            {/* Mobile Bottom Nav */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 px-6 py-2 flex justify-between items-center">
+                {menuItems.map((item) => (
+                    <NavLink
+                        key={item.path}
+                        to={item.path}
+                        className={({ isActive }) =>
+                            `flex flex-col items-center gap-1 p-2 ${isActive ? 'text-indigo-600' : 'text-gray-500'
+                            }`
+                        }
+                    >
+                        {item.icon}
+                        <span className="text-[10px] uppercase font-bold tracking-wider">{item.name}</span>
+                    </NavLink>
+                ))}
+            </div>
+
+            {/* Main Content */}
+            <main className="flex-1 overflow-auto pb-20 md:pb-0">
+                <div className="p-4 md:p-8">
+                    <Outlet />
+                </div>
+            </main>
+        </div>
+    );
+};
+
+export default SellerLayout;
