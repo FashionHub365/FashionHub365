@@ -155,10 +155,9 @@ export const ProductCard = ({ product, activeColor = "" }) => {
             </span>
           </div>
         )}
-<<<<<<< HEAD
 
         {/* Badges Động (New Arrival, Trending, Best Seller) - Premium Style */}
-        <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 items-end z-10 pointer-events-none">
+        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 items-start z-10 pointer-events-none">
           {product.isBestSeller && (
             <div className="flex items-center gap-1 bg-black/90 backdrop-blur-md px-2 py-1.5 shadow-md">
               <svg className="w-2.5 h-2.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
@@ -190,16 +189,16 @@ export const ProductCard = ({ product, activeColor = "" }) => {
             </div>
           )}
         </div>
-=======
+
+        {/* Wishlist button - góc phải trên */}
         <button
           onClick={handleToggleWishlist}
           disabled={wishlistLoading}
-          className={`absolute top-2 right-2 p-2 rounded-full bg-white shadow-md transition-all hover:scale-110 ${isInWishlist ? 'text-red-500' : 'text-gray-400'}`}
+          className={`absolute top-2 right-2 p-2 rounded-full bg-white shadow-md transition-all hover:scale-110 z-10 ${isInWishlist ? 'text-red-500' : 'text-gray-400'}`}
           aria-label="Toggle wishlist"
         >
           <Heart className="!relative !w-5 !h-5" filled={isInWishlist} />
         </button>
->>>>>>> a1636724df8a6b9076ebb5db810f4a3434e0a473
       </Link>
 
       <div className="flex flex-col items-start gap-[3px] relative self-stretch w-full flex-[0_0_auto]">
