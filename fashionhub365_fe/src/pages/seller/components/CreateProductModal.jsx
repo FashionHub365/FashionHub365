@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { getCategories, uploadImage } from '../../../services/productService';
 
+const COLOR_OPTIONS = [
+    { name: "Black", hex: "#1a1a1a" },
+    { name: "Blue", hex: "#21558d" },
+    { name: "Brown", hex: "#925c37" },
+    { name: "Green", hex: "#585b45" },
+    { name: "Grey", hex: "#e1e1e3" },
+    { name: "Orange", hex: "#d38632" },
+    { name: "Pink", hex: "#efcec9" },
+    { name: "Red", hex: "#bd2830" },
+    { name: "Tan", hex: "#b3a695" },
+];
+
+const CLOTHING_SIZES = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+
 const CreateProductModal = ({ onClose, onSave }) => {
     const [form, setForm] = useState({
         name: '',
@@ -12,6 +26,8 @@ const CreateProductModal = ({ onClose, onSave }) => {
         media: [],
         variants: []
     });
+    const [selectedColors, setSelectedColors] = useState([]);
+    const [selectedSizes, setSelectedSizes] = useState([]);
     const [categories, setCategories] = useState([]);
     const [uploading, setUploading] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -28,6 +44,74 @@ const CreateProductModal = ({ onClose, onSave }) => {
         };
         fetchCategories();
     }, []);
+
+    // Generate variants automatically when colors or sizes change
+    useEffect(() => {
+        if (selectedColors.length === 0 && selectedSizes.length === 0) {
+            setForm(prev => ({ ...prev, variants: [] }));
+            return;
+        }
+
+        const newVariants = [];
+        
+        // If only colors are selected
+        if (selectedColors.length > 0 && selectedSizes.length === 0) {
+            selectedColors.forEach(color => {
+                newVariants.push({
+                    variantName: color,
+                    price: form.base_price ? Number(form.base_price) * 1000 : 0,
+                    stock: 0,
+                    attributes: { color }
+                });
+            });
+        } 
+        // If only sizes are selected
+        else if (selectedColors.length === 0 && selectedSizes.length > 0) {
+            selectedSizes.forEach(size => {
+                newVariants.push({
+                    variantName: size,
+                    price: form.base_price ? Number(form.base_price) * 1000 : 0,
+                    stock: 0,
+                    attributes: { size }
+                });
+            });
+        }
+        // If both are selected (Cartesian product)
+        else {
+            selectedColors.forEach(color => {
+                selectedSizes.forEach(size => {
+                    newVariants.push({
+                        variantName: `${color} - ${size}`,
+                        price: form.base_price ? Number(form.base_price) * 1000 : 0,
+                        stock: 0,
+                        attributes: { color, size }
+                    });
+                });
+            });
+        }
+
+        setForm(prev => ({ ...prev, variants: newVariants }));
+    }, [selectedColors, selectedSizes, form.base_price]);
+
+    const toggleColor = (colorName) => {
+        setSelectedColors(prev => 
+            prev.includes(colorName) ? prev.filter(c => c !== colorName) : [...prev, colorName]
+        );
+    };
+
+    const toggleSize = (size) => {
+        setSelectedSizes(prev => 
+            prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
+        );
+    };
+
+    const handleVariantChange = (index, field, value) => {
+        setForm(prev => {
+            const newVariants = [...prev.variants];
+            newVariants[index] = { ...newVariants[index], [field]: value };
+            return { ...prev, variants: newVariants };
+        });
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -108,140 +192,289 @@ const CreateProductModal = ({ onClose, onSave }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8">
-                {/* Header */}
-                <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-20">
-                    <h2 className="text-xl font-bold text-gray-900">Đăng sản phẩm mới</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+                {/* Header - Fixed */}
+                <div className="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-white flex-none">
+                    <div>
+                        <h2 className="text-2xl font-black text-gray-900 tracking-tight">Đăng sản phẩm mới</h2>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">FashionHub365 Seller Center</p>
+                    </div>
+                    <button 
+                        onClick={onClose} 
+                        className="p-2 hover:bg-gray-100 rounded-full transition-colors group"
+                        title="Đóng"
+                    >
+                        <svg className="w-6 h-6 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
+                
+                {/* Body - Scrollable */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar">
+                    <form onSubmit={handleSubmit} className="px-8 py-6 space-y-8">
+                        {error && (
+                            <div className="bg-red-50 border border-red-100 text-red-600 text-[11px] font-bold rounded-2xl px-5 py-4 flex items-center gap-3 animate-shake">
+                                <div className="bg-red-100 p-1.5 rounded-full">
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                                {error}
+                            </div>
+                        )}
 
-                {/* Body */}
-                <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-                    {error && (
-                        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
-                            {error}
-                        </div>
-                    )}
+                        {/* Section: Thông tin cơ bản */}
+                        <div className="space-y-5">
+                            <div className="flex items-center gap-3">
+                                <h3 className="text-[12px] font-black text-gray-900 uppercase tracking-wider">Thông tin cơ bản</h3>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 gap-5 pl-9">
+                                <div>
+                                    <label className="block text-[11px] font-black text-gray-500 mb-2 uppercase tracking-widest">Tên sản phẩm *</label>
+                                    <input
+                                        type="text" name="name" value={form.name} onChange={handleChange}
+                                        className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-sm font-medium placeholder:text-gray-300 shadow-sm"
+                                        placeholder="Nhập tên sản phẩm (ví dụ: Áo thun Polo nam)"
+                                    />
+                                </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Tên sản phẩm *</label>
-                            <input
-                                type="text" name="name" value={form.name} onChange={handleChange}
-                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
-                                placeholder="Nhập tên sản phẩm"
-                            />
-                        </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div>
+                                        <label className="block text-[11px] font-black text-gray-500 mb-2 uppercase tracking-widest">Danh mục *</label>
+                                        <div className="relative group">
+                                            <select
+                                                name="primary_category_id" value={form.primary_category_id} onChange={handleChange}
+                                                className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-sm font-medium cursor-pointer appearance-none shadow-sm"
+                                            >
+                                                <option value="">-- Chọn danh mục --</option>
+                                                {categories.map((cat) => (
+                                                    <option key={cat._id} value={cat._id}>{cat.name}</option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Danh mục *</label>
-                            <select
-                                name="primary_category_id" value={form.primary_category_id} onChange={handleChange}
-                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white"
-                            >
-                                <option value="">-- Chọn danh mục --</option>
-                                {categories.map((cat) => (
-                                    <option key={cat._id} value={cat._id}>{cat.name}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Giá cơ bản (x1000 VND) *</label>
-                            <div className="relative">
-                                <input
-                                    type="number" name="base_price" value={form.base_price} onChange={handleChange} min="0"
-                                    className="w-full pl-4 pr-12 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
-                                    placeholder="Ví dụ: 150 (tương đương 150.000đ)"
-                                />
-                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">.000đ</span>
+                                    <div>
+                                        <label className="block text-[11px] font-black text-gray-500 mb-2 uppercase tracking-widest">Giá niêm yết *</label>
+                                        <div className="relative group">
+                                            <input
+                                                type="number" name="base_price" value={form.base_price} onChange={handleChange} min="0"
+                                                className="w-full pl-5 pr-20 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-[15px] font-black text-blue-600 shadow-sm"
+                                                placeholder="0.000"
+                                            />
+                                            <div className="absolute right-2 top-2 bottom-2 px-4 bg-gray-100 border border-gray-200 rounded-xl flex items-center justify-center group-focus-within:bg-blue-600 group-focus-within:border-blue-600 transition-all">
+                                                <span className="text-[10px] font-black text-gray-500 group-focus-within:text-white uppercase tracking-tighter">VNĐ</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Image Upload Area */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Hình ảnh sản phẩm</label>
-                        <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
-                            {form.media.map((img) => (
-                                <div key={img.publicId} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 group">
-                                    <img src={img.url} alt="product" className="w-full h-full object-cover" />
-                                    <button
-                                        type="button"
-                                        onClick={() => removeImage(img.publicId)}
-                                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
-                                    {img.isPrimary && (
-                                        <span className="absolute bottom-0 left-0 right-0 bg-blue-600/80 text-white text-[8px] text-center py-0.5 font-bold uppercase">Chính</span>
-                                    )}
+                        {/* Section: Màu sắc và size */}
+                        <div className="space-y-5 pt-2">
+                            <div className="flex items-center gap-3">
+                                <h3 className="text-[12px] font-black text-gray-900 uppercase tracking-wider">Màu sắc và size</h3>
+                            </div>
+
+                            <div className="pl-9 space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50/50 p-6 rounded-3xl border border-gray-100 shadow-inner">
+                                    {/* Colors */}
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Bảng màu</label>
+                                            {selectedColors.length > 0 && <span className="text-[8px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full uppercase italic">Đã chọn {selectedColors.length}</span>}
+                                        </div>
+                                        <div className="grid grid-cols-5 gap-3">
+                                            {COLOR_OPTIONS.map(color => (
+                                                <button
+                                                    key={color.name} type="button" onClick={() => toggleColor(color.name)}
+                                                    className="group relative flex flex-col items-center gap-1.5 transition-all"
+                                                    title={color.name}
+                                                >
+                                                    <div 
+                                                        className={`w-9 h-9 rounded-full border-2 transition-all flex items-center justify-center shadow-sm relative ${
+                                                            selectedColors.includes(color.name) 
+                                                            ? 'border-blue-500 ring-4 ring-blue-500/10 scale-110 z-10' 
+                                                            : 'border-white hover:border-gray-200 hover:scale-105'
+                                                        }`}
+                                                        style={{ backgroundColor: color.hex }}
+                                                    >
+                                                        {selectedColors.includes(color.name) && (
+                                                            <svg className={`w-4 h-4 ${['Black', 'Blue', 'Green', 'Red', 'Brown'].includes(color.name) ? 'text-white' : 'text-gray-900'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                        )}
+                                                    </div>
+                                                    <span className={`text-[8px] font-black uppercase tracking-tighter truncate w-full text-center transition-colors ${selectedColors.includes(color.name) ? 'text-blue-600' : 'text-gray-400group-hover:text-gray-600'}`}>
+                                                        {color.name}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Sizes */}
+                                    <div className="space-y-4 md:border-l md:border-gray-200/50 md:pl-8">
+                                        <div className="flex items-center justify-between">
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Kích cỡ</label>
+                                            {selectedSizes.length > 0 && <span className="text-[8px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full uppercase italic">Đã chọn {selectedSizes.length}</span>}
+                                        </div>
+                                        <div className="flex flex-wrap gap-2.5">
+                                            {CLOTHING_SIZES.map(size => (
+                                                <button
+                                                    key={size} type="button" onClick={() => toggleSize(size)}
+                                                    className={`px-4 py-2 text-[10px] font-black rounded-xl border-2 transition-all active:scale-90 ${
+                                                        selectedSizes.includes(size)
+                                                        ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200 scale-105'
+                                                        : 'bg-white border-gray-100 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                                                    }`}
+                                                >
+                                                    {size}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
-                            ))}
-                            
-                            {form.media.length < 5 && (
-                                <label className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all">
-                                    {uploading ? (
-                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                                    ) : (
-                                        <>
-                                            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                            </svg>
-                                            <span className="text-[10px] text-gray-500 mt-1">Thêm ảnh</span>
-                                        </>
-                                    )}
-                                    <input 
-                                        type="file" 
-                                        className="hidden" 
-                                        accept="image/*" 
-                                        onChange={handleFileChange} 
-                                        disabled={uploading} 
-                                        multiple 
-                                    />
-                                </label>
-                            )}
+
+                                {/* Variants Table */}
+                                {form.variants.length > 0 && (
+                                    <div className="bg-white border border-gray-100 rounded-[2rem] overflow-hidden shadow-sm overflow-x-auto ring-1 ring-gray-50">
+                                        <table className="w-full text-xs text-left">
+                                            <thead className="bg-gray-50/50 text-gray-400 text-[9px] uppercase tracking-widest font-black">
+                                                <tr>
+                                                    <th className="px-6 py-4 border-b border-gray-100">Cấu hình chi tiết</th>
+                                                    <th className="px-6 py-4 border-b border-gray-100 text-center">Tồn kho *</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-50">
+                                                {form.variants.map((variant, idx) => (
+                                                    <tr key={idx} className="hover:bg-blue-50/10 transition-colors">
+                                                        <td className="px-6 py-4 font-black text-gray-700">{variant.variantName}</td>
+                                                        <td className="px-6 py-4">
+                                                            <input
+                                                                type="number" value={variant.stock} min="0"
+                                                                onChange={(e) => handleVariantChange(idx, 'stock', Number(e.target.value))}
+                                                                className="w-full max-w-[120px] mx-auto text-center px-4 py-2.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none font-black text-gray-600"
+                                                                placeholder="0"
+                                                            />
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                        <p className="text-[10px] text-gray-400 mt-2 italic">* Tối đa 5 hình ảnh. Ảnh đầu tiên sẽ là ảnh chính.</p>
-                    </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả ngắn</label>
-                        <input
-                            type="text" name="short_description" value={form.short_description} onChange={handleChange}
-                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
-                            placeholder="Mô tả sơ lược sản phẩm"
-                        />
-                    </div>
+                        {/* Section: Hình ảnh */}
+                        <div className="space-y-5 pt-2">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <h3 className="text-[12px] font-black text-gray-900 uppercase tracking-wider">Hình ảnh sản phẩm</h3>
+                                </div>
+                                <span className="text-[9px] text-gray-400 font-bold bg-gray-50 px-3 py-1 rounded-full uppercase tracking-tighter italic">Tối đa 05 ảnh - Ảnh đầu mặc định là ảnh chính</span>
+                            </div>
+                            
+                            <div className="pl-9 flex flex-wrap gap-4">
+                                {form.media.map((img) => (
+                                    <div key={img.publicId} className="relative w-24 h-24 rounded-[1.5rem] overflow-hidden border-2 border-gray-100 group shadow-sm bg-gray-50">
+                                        <img src={img.url} alt="product" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[1px]">
+                                            <button
+                                                type="button"
+                                                onClick={() => removeImage(img.publicId)}
+                                                className="bg-red-500 p-2.5 rounded-2xl text-white hover:bg-red-600 transition-all shadow-xl active:scale-90"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        {img.isPrimary && (
+                                            <div className="absolute top-0 left-0 bg-blue-600 text-white text-[8px] px-2.5 py-1 rounded-br-2xl font-black uppercase tracking-widest shadow-lg">Main</div>
+                                        )}
+                                    </div>
+                                ))}
+                                
+                                {form.media.length < 5 && (
+                                    <label className="w-24 h-24 rounded-[1.5rem] border-2 border-dashed border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all group active:scale-95 shadow-inner">
+                                        {uploading ? (
+                                            <div className="animate-spin rounded-full h-6 w-6 border-4 border-blue-600 border-t-transparent shadow-sm"></div>
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-1 text-gray-400 group-hover:text-blue-500 transition-colors">
+                                                <div className="bg-gray-100 p-2.5 rounded-2xl group-hover:bg-blue-100 transition-colors">
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                    </svg>
+                                                </div>
+                                                <span className="text-[8px] font-black uppercase tracking-tighter">Thêm ảnh</span>
+                                            </div>
+                                        )}
+                                        <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={uploading} multiple />
+                                    </label>
+                                )}
+                            </div>
+                        </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả chi tiết</label>
-                        <textarea
-                            name="description" value={form.description} onChange={handleChange}
-                            rows={3}
-                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm resize-none"
-                            placeholder="Mô tả đầy đủ về chất liệu, kích thước,..."
-                        />
-                    </div>
+                        {/* Section: Mô tả */}
+                        <div className="space-y-5 pt-2">
+                            <div className="flex items-center gap-3">
+                                <h3 className="text-[12px] font-black text-gray-900 uppercase tracking-wider">Mô tả sản phẩm</h3>
+                            </div>
 
-                    <div className="flex gap-3 pt-4 border-t border-gray-100">
-                        <button type="button" onClick={onClose}
-                            className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm">
-                            Hủy
-                        </button>
-                        <button type="submit" disabled={loading || uploading}
-                            className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-200">
-                            {loading ? 'Đang xử lý...' : 'Đăng sản phẩm'}
-                        </button>
-                    </div>
-                </form>
+                            <div className="pl-9 space-y-5">
+                                <div>
+                                    <label className="block text-[11px] font-black text-gray-500 mb-2 uppercase tracking-widest">Mô tả ngắn</label>
+                                    <input
+                                        type="text" name="short_description" value={form.short_description} onChange={handleChange}
+                                        className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-sm font-medium shadow-sm"
+                                        placeholder="Tóm tắt điểm nổi bật của sản phẩm..."
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-[11px] font-black text-gray-500 mb-2 uppercase tracking-widest">Chi tiết sản phẩm</label>
+                                    <textarea
+                                        name="description" value={form.description} onChange={handleChange} rows={5}
+                                        className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-[2rem] focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-sm font-medium resize-none shadow-sm"
+                                        placeholder="Mô tả kỹ hơn về chất liệu, nguồn gốc, quy cách..."
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                {/* Footer - Fixed */}
+                <div className="px-8 py-6 border-t border-gray-100 flex gap-4 bg-white flex-none">
+                    <button 
+                        type="button" 
+                        onClick={onClose}
+                        className="flex-1 px-8 py-4 bg-gray-50 text-gray-500 rounded-2xl hover:bg-gray-100 hover:text-gray-700 transition-all font-black text-[11px] uppercase tracking-[0.2em] active:scale-95 shadow-sm border border-gray-100"
+                    >
+                        Hủy bỏ
+                    </button>
+                    <button 
+                        type="submit" 
+                        form={undefined} // Use a separate button outside form if needed, but here we'll trigger via ref or just standard
+                        onClick={(e) => handleSubmit(e)}
+                        disabled={loading || uploading}
+                        className="flex-[2] px-8 py-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 hover:shadow-2xl hover:shadow-blue-200 transition-all font-black text-[11px] uppercase tracking-[0.2em] disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-blue-100 active:scale-95 relative overflow-hidden group"
+                    >
+                        <span className="relative z-10">{loading ? 'Hệ thống đang xử lý...' : 'Xác nhận Đăng bán'}</span>
+                        <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-[20deg]"></div>
+                    </button>
+                </div>
             </div>
         </div>
     );

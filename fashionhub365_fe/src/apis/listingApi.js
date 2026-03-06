@@ -36,6 +36,32 @@ const listingApi = {
     getCategories: () => {
         return axiosClient.get('/listing/categories');
     },
+
+    /**
+     * Tăng view_count khi user xem Product Detail
+     * Fire-and-forget: gọi nhưng không cần đợi kết quả
+     * @param {string} productId
+     */
+    trackView: (productId) => {
+        return axiosClient.post(`/listing/products/${productId}/view`);
+    },
+
+    /**
+     * Lấy danh sách reviews sản phẩm
+     * @param {string} productId 
+     */
+    getProductReviews: (productId) => {
+        return axiosClient.get(`/listing/products/${productId}/reviews`);
+    },
+
+    /**
+     * Đăng review mới cho sản phẩm
+     * @param {string} productId 
+     * @param {Object} reviewData 
+     */
+    createProductReview: (productId, reviewData) => {
+        return axiosClient.post(`/listing/products/${productId}/reviews`, reviewData);
+    },
 };
 
 export default listingApi;

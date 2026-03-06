@@ -1,5 +1,5 @@
 const httpStatus = require('http-status');
-const { Product, Category } = require('../models');
+const { Product, Category, ProductReview } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -60,6 +60,15 @@ const getPublicProducts = async (query) => {
         case 'price_desc':
             sortOption = { base_price: -1 };
             break;
+        case 'best_sellers':
+            sortOption = { sold_count: -1 };
+            break;
+        case 'top_rated':
+            sortOption = { 'rating.average': -1, 'rating.count': -1 };
+            break;
+        case 'most_viewed':
+            sortOption = { view_count: -1 };
+            break;
         case 'newest':
         default:
             sortOption = { created_at: -1 };
@@ -74,15 +83,48 @@ const getPublicProducts = async (query) => {
         Product.find(filter)
             .populate('primary_category_id', 'name slug')
             .populate('brand_id', 'name')
-            .populate('store_id', 'name slug')
+            .populate('store_id', 'name slug description rating_summary')
+            .populate('tag_ids', 'name')
             .sort(sortOption)
             .skip(skip)
             .limit(parseInt(limit)),
         Product.countDocuments(filter),
     ]);
 
+    // ── TÍNH TOÁN BADGE ĐỘNG DỰA TRÊN DỮ LIỆU THẬT ──
+    const topViewed = await Product.find({ status: 'active' })
+        .sort({ view_count: -1 })
+        .limit(10)
+        .select('_id view_count');
+    const trendingIds = topViewed.filter(p => p.view_count > 0).map(p => p._id.toString());
+
+    const uniqueCatIds = [...new Set(products.map(p => p.primary_category_id?._id?.toString() || p.primary_category_id?.toString()))].filter(Boolean);
+    const bestSellerIdsObj = {};
+
+    await Promise.all(uniqueCatIds.map(async (catId) => {
+        const topSold = await Product.find({ status: 'active', primary_category_id: catId })
+            .sort({ sold_count: -1 })
+            .limit(10)
+            .select('_id sold_count');
+
+        topSold.forEach(p => {
+            if (p.sold_count > 0) {
+                bestSellerIdsObj[p._id.toString()] = true;
+            }
+        });
+    }));
+
+    const finalProducts = products.map(p => {
+        const pObj = p.toObject();
+        pObj.isTrending = trendingIds.includes(pObj._id.toString());
+        pObj.isBestSeller = !!bestSellerIdsObj[pObj._id.toString()];
+        const daysSinceCreated = (Date.now() - new Date(pObj.created_at || Date.now()).getTime()) / (1000 * 3600 * 24);
+        pObj.isNewArrival = daysSinceCreated <= 30;
+        return pObj;
+    });
+
     return {
-        products,
+        products: finalProducts,
         total,
         page: parseInt(page),
         limit: parseInt(limit),
@@ -116,7 +158,26 @@ const getPublicProductById = async (productId) => {
     if (!product) {
         throw new ApiError(httpStatus.NOT_FOUND, 'Không tìm thấy sản phẩm.');
     }
-    return product;
+
+    // Tính toán badge động
+    const topViewed = await Product.find({ status: 'active' }).sort({ view_count: -1 }).limit(10).select('_id');
+    const trendingIds = topViewed.map(p => p._id.toString());
+
+    let isBestSeller = false;
+    if (product.primary_category_id && product.sold_count > 0) {
+        const topSold = await Product.find({ status: 'active', primary_category_id: product.primary_category_id._id || product.primary_category_id })
+            .sort({ sold_count: -1 }).limit(10).select('_id');
+        isBestSeller = topSold.some(p => p._id.toString() === product._id.toString());
+    }
+
+    const pObj = product.toObject();
+    pObj.isTrending = trendingIds.includes(pObj._id.toString());
+    pObj.isBestSeller = isBestSeller;
+
+    const daysSinceCreated = (Date.now() - new Date(pObj.created_at || Date.now()).getTime()) / (1000 * 3600 * 24);
+    pObj.isNewArrival = daysSinceCreated <= 30;
+
+    return pObj;
 };
 
 /**
@@ -209,10 +270,96 @@ const querySellerProducts = async (storeId, filter, options) => {
 };
 
 /**
+ * [CART RECOMMENDATION ENGINE] – Smart Cross-Sell theo rule ưu tiên (P1→P4)
+ */
+const getCartRecommendations = async ({
+    cartProductIds = [], storeIds = [], categoryIds = [], cartTotal = 0, limit = 4,
+}) => {
+    const FREE_SHIP = 1_000_000;
+    const gap = Math.max(0, FREE_SHIP - cartTotal);
+
+    const formatProduct = (p) => {
+        const v = (p.variants || [])
+            .filter(vr => vr.stock > 0)
+            .sort((a, b) => (b.stock || 0) - (a.stock || 0))[0];
+        if (!v) return null;
+        const price = v.price || p.base_price;
+        return {
+            _id: p._id,
+            name: p.name,
+            slug: p.slug,
+            price,
+            variantName: v.variantName || '',
+            variantId: v._id,
+            image: (p.media || []).find(m => m.isPrimary)?.url || p.media?.[0]?.url || '',
+            rating: p.rating?.average || 0,
+            soldCount: p.sold_count || 0,
+            categoryIds: (p.category_ids || []).map(c => c.toString()),
+            helpsReachFreeShip: gap > 0 && gap < FREE_SHIP && price <= gap,
+        };
+    };
+
+    let pool = [];
+    if (storeIds.length > 0) {
+        const raw = await Product.find({
+            status: 'active',
+            store_id: { $in: storeIds },
+            _id: { $nin: cartProductIds },
+            'variants.stock': { $gt: 0 },
+        })
+            .select('name slug base_price media variants rating sold_count category_ids store_id')
+            .sort({ 'rating.average': -1, sold_count: -1 })
+            .limit(50);
+        pool = raw.map(formatProduct).filter(Boolean);
+    }
+
+    const cartCatSet = new Set(categoryIds.map(c => c.toString()));
+    const p1 = pool.filter(p => !p.categoryIds.some(cid => cartCatSet.has(cid)));
+    const p1Set = new Set(p1.map(p => p._id.toString()));
+    const p3 = pool.filter(p => !p1Set.has(p._id.toString()));
+
+    const usedIds = new Set([...cartProductIds.map(String), ...pool.map(p => p._id.toString())]);
+    let p4 = [];
+    if (p1.length + p3.length < limit) {
+        const fb = await Product.find({
+            status: 'active',
+            _id: { $nin: Array.from(usedIds) },
+            'variants.stock': { $gt: 0 },
+        })
+            .select('name slug base_price media variants rating sold_count category_ids store_id')
+            .sort({ sold_count: -1, 'rating.average': -1 })
+            .limit(20);
+        p4 = fb.map(formatProduct).filter(Boolean);
+    }
+
+    let merged = [...p1, ...p3, ...p4];
+    if (gap > 0 && gap < FREE_SHIP) {
+        const nudge = merged.filter(p => p.helpsReachFreeShip);
+        const rest = merged.filter(p => !p.helpsReachFreeShip);
+        merged = [...nudge, ...rest];
+    }
+
+    const seen = new Set();
+    const result = [];
+    for (const p of merged) {
+        const key = p._id.toString();
+        if (!seen.has(key)) { seen.add(key); result.push(p); }
+        if (result.length >= limit) break;
+    }
+
+    return {
+        products: result,
+        meta: {
+            freeShipThreshold: FREE_SHIP,
+            cartTotal,
+            gap,
+            showFreeShipNudge: gap > 0 && gap < FREE_SHIP,
+        },
+    };
+};
+
+/**
  * Lấy chi tiết sản phẩm của người bán (có kiểm tra storeId)
- * @param {string} productId
- * @param {string} storeId
- * @returns {Promise<Product>}
  */
 const getProductByIdForSeller = async (productId, storeId) => {
     const product = await Product.findOne({ _id: productId, store_id: storeId });
@@ -224,21 +371,14 @@ const getProductByIdForSeller = async (productId, storeId) => {
 
 /**
  * Cập nhật sản phẩm cho người bán
- * @param {string} productId
- * @param {string} storeId
- * @param {Object} updateBody
- * @returns {Promise<Product>}
  */
 const updateProductBySeller = async (productId, storeId, updateBody) => {
     const product = await getProductByIdForSeller(productId, storeId);
-    
-    // Nếu đổi tên, cập nhật lại slug
     if (updateBody.name && updateBody.name !== product.name) {
         const baseSlug = updateBody.name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
         const existing = await Product.findOne({ slug: baseSlug, _id: { $ne: productId } });
         updateBody.slug = existing ? `${baseSlug}-${Date.now()}` : baseSlug;
     }
-
     Object.assign(product, updateBody);
     await product.save();
     return product;
@@ -246,9 +386,6 @@ const updateProductBySeller = async (productId, storeId, updateBody) => {
 
 /**
  * Xóa sản phẩm cho người bán
- * @param {string} productId
- * @param {string} storeId
- * @returns {Promise<Product>}
  */
 const deleteProductBySeller = async (productId, storeId) => {
     const product = await getProductByIdForSeller(productId, storeId);
@@ -258,15 +395,103 @@ const deleteProductBySeller = async (productId, storeId) => {
 
 /**
  * Bật/tắt trạng thái kinh doanh của sản phẩm
- * @param {string} productId
- * @param {string} storeId
- * @returns {Promise<Product>}
  */
 const toggleProductStatusBySeller = async (productId, storeId) => {
     const product = await getProductByIdForSeller(productId, storeId);
     product.status = product.status === 'active' ? 'inactive' : 'active';
     await product.save();
     return product;
+};
+
+/**
+ * Tăng view_count
+ */
+const incrementViewCount = async (productId) => {
+    await Product.findByIdAndUpdate(productId, { $inc: { view_count: 1 } }, { new: false });
+};
+
+/**
+ * Tăng sold_count
+ */
+const incrementSoldCount = async (items) => {
+    if (!items || items.length === 0) return;
+    const updates = items.map(item =>
+        Product.findByIdAndUpdate(item.productId, { $inc: { sold_count: item.qty || 1 } }, { new: false })
+    );
+    await Promise.all(updates);
+};
+
+/**
+ * Cập nhật rating trung bình
+ */
+const updateProductRating = async (productId, newScore) => {
+    const product = await Product.findById(productId).select('rating');
+    if (!product) return;
+    const currentCount = product.rating?.count || 0;
+    const currentAvg = product.rating?.average || 0;
+    const newCount = currentCount + 1;
+    const newAverage = ((currentAvg * currentCount) + newScore) / newCount;
+    await Product.findByIdAndUpdate(productId, {
+        'rating.average': Math.round(newAverage * 10) / 10,
+        'rating.count': newCount
+    });
+};
+
+/**
+ * Lấy reviews
+ */
+const getProductReviews = async (productId) => {
+    const reviews = await ProductReview.find({ product_id: productId }).sort({ created_at: -1 }).lean();
+    const breakdowns = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    let totalScore = 0;
+    reviews.forEach(rv => {
+        if (breakdowns[rv.rating] !== undefined) breakdowns[rv.rating]++;
+        totalScore += rv.rating;
+    });
+    const totalReviews = reviews.length;
+    const averageScore = totalReviews > 0 ? (totalScore / totalReviews).toFixed(1) : 0;
+    return {
+        reviews: reviews.map(r => ({
+            ...r,
+            daysAgo: Math.max(0, Math.floor((Date.now() - new Date(r.created_at).getTime()) / (1000 * 3600 * 24)))
+        })),
+        summary: {
+            average: parseFloat(averageScore),
+            count: totalReviews,
+            breakdowns: Object.keys(breakdowns).sort((a, b) => b - a).map(star => ({
+                stars: parseInt(star),
+                count: breakdowns[star]
+            }))
+        }
+    };
+};
+
+/**
+ * Thêm một review mới
+ */
+const createProductReview = async (productId, userId, reviewData) => {
+    const { Order, Product } = require('../models');
+    let finalReviewerInfo = { name: reviewData.reviewer_info?.name || 'Anonymous' };
+    const order = await Order.findOne({ user_id: userId, 'items.productId': productId, status: 'delivered' });
+    if (order) {
+        const item = order.items.find(i => i.productId.toString() === productId.toString());
+        if (item && item.variantId) {
+            const product = await Product.findById(productId);
+            if (product) {
+                const variant = product.variants.id(item.variantId) || product.variants.find(v => v._id.toString() === item.variantId.toString());
+                if (variant && variant.attributes && variant.attributes.size) finalReviewerInfo.size_purchased = variant.attributes.size;
+            }
+        }
+    }
+    if (!finalReviewerInfo.size_purchased && reviewData.reviewer_info?.size_purchased) {
+        finalReviewerInfo.size_purchased = reviewData.reviewer_info.size_purchased;
+    }
+    const review = await ProductReview.create({
+        product_id: productId, user_id: userId, rating: reviewData.rating,
+        title: reviewData.title, content: reviewData.content, verified_purchase: !!order, reviewer_info: finalReviewerInfo
+    });
+    await updateProductRating(productId, reviewData.rating);
+    return review;
 };
 
 module.exports = {
@@ -279,5 +504,11 @@ module.exports = {
     getProductByIdForSeller,
     updateProductBySeller,
     deleteProductBySeller,
-    toggleProductStatusBySeller
+    toggleProductStatusBySeller,
+    getCartRecommendations,
+    incrementViewCount,
+    incrementSoldCount,
+    updateProductRating,
+    getProductReviews,
+    createProductReview,
 };

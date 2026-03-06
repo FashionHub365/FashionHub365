@@ -4,12 +4,13 @@ import { useAuth } from "../contexts/AuthContext";
 import { ArrowRight, MagnifyingGlass, ShoppingCartSimple, User } from "./Icons";
 import { IconComponentNode } from "./IconComponentNode";
 import { SearchOverlay } from "./SearchOverlay";
+import { useCart } from "../contexts/CartContext";
 import { CartSidebar } from "./CartPage/CartSidebar";
 
 export const HeaderSection = () => {
   const [activeMenu, setActiveMenu] = useState(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  const { setIsCartOpen, cartData } = useCart();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
@@ -45,50 +46,50 @@ export const HeaderSection = () => {
   // ... existing code ...
 
   const mainNavItems = [
-    { label: "Women", active: false },
-    { label: "Men", active: true },
-    { label: "About", active: false },
-    { label: "Everworld Stories", active: false },
+    { label: "Men", active: true, href: "/listing" },
+    { label: "About", active: false, href: "/about" },
+    { label: "Everworld Stories", active: false, href: "/blog" },
   ];
 
   const subNavItems = [
-    { label: "Holiday Gifting", color: "text-x-500" },
-    { label: "New Arrivals", color: "text-x-500" },
-    { label: "Best-Sellers", color: "text-x-500" },
-    { label: "Clothing", color: "text-x-500" },
-    { label: "Tops & Sweaters", color: "text-x-500" },
-    { label: "Pants & Jeans", color: "text-x-500" },
-    { label: "Outerwear", color: "text-x-500" },
-    { label: "Shoes & Bags", color: "text-x-500" },
-    { label: "Sale", color: "text-red" },
+    { label: "Holiday Gifting", color: "text-x-500", href: "/listing?search=holiday" },
+    { label: "New Arrivals", color: "text-x-500", href: "/listing?sort=newest" },
+    { label: "Best-Sellers", color: "text-x-500", href: "/listing?sort=best_sellers" },
+    { label: "Clothing", color: "text-x-500", href: "/listing" },
+    { label: "Tops & Sweaters", color: "text-x-500", href: "/listing?search=sweater" },
+    { label: "Pants & Jeans", color: "text-x-500", href: "/listing?category=jeans" },
+    { label: "Outerwear", color: "text-x-500", href: "/listing?category=outerwear" },
+    { label: "Shoes & Bags", color: "text-x-500", href: "/listing?category=boots" },
+    { label: "Sale", color: "text-red", href: "/listing?sort=price_asc" },
   ];
 
   // Data for the mega menu (specific to "Men" or generally for the example)
   const highlightsData = [
-    "Shop All New Arrivals",
-    "The Gift Guide",
-    "New Bottoms",
-    "New Tops",
-    "T-Shirt Bundles",
-    "Under $100",
+    { label: "Shop All New Arrivals", href: "/listing?sort=newest" },
+    { label: "The Gift Guide", href: "/listing?search=gift" },
+    { label: "New Bottoms", href: "/listing?category=jeans" },
+    { label: "New Tops", href: "/listing?search=tops" },
+    { label: "Under $100", href: "/listing?sort=price_asc" },
   ];
 
   const featuredShopsData = [
-    "The Holiday Outfit Edit",
-    "Giftable Sweaters",
-    "Uniform & Capsule",
-    "The Performance Chino Shop",
-    "Top Rated Men's Clothing",
+    { label: "The Holiday Outfit Edit", href: "/listing?search=holiday" },
+    { label: "Giftable Sweaters", href: "/listing?search=sweater" },
+    { label: "Uniform & Capsule", href: "/listing" },
+    { label: "The Performance Chino Shop", href: "/listing?category=jeans" },
+    { label: "Top Rated Men's Clothing", href: "/listing?sort=best_sellers" },
   ];
 
   const featuredCardsData = [
     {
-      title: "The Holiday\nOutfit Edit",
-      image: "/textures/landingpage/frame-4.jpg", // Using existing textures path or similar
+      title: "Top Rated\nPicks",
+      image: "/textures/landingpage/frame-5.jpg",
+      href: "/listing?sort=top_rated",
     },
     {
       title: "Giftable\nSweaters",
       image: "/textures/landingpage/frame-5.jpg",
+      href: "/listing?search=sweater",
     },
   ];
 
@@ -135,12 +136,12 @@ export const HeaderSection = () => {
                 className={`gap-3 px-3 h-full inline-flex flex-col items-center justify-center relative cursor-pointer`}
               >
                 <div className={`py-5 ${item.active ? "border-b-2 border-x-500" : "border-b-2 border-transparent hover:border-x-500"}`}>
-                  <a
-                    href={`#${item.label.toLowerCase()}`}
-                    className="text-x-500 relative w-fit font-text-200 font-[number:var(--text-200-font-weight)] text-[length:var(--text-200-font-size)] text-center tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] whitespace-nowrap [font-style:var(--text-200-font-style)]"
+                  <Link
+                    to={item.href || `/listing`}
+                    className="text-x-500 relative w-fit font-text-200 font-[number:var(--text-200-font-weight)] text-[length:var(--text-200-font-size)] text-center tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] whitespace-nowrap [font-style:var(--text-200-font-style)] no-underline"
                   >
                     {item.label}
-                  </a>
+                  </Link>
                 </div>
               </li>
             ))}
@@ -210,22 +211,13 @@ export const HeaderSection = () => {
                       Admin Panel
                     </Link>
 
-                    <Link
-                      to="/profile"
-                      className="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 transition-colors"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    >
-                      <svg className="mr-3 h-4 w-4 text-gray-400 group-hover:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-                      My Orders
-                    </Link>
-                    <Link
-                      to="/profile"
-                      className="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 transition-colors"
-                      onClick={() => setIsUserMenuOpen(false)}
+                    <button
+                      className="group flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-pink-600 transition-colors text-left"
+                      onClick={() => { setIsUserMenuOpen(false); navigate('/profile', { state: { tab: 'wishlist' } }); }}
                     >
                       <svg className="mr-3 h-4 w-4 text-gray-400 group-hover:text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                       Wishlist
-                    </Link>
+                    </button>
                   </div>
                   <div className="py-1 border-t border-gray-100">
                     <button
@@ -240,12 +232,33 @@ export const HeaderSection = () => {
               )}
             </div>
 
+            {/* My Orders icon */}
+            {isAuthenticated && (
+              <button
+                className="inline-flex items-center justify-center gap-2.5 p-3 relative flex-[0_0_auto]"
+                aria-label="My Orders"
+                title="My Orders"
+                onClick={() => navigate('/profile', { state: { tab: 'orders' } })}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </button>
+            )}
+
             <button
               className="inline-flex items-center justify-center gap-2.5 p-3 relative flex-[0_0_auto]"
-              aria-label="Shopping cart"
+              aria-label={`Shopping cart${cartData.totalItems > 0 ? `, ${cartData.totalItems} items` : ''}`}
               onClick={() => setIsCartOpen(true)}
             >
-              <ShoppingCartSimple className="!relative !w-4 !h-4" />
+              <div className="relative">
+                <ShoppingCartSimple className="!relative !w-4 !h-4" />
+                {cartData.totalItems > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                    {cartData.totalItems > 9 ? '9+' : cartData.totalItems}
+                  </span>
+                )}
+              </div>
             </button>
           </div>
 
@@ -271,12 +284,12 @@ export const HeaderSection = () => {
                 onMouseEnter={() => setActiveMenu(item.label)}
                 onMouseLeave={() => setActiveMenu(null)}
               >
-                <a
-                  href={`#${item.label.toLowerCase().replace(/\s+/g, "-").replace(/&/g, "and")}`}
-                  className={`${item.color} relative w-fit mt-[-1.00px] font-text-200 font-[number:var(--text-200-font-weight)] text-[length:var(--text-200-font-size)] text-center tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] whitespace-nowrap [font-style:var(--text-200-font-style)]`}
+                <Link
+                  to={item.href || "/listing"}
+                  className={`${item.color} relative w-fit mt-[-1.00px] font-text-200 font-[number:var(--text-200-font-weight)] text-[length:var(--text-200-font-size)] text-center tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] whitespace-nowrap [font-style:var(--text-200-font-style)] no-underline hover:underline`}
                 >
                   {item.label}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
@@ -303,12 +316,12 @@ export const HeaderSection = () => {
               <ul className="contents">
                 {highlightsData.map((item, index) => (
                   <li key={index} className="contents">
-                    <a
-                      href="#"
-                      className="relative self-stretch font-text-300 font-[number:var(--text-300-font-weight)] text-x-500 text-[length:var(--text-300-font-size)] tracking-[var(--text-300-letter-spacing)] leading-[var(--text-300-line-height)] [font-style:var(--text-300-font-style)] hover:underline focus:outline-none focus:underline"
+                    <Link
+                      to={item.href}
+                      className="relative self-stretch font-text-300 font-[number:var(--text-300-font-weight)] text-x-500 text-[length:var(--text-300-font-size)] tracking-[var(--text-300-letter-spacing)] leading-[var(--text-300-line-height)] [font-style:var(--text-300-font-style)] hover:underline focus:outline-none focus:underline no-underline"
                     >
-                      {item}
-                    </a>
+                      {item.label}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -328,22 +341,22 @@ export const HeaderSection = () => {
               <ul className="contents">
                 {featuredShopsData.map((item, index) => (
                   <li key={index} className="contents">
-                    <a
-                      href="#"
-                      className="relative self-stretch font-text-300 font-[number:var(--text-300-font-weight)] text-x-500 text-[length:var(--text-300-font-size)] tracking-[var(--text-300-letter-spacing)] leading-[var(--text-300-line-height)] [font-style:var(--text-300-font-style)] hover:underline focus:outline-none focus:underline"
+                    <Link
+                      to={item.href}
+                      className="relative self-stretch font-text-300 font-[number:var(--text-300-font-weight)] text-x-500 text-[length:var(--text-300-font-size)] tracking-[var(--text-300-letter-spacing)] leading-[var(--text-300-line-height)] [font-style:var(--text-300-font-style)] hover:underline focus:outline-none focus:underline no-underline"
                     >
-                      {item}
-                    </a>
+                      {item.label}
+                    </Link>
                   </li>
                 ))}
               </ul>
             </nav>
 
             {featuredCardsData.map((card, index) => (
-              <a
+              <Link
                 key={index}
-                href="#"
-                className="flex h-[300px] left-5 items-end gap-3 px-4 py-3 relative flex-1 grow bg-cover bg-[50%_50%] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-x-500 transition-opacity"
+                to={card.href || "/listing"}
+                className="flex h-[300px] left-5 items-end gap-3 px-4 py-3 relative flex-1 grow bg-cover bg-[50%_50%] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-x-500 transition-opacity no-underline"
                 style={{ backgroundImage: `url(${card.image})` }}
                 aria-label={card.title.replace("\n", " ")}
               >
@@ -357,14 +370,14 @@ export const HeaderSection = () => {
                 </span>
 
                 <IconComponentNode className="absolute bottom-4 right-4 w-6 h-6 text-white -rotate-90" />
-              </a>
+              </Link>
             ))}
           </section>
         </div>
 
 
       </header>
-      <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      <CartSidebar />
     </>
   );
 };

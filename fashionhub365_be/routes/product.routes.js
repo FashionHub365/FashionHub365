@@ -2,26 +2,39 @@ const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/product.controller');
 const { auth } = require('../middleware/auth');
+const { storeAuth } = require("../middleware/storeAuth");
+const catchAsync = require('../utils/catchAsync');
+const { productService } = require('../services');
 
-// Tất cả các route trong file này yêu cầu đăng nhập và quyền liên quan đến sản phẩm
+// Tất cả các route trong file này yêu cầu đăng nhập
 router.use(auth());
 
 // UC-09: Đăng bán sản phẩm
-router.post('/', productController.createProduct);
+router.post('/', storeAuth(), productController.createProduct);
 
-// UC-16: Quản lý danh sách sản phẩm (Lấy danh sách SP của chính người bán)
-router.get('/seller', productController.getSellerProducts);
+// UC-16: Quản lý danh sách sản phẩm
+router.get('/seller', storeAuth(), productController.getSellerProducts);
 
-// Lấy chi tiết 1 sản phẩm của người bán
-router.get('/:id', productController.getProductById);
+// Gợi ý sản phẩm cho giỏ hàng
+router.get('/cart-recommendations', catchAsync(async (req, res) => {
+    const { cartProductIds, storeIds, categoryIds, cartTotal, limit } = req.query;
 
-// UC-11: Cập nhật sản phẩm
-router.put('/:id', productController.updateProduct);
+    const result = await productService.getCartRecommendations({
+        cartProductIds: cartProductIds ? cartProductIds.split(',').filter(Boolean) : [],
+        storeIds: storeIds ? storeIds.split(',').filter(Boolean) : [],
+        categoryIds: categoryIds ? categoryIds.split(',').filter(Boolean) : [],
+        cartTotal: parseFloat(cartTotal || '0'),
+        limit: parseInt(limit || '4'),
+    });
 
-// UC-12: Xóa sản phẩm
-router.delete('/:id', productController.deleteProduct);
+    res.json({ success: true, data: result });
+}));
 
-// UC-15: Bật/tắt trạng thái kinh doanh (Hết hàng/Còn hàng)
-router.patch('/:id/stock-status', productController.toggleStockStatus);
+// Chi tiết sản phẩm, cập nhật, xóa, trạng thái kho (Yêu cầu storeAuth)
+router.get('/:id', storeAuth(), productController.getProductById);
+router.put('/:id', storeAuth(), productController.updateProduct);
+router.delete('/:id', storeAuth(), productController.deleteProduct);
+router.patch('/:id/stock-status', storeAuth(), productController.toggleStockStatus);
 
 module.exports = router;
+

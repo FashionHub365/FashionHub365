@@ -12,6 +12,7 @@ const Category = require('./Category');
 const Collection = require('./Collection');
 const Tag = require('./Tag');
 const Product = require('./Product');
+const ProductReview = require('./ProductReview');
 const Inventory = require('./Inventory');
 const PricingRule = require('./PricingRule');
 const Voucher = require('./Voucher');
@@ -38,8 +39,6 @@ const AffiliateCommission = require('./AffiliateCommission');
 const Referral = require('./Referral');
 const Wallet = require('./Wallet');
 const WalletTransaction = require('./WalletTransaction');
-const ChatSession = require('./ChatSession');
-const ChatMessage = require('./ChatMessage');
 const Notification = require('./Notification');
 const AuditLog = require('./AuditLog');
 const ActivityLog = require('./ActivityLog');
@@ -70,6 +69,7 @@ module.exports = {
     Collection,
     Tag,
     Product,
+    ProductReview,
     Inventory,
     PricingRule,
     Voucher,
@@ -96,8 +96,6 @@ module.exports = {
     Referral,
     Wallet,
     WalletTransaction,
-    ChatSession,
-    ChatMessage,
     Notification,
     AuditLog,
     ActivityLog,

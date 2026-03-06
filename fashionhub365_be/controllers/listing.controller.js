@@ -71,10 +71,53 @@ const getStoreById = catchAsync(async (req, res) => {
     });
 });
 
+/**
+ * POST /api/v1/listing/products/:id/view
+ * Tăng view_count mỗi khi user xem Product Detail
+ * Fire-and-forget: không block response nếu lỗi
+ */
+const trackProductView = catchAsync(async (req, res) => {
+    // Không await để không block, lỗi không trả về 500
+    productService.incrementViewCount(req.params.id).catch(() => { });
+    res.status(httpStatus.OK).send({ success: true });
+});
+
+/**
+ * GET /api/v1/listing/products/:id/reviews
+ * Lấy danh sách reviews sản phẩm kèm summary
+ */
+const getProductReviews = catchAsync(async (req, res) => {
+    const reviewsData = await productService.getProductReviews(req.params.id);
+    res.status(httpStatus.OK).send({
+        success: true,
+        data: reviewsData,
+    });
+});
+
+/**
+ * POST /api/v1/listing/products/:id/reviews
+ * Thêm review từ người dùng
+ */
+const createProductReview = catchAsync(async (req, res) => {
+    // req.user được gán từ auth middleware
+    const userId = req.user.id || req.user._id;
+    const reviewData = req.body;
+
+    const review = await productService.createProductReview(req.params.id, userId, reviewData);
+
+    res.status(httpStatus.CREATED).send({
+        success: true,
+        data: review,
+    });
+});
+
 module.exports = {
     getProducts,
     getCategories,
     getProductById,
     getRecommendedProducts,
     getStoreById,
+    trackProductView,
+    getProductReviews,
+    createProductReview,
 };

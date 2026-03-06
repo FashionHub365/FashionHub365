@@ -27,6 +27,9 @@ const getStoreIdForUser = async (user) => {
 /**
  * UC-09: Đăng bán sản phẩm
  */
+/**
+ * UC-09: Đăng bán sản phẩm
+ */
 const createProduct = catchAsync(async (req, res) => {
     const storeId = await getStoreIdForUser(req.user);
     

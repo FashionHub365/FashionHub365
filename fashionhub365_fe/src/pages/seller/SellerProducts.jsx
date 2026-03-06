@@ -5,15 +5,15 @@ import CreateProductModal from './components/CreateProductModal';
 import Swal from 'sweetalert2';
 
 const STATUS_CONFIG = {
-    all: { label: 'Tất cả', className: '' },
-    draft: { label: 'Nháp', className: 'bg-gray-100 text-gray-600' },
-    active: { label: 'Đang bán', className: 'bg-green-100 text-green-700' },
-    inactive: { label: 'Hết hàng', className: 'bg-red-100 text-red-700' },
-    blocked: { label: 'Bị khóa', className: 'bg-orange-100 text-orange-700' },
+    all: { label: 'All', className: '' },
+    draft: { label: 'Draft', className: 'bg-gray-100 text-gray-600' },
+    active: { label: 'Active', className: 'bg-green-100 text-green-700' },
+    inactive: { label: 'Out of stock', className: 'bg-red-100 text-red-700' },
+    blocked: { label: 'Blocked', className: 'bg-orange-100 text-orange-700' },
 };
 
 const formatCurrency = (v) =>
-    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v || 0);
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'VND' }).format(v || 0);
 
 const SellerProducts = () => {
     const [products, setProducts] = useState([]);
@@ -52,6 +52,7 @@ const SellerProducts = () => {
             setTotal(result.total || 0);
         } catch (err) {
             console.error('Error loading products:', err);
+            alert('Error loading products: ' + (err.response?.data?.message || err.message));
         } finally {
             setLoading(false);
         }
@@ -140,7 +141,7 @@ const SellerProducts = () => {
             await toggleStockStatus(product._id);
             loadProducts();
         } catch (err) {
-            alert('Lỗi khi đổi trạng thái: ' + err.message);
+            alert('Error toggling status: ' + err.message);
         } finally {
             setTogglingId(null);
         }
@@ -152,13 +153,13 @@ const SellerProducts = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="animate-fadeIn">
+            <div className="max-w-7xl mx-auto">
 
                 {/* Header */}
                 <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Quản lý sản phẩm</h1>
+                        <h1 className="text-3xl font-bold text-gray-900">Product Management</h1>
                         <p className="mt-1 text-sm text-gray-500">
                             Hiện có {total} sản phẩm
                         </p>
@@ -236,7 +237,7 @@ const SellerProducts = () => {
                         </div>
                     ) : products.length === 0 ? (
                         <div className="text-center py-20">
-                            <div className="text-6xl mb-4">�</div>
+                            <div className="text-6xl mb-4">📦</div>
                             <h3 className="text-xl font-bold text-gray-900 mb-2">Không tìm thấy sản phẩm</h3>
                             <p className="text-gray-500">Hãy thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm của bạn.</p>
                         </div>
@@ -302,7 +303,7 @@ const SellerProducts = () => {
                                                     <button
                                                         onClick={() => handleToggleStock(product)}
                                                         disabled={isToggling || product.status === 'blocked'}
-                                                        className={`relative inline-flex h-5 w-10 items-center rounded-full transition-all focus:outline-none disabled:opacity-40 ${isInactive ? 'bg-gray-300' : 'bg-green-500'
+                                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed ${isInactive ? 'bg-gray-300' : 'bg-green-500'
                                                             }`}>
                                                         <span className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform ${isInactive ? 'translate-x-1' : 'translate-x-6'
                                                             }`} />
