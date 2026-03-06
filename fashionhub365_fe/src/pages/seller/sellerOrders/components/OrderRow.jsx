@@ -21,14 +21,14 @@ const OrderRow = ({ order, onOrderUpdate }) => {
                 <td className="py-3.5 px-4">
                     <div>
                         <p className="text-sm font-semibold text-gray-800">
-                            {order.buyer?.name || order.user?.name || '—'}
+                            {order.shipping_address?.full_name || order.buyer?.name || order.user?.name || '—'}
                         </p>
-                        <p className="text-xs text-gray-400">{order.buyer?.email || order.user?.email || ''}</p>
+                        <p className="text-xs text-gray-400">{order.shipping_address?.email || order.buyer?.email || order.user?.email || ''}</p>
                     </div>
                 </td>
-                <td className="py-3.5 px-4 text-xs text-gray-500">{fmtDate(order.createdAt)}</td>
+                <td className="py-3.5 px-4 text-xs text-gray-500">{fmtDate(order.created_at || order.createdAt)}</td>
                 <td className="py-3.5 px-4">
-                    <p className="text-sm font-bold text-gray-900">{fmtVND(order.totalAmount || order.total)}</p>
+                    <p className="text-sm font-bold text-gray-900">{fmtVND(order.total_amount || order.totalAmount || order.total)}</p>
                 </td>
                 <td className="py-3.5 px-4">
                     <StatusBadge status={order.status} />
@@ -45,24 +45,24 @@ const OrderRow = ({ order, onOrderUpdate }) => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {/* Items */}
                             <div>
-                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Sản phẩm</p>
+                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Products</p>
                                 <div className="space-y-1.5">
                                     {(order.items || order.products || []).map((item, i) => (
                                         <div key={i} className="flex items-center justify-between bg-white rounded-xl px-3 py-2 shadow-sm border border-gray-100">
                                             <div className="flex items-center gap-2">
-                                                {item.image && (
-                                                    <img src={item.image} alt="" className="w-8 h-8 rounded-lg object-cover bg-gray-100" />
-                                                )}
+                                                {item.snapshot?.image || item.image ? (
+                                                    <img src={item.snapshot?.image || item.image} alt="" className="w-8 h-8 rounded-lg object-cover bg-gray-100" />
+                                                ) : <div className="w-8 h-8 rounded-lg bg-gray-200"></div>}
                                                 <div>
-                                                    <p className="text-xs font-medium text-gray-800">{item.name || item.productName || '—'}</p>
-                                                    <p className="text-[11px] text-gray-400">x{item.quantity || 1}</p>
+                                                    <p className="text-xs font-medium text-gray-800 line-clamp-1">{item.snapshot?.name || item.name || item.productName || '—'}</p>
+                                                    <p className="text-[11px] text-gray-400">x{item.qty || item.quantity || 1}</p>
                                                 </div>
                                             </div>
-                                            <p className="text-xs font-semibold text-gray-700">{fmtVND((item.price || 0) * (item.quantity || 1))}</p>
+                                            <p className="text-xs font-semibold text-gray-700">{fmtVND((item.price || 0) * (item.qty || item.quantity || 1))}</p>
                                         </div>
                                     ))}
                                     {!(order.items || order.products || []).length && (
-                                        <p className="text-xs text-gray-400 italic">Không có sản phẩm</p>
+                                        <p className="text-xs text-gray-400 italic">No products</p>
                                     )}
                                 </div>
                             </div>
@@ -70,14 +70,15 @@ const OrderRow = ({ order, onOrderUpdate }) => {
                             {/* Shipping + actions */}
                             <div className="space-y-3">
                                 <div>
-                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Giao hàng</p>
+                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Shipping</p>
                                     <div className="bg-white rounded-xl px-3 py-2.5 border border-gray-100 shadow-sm text-xs text-gray-600 space-y-1">
-                                        <p>📍 {order.shippingAddress?.address || order.address || '—'}</p>
-                                        {order.shippingAddress?.phone && <p>📞 {order.shippingAddress.phone}</p>}
+                                        <p>📍 {order.shipping_address_text || order.shippingAddress?.address || order.address || '—'}</p>
+                                        {order.shipping_address?.phone && <p>📞 {order.shipping_address.phone}</p>}
+                                        {!order.shipping_address?.phone && order.shippingAddress?.phone && <p>📞 {order.shippingAddress.phone}</p>}
                                     </div>
                                 </div>
                                 <div>
-                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Cập nhật trạng thái</p>
+                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Update Status</p>
                                     <div className="flex flex-wrap gap-2">
                                         {Object.entries(STATUS_CONFIG)
                                             .filter(([k]) => k !== 'all' && k !== order.status)

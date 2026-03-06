@@ -2,10 +2,17 @@ import React, { useState, useEffect } from "react";
 import { CaretUp } from "../Icons";
 import listingApi from "../../apis/listingApi";
 
+// Categories nữ cần loại bỏ (chỉ bán đồ nam)
+const EXCLUDED_CATEGORIES = [
+  "women", "women accessories", "women clothing", "women shoes",
+  "blouses", "dresses", "flats", "heels", "skirts",
+];
+
 /**
  * FilterSidebar - Thanh lọc sản phẩm
  * - Lấy categories từ API thực
  * - Gọi onFilterChange khi người dùng chọn filter để ProductGridSection fetch lại
+ * - Đồng bộ trạng thái filter từ URL query params (activeFilters)
  */
 export const FilterSidebar = ({ onFilterChange, activeFilters = {} }) => {
   const [categories, setCategories] = useState([]);
@@ -30,13 +37,16 @@ export const FilterSidebar = ({ onFilterChange, activeFilters = {} }) => {
   const waistSizes = ["36", "38", "40", "42", "44", "46", "48", "50"];
   const clothingSizes = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"];
 
-  // Lấy danh sách categories từ API
+  // Lấy danh sách categories từ API và lọc bỏ categories nữ
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const response = await listingApi.getCategories();
         if (response.success) {
-          setCategories(response.data);
+          const menCategories = response.data.filter(
+            (cat) => !EXCLUDED_CATEGORIES.includes(cat.name.toLowerCase())
+          );
+          setCategories(menCategories);
         }
       } catch (err) {
         console.error("Error fetching categories:", err);
@@ -44,6 +54,35 @@ export const FilterSidebar = ({ onFilterChange, activeFilters = {} }) => {
     };
     fetchCategories();
   }, []);
+
+  /**
+   * Đồng bộ trạng thái sidebar khi activeFilters thay đổi (từ URL params)
+   */
+  useEffect(() => {
+    // Sync khi category thay đổi từ URL (navigate từ Landing page)
+    if (activeFilters.category) {
+      setSelectedCategories(new Set([activeFilters.category]));
+    } else {
+      setSelectedCategories(new Set());
+    }
+
+    // Sync color
+    setSelectedColor(activeFilters.color || null);
+
+    // Sync size
+    if (activeFilters.size) {
+      if (waistSizes.includes(activeFilters.size)) {
+        setSelectedWaist(activeFilters.size);
+        setSelectedSize(null);
+      } else {
+        setSelectedSize(activeFilters.size);
+        setSelectedWaist(null);
+      }
+    } else {
+      setSelectedSize(null);
+      setSelectedWaist(null);
+    }
+  }, [activeFilters.category, activeFilters.color, activeFilters.size]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Khi category thay đổi – gửi slug của category đầu tiên được chọn lên parent
   const toggleCategory = (slug) => {
@@ -117,8 +156,8 @@ export const FilterSidebar = ({ onFilterChange, activeFilters = {} }) => {
               />
               <div
                 className={`relative w-8 h-8 bg-white rounded border-[0.5px] border-solid ${selectedCategories.has(cat.slug)
-                    ? "bg-x-600 border-x-600"
-                    : "border-x-600"
+                  ? "bg-x-600 border-x-600"
+                  : "border-x-600"
                   } flex items-center justify-center`}
               >
                 {selectedCategories.has(cat.slug) && (
@@ -155,8 +194,8 @@ export const FilterSidebar = ({ onFilterChange, activeFilters = {} }) => {
               >
                 <div
                   className={`relative w-6 h-6 rounded-xl border border-solid border-x-600 ${selectedColor === color.name
-                      ? "ring-2 ring-offset-2 ring-x-600"
-                      : ""
+                    ? "ring-2 ring-offset-2 ring-x-600"
+                    : ""
                     }`}
                 >
                   <div
@@ -198,8 +237,8 @@ export const FilterSidebar = ({ onFilterChange, activeFilters = {} }) => {
               <button
                 key={size}
                 className={`flex items-center justify-center gap-2.5 p-3 relative flex-1 grow ${selectedWaist === size
-                    ? "bg-black text-white"
-                    : "bg-x-100 hover:bg-gray-200"
+                  ? "bg-black text-white"
+                  : "bg-x-100 hover:bg-gray-200"
                   } transition-colors duration-200`}
                 onClick={() => handleWaistSelect(size)}
                 aria-label={`Select waist size ${size}`}
@@ -230,8 +269,8 @@ export const FilterSidebar = ({ onFilterChange, activeFilters = {} }) => {
               <button
                 key={size}
                 className={`flex items-center justify-center gap-2.5 p-3 relative flex-1 grow ${selectedSize === size
-                    ? "bg-black text-white"
-                    : "bg-x-100 hover:bg-gray-200"
+                  ? "bg-black text-white"
+                  : "bg-x-100 hover:bg-gray-200"
                   } transition-colors duration-200`}
                 onClick={() => handleSizeSelect(size)}
                 aria-label={`Select clothing size ${size}`}

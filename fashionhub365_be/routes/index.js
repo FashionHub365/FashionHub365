@@ -7,6 +7,7 @@ const productRoute = require('./product.routes');
 const uploadRoute = require('./upload.routes');
 const cartRoute = require('./cart.routes');
 const listingRoute = require('./listing.routes');
+const customerOrderRoute = require('./customer.order.routes');
 const wishlistRoute = require('./wishlist.routes');
 
 const router = express.Router();
@@ -20,6 +21,7 @@ const defaultRoutes = [
     { path: '/upload', route: uploadRoute },
     { path: '/cart', route: cartRoute },
     { path: '/listing', route: listingRoute },
+    { path: '/orders', route: customerOrderRoute },
     { path: '/wishlist', route: wishlistRoute },
 ];
 

@@ -1,32 +1,16 @@
-// tạm thời bỏ qua đăng nhập để test api với postman
 const Order = require("../models/Order");
+const { productService } = require("../services");
 const Product = require("../models/Product");
 const StoreMember = require("../models/StoreMember");
 const Store = require("../models/Store");
 const catchAsync = require("../utils/catchAsync");
 const ApiError = require("../utils/ApiError");
 const httpStatus = require("http-status");
+const mongoose = require("mongoose");
 
 // Thống kê cho Seller Dashboard
 exports.getStoreStats = catchAsync(async (req, res) => {
-  // 1. Tìm store của user này (có thể là Owner hoặc Member)
-  let storeId = null;
-
-  // 1a. Check xem user có phải là Owner của store nào không
-  const ownedStore = await Store.findOne({ owner_user_id: req.user._id });
-  if (ownedStore) {
-    storeId = ownedStore._id;
-  } else {
-    // 1b. Nếu không phải owner, check trong StoreMember
-    const member = await StoreMember.findOne({ user_id: req.user._id, status: "ACTIVE" });
-    if (member) {
-      storeId = member.store_id;
-    }
-  }
-
-  if (!storeId) {
-    throw new ApiError(httpStatus.NOT_FOUND, "Không tìm thấy thông tin cửa hàng cho user này. Vui lòng tạo cửa hàng hoặc liên hệ admin.");
-  }
+  const storeId = req.storeId;
 
   // 2. Tổng quan (Doanh thu, số đơn, số SP của store)
   const [orderSummary, totalProducts] = await Promise.all([
@@ -99,11 +83,19 @@ exports.getStoreStats = catchAsync(async (req, res) => {
 });
 
 
+// Helper to build ID query since frontend might pass _id or uuid
+const getIdQuery = (id) => {
+  if (mongoose.Types.ObjectId.isValid(id)) {
+    return { _id: new mongoose.Types.ObjectId(id) };
+  }
+  return { uuid: id };
+};
+
 // UC-29: Xác nhận đơn hàng
 exports.confirmOrder = async (req, res) => {
   try {
     const order = await Order.findOneAndUpdate(
-      { uuid: req.params.id, status: "created" },
+      { ...getIdQuery(req.params.id), status: "created", store_id: req.storeId },
       {
         $set: { status: "confirmed" },
         $push: {
@@ -134,7 +126,7 @@ exports.confirmOrder = async (req, res) => {
 exports.cancelOrder = async (req, res) => {
   try {
     const order = await Order.findOneAndUpdate(
-      { uuid: req.params.id },
+      { ...getIdQuery(req.params.id), store_id: req.storeId },
       {
         $set: { status: "cancelled" },
         $push: {
@@ -160,21 +152,44 @@ exports.cancelOrder = async (req, res) => {
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { status, note } = req.body;
-    const order = await Order.findOneAndUpdate(
-      { uuid: req.params.id },
-      {
-        $set: { status: status },
-        $push: {
-          status_history: {
-            oldStatus: "updated",
-            newStatus: status,
-            changedBy: "seller_test",
-            note: note,
-          },
-        },
-      },
-      { new: true },
-    );
+
+    // Đảm bảo storeId là ObjectID để so khớp chính xác
+    const storeId = mongoose.Types.ObjectId.isValid(req.storeId)
+      ? new mongoose.Types.ObjectId(req.storeId)
+      : req.storeId;
+
+    const query = { ...getIdQuery(req.params.id), store_id: storeId };
+
+    console.log('[updateOrderStatus] Query:', query);
+    console.log('[updateOrderStatus] storeId:', storeId);
+
+    // Lấy order hiện tại
+    const order = await Order.findOne(query);
+    if (!order) {
+      console.log('[updateOrderStatus] Order NOT found for query:', query);
+      return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
+    }
+
+    const oldStatus = order.status;
+
+    // Cập nhật status
+    order.status = status;
+    order.status_history.push({
+      oldStatus: oldStatus,
+      newStatus: status,
+      changedBy: "seller_test",
+      note: note || "Cập nhật trạng thái bởi Seller",
+    });
+    await order.save();
+
+    // ── Khi giao hàng thành công → tăng sold_count các sản phẩm ──
+    if (status === "delivered" && order.items && order.items.length > 0) {
+      // Fire-and-forget: không block response
+      productService.incrementSoldCount(order.items).catch((err) => {
+        console.error("[sold_count] Lỗi khi tăng sold_count:", err.message);
+      });
+    }
+
     res.json(order);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -184,7 +199,7 @@ exports.updateOrderStatus = async (req, res) => {
 // UC-33 & 35: Lấy toàn bộ đơn hàng (Để test)
 exports.getSellerOrderHistory = async (req, res) => {
   try {
-    const orders = await Order.find().sort({ created_at: -1 });
+    const orders = await Order.find({ store_id: req.storeId }).sort({ created_at: -1 });
     res.json(orders);
   } catch (error) {
     res.status(500).json({ error: error.message });

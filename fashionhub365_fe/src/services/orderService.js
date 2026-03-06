@@ -6,11 +6,12 @@ const normalizeOrder = (order) => ({
   // Map customer info từ shipping_address hoặc user_id
   customer_name: order.shipping_address?.full_name || order.shipping_address?.name || 'Khách hàng',
   customer_phone: order.shipping_address?.phone || order.shipping_address?.phone_number || '',
-  shipping_address: typeof order.shipping_address === 'object'
-    ? [
-      order.shipping_address?.address,
+  shipping_address: order.shipping_address, // Keep original intact
+  shipping_address_text: typeof order.shipping_address === 'object'
+    ? order.shipping_address?.address_line || [
+      order.shipping_address?.province,
       order.shipping_address?.district,
-      order.shipping_address?.city,
+      order.shipping_address?.ward,
     ].filter(Boolean).join(', ') || 'Không có địa chỉ'
     : order.shipping_address || 'Không có địa chỉ',
   // Map items
@@ -28,7 +29,7 @@ const normalizeOrder = (order) => ({
 export const fetchSellerOrders = async () => {
   try {
     const response = await axiosClient.get('/orders/seller/history');
-    const data = Array.isArray(response) ? response : (response?.data && Array.isArray(response.data) ? response.data : []);
+    const data = Array.isArray(response) ? response : [];
     return data.map(normalizeOrder);
   } catch (error) {
     console.error('Error fetching orders:', error);

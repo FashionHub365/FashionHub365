@@ -17,8 +17,21 @@ const getWishlist = catchAsync(async (req, res) => {
         wishlist = await Wishlist.create({ user_id: req.user._id, items: [] });
     }
 
-    const totalItems = wishlist.items.length;
-    const paginatedItems = wishlist.items
+    // ✅ FIX: Lọc ra các item có productId bị null (sản phẩm đã bị xóa khỏi DB)
+    const validItems = wishlist.items.filter(item => item.productId != null);
+
+    // Auto-clean: Nếu có item bị xóa, cập nhật lại wishlist trong DB
+    if (validItems.length !== wishlist.items.length) {
+        wishlist.items = validItems.map(item => ({
+            productId: item.productId._id,
+            addedAt: item.addedAt
+        }));
+        await wishlist.save();
+    }
+
+    // Bây giờ tính phân trang dựa trên số lượng item hợp lệ thực tế
+    const totalItems = validItems.length;
+    const paginatedItems = validItems
         .sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt)) // Sort by newest
         .slice(skip, skip + limit);
 

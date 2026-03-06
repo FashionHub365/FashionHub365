@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import listingApi from "../apis/listingApi";
 import { ProductDetailsSection } from "../components/ProductDetailPage/ProductDetailsSection";
 import { ReviewsSection } from "../components/ProductDetailPage/ReviewsSection";
 import { TransparentPricingSection } from "../components/ProductDetailPage/TransparentPricingSection";
 import { RecommendedProductsSection } from "../components/ProductDetailPage/RecommendedProductsSection";
-import listingApi from "../apis/listingApi";
 
 /**
  * ProductDetail Page
@@ -19,7 +19,7 @@ export const ProductDetail = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!id) return; // Không có ID → hiển thị UI tĩnh (fallback)
+    if (!id) return;
 
     const fetchProduct = async () => {
       setLoading(true);
@@ -28,6 +28,8 @@ export const ProductDetail = () => {
         const response = await listingApi.getProductById(id);
         if (response.success) {
           setProduct(response.data);
+          // Track view count — fire-and-forget, không block UI
+          listingApi.trackView(id).catch(() => { });
         }
       } catch (err) {
         console.error("Error fetching product detail:", err);
@@ -41,17 +43,11 @@ export const ProductDetail = () => {
   }, [id]);
 
   return (
-    <div className="flex flex-col items-start relative bg-white w-full">
+    <div className="flex flex-col items-start relative bg-white w-full min-h-screen">
 
-      {/* Loading state */}
-      {loading && (
-        <div className="flex items-center justify-center w-full py-40">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-10 h-10 border-2 border-x-600 border-t-transparent rounded-full animate-spin" />
-            <p className="font-text-200 text-x-400">Đang tải sản phẩm...</p>
-          </div>
-        </div>
-      )}
+      {/* Loading state - We show skeleton inside ProductDetailsSection now, 
+          but if it's the first load and we want a full page loader: */}
+      {/* {loading && <Loading className="py-40 w-full" size="xl" />} */}
 
       {/* Error state */}
       {!loading && error && (
@@ -61,12 +57,12 @@ export const ProductDetail = () => {
       )}
 
       {/* Product content */}
-      {!loading && !error && (
+      {(loading || (!error)) && (
         <>
-          <ProductDetailsSection product={product} />
-          {product && <RecommendedProductsSection productId={product._id} />}
-          <ReviewsSection />
-          <TransparentPricingSection />
+          <ProductDetailsSection product={product} loading={loading} />
+          {product && !loading && <RecommendedProductsSection productId={product._id} />}
+          {product && !loading && <ReviewsSection productId={product._id} product={product} />}
+          {!loading && <TransparentPricingSection />}
         </>
       )}
     </div>

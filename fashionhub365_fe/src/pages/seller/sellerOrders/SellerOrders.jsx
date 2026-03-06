@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchSellerOrders } from '../../../services/orderService';
+import { fetchSellerOrders, updateOrderStatus } from '../../../services/orderService';
 import OrderStats from './components/OrderStats';
 import OrderFilters from './components/OrderFilters';
 import OrderList from './components/OrderList';
@@ -30,7 +30,15 @@ const SellerOrders = () => {
         setFilteredOrders(filter === 'all' ? orders : orders.filter(o => o.status === filter));
     };
 
-    const handleOrderUpdate = () => loadOrders();
+    const handleOrderUpdate = async (orderId, newStatus) => {
+        try {
+            await updateOrderStatus(orderId, newStatus);
+            loadOrders();
+        } catch (err) {
+            console.error('Error updating order:', err);
+            alert('Error updating order: ' + (err.response?.data?.message || err.message));
+        }
+    };
 
     if (loading) return (
         <div className="flex items-center justify-center py-24">
@@ -48,13 +56,13 @@ const SellerOrders = () => {
                 <div className="flex items-end justify-between mb-6">
                     <div>
                         <p className="text-xs font-semibold text-indigo-500 uppercase tracking-widest mb-1">Seller Portal</p>
-                        <h1 className="text-2xl font-bold text-gray-900">Quản lý đơn hàng</h1>
-                        <p className="text-sm text-gray-400 mt-0.5">Theo dõi và xử lý tất cả đơn hàng của bạn</p>
+                        <h1 className="text-2xl font-bold text-gray-900">Order Management</h1>
+                        <p className="text-sm text-gray-400 mt-0.5">Track and process all your orders</p>
                     </div>
                     <button
                         onClick={loadOrders}
                         className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-xs font-semibold rounded-xl hover:bg-gray-800 transition-colors shadow-sm">
-                        ↻ Làm mới
+                        ↻ Refresh
                     </button>
                 </div>
 
