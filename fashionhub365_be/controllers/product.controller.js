@@ -25,7 +25,7 @@ exports.createProduct = async (req, res) => {
             .toLowerCase()
             .replace(/ /g, '-')
             .replace(/[^\w-]+/g, '');
-        
+
         // Ensure slug uniqueness (simple implementation, improved in production with counter)
         let slug = baseSlug;
         let counter = 1;
@@ -37,6 +37,7 @@ exports.createProduct = async (req, res) => {
         // 3. Create Product
         const newProduct = new Product({
             ...productData,
+            store_id: req.storeId, // Inject storeId
             slug,
             uuid: uuidv4(), // Explicitly setting UUID though default exists, good for clarity
             status: productData.status || 'draft' // Default to draft if not provided
@@ -52,7 +53,7 @@ exports.createProduct = async (req, res) => {
     } catch (error) {
         // Handle duplicate key checks if any slipped through
         if (error.code === 11000) {
-             return res.status(400).json({
+            return res.status(400).json({
                 message: 'Dữ liệu bị trùng lặp (ví dụ: slug hoặc tên sản phẩm đã tồn tại).',
                 error: error.message
             });
@@ -68,7 +69,9 @@ exports.createProduct = async (req, res) => {
 exports.getSellerProducts = async (req, res) => {
     try {
         const { status, search, page = 1, limit = 20 } = req.query;
-        const filter = {};
+        const filter = { store_id: req.storeId }; // Filter by storeId
+
+        console.log('Fetching products for storeId:', req.storeId);
 
         if (status && status !== 'all') {
             filter.status = status;
@@ -76,6 +79,8 @@ exports.getSellerProducts = async (req, res) => {
         if (search) {
             filter.name = { $regex: search, $options: 'i' };
         }
+
+        console.log('Final filter:', filter);
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
         const [products, total] = await Promise.all([
@@ -113,8 +118,8 @@ exports.updateProduct = async (req, res) => {
             updateData.slug = existing ? `${baseSlug}-${Date.now()}` : baseSlug;
         }
 
-        const product = await Product.findByIdAndUpdate(
-            req.params.id,
+        const product = await Product.findOneAndUpdate(
+            { _id: req.params.id, store_id: req.storeId }, // Identify and Authz check
             { $set: updateData },
             { new: true, runValidators: true }
         );
@@ -128,7 +133,7 @@ exports.updateProduct = async (req, res) => {
 // UC-16: Xóa sản phẩm
 exports.deleteProduct = async (req, res) => {
     try {
-        const product = await Product.findByIdAndDelete(req.params.id);
+        const product = await Product.findOneAndDelete({ _id: req.params.id, store_id: req.storeId });
         if (!product) return res.status(404).json({ message: 'Không tìm thấy sản phẩm.' });
         res.json({ message: 'Xóa sản phẩm thành công.' });
     } catch (error) {
@@ -139,8 +144,8 @@ exports.deleteProduct = async (req, res) => {
 // UC-16: Bật/tắt trạng thái hết hàng (active <-> inactive)
 exports.toggleStockStatus = async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id);
-        if (!product) return res.status(404).json({ message: 'Không tìm thấy sản phẩm.' });
+        const product = await Product.findOne({ _id: req.params.id, store_id: req.storeId });
+        if (!product) return res.status(404).json({ message: 'Không tìm thấy sản phẩm hoặc bạn không có quyền.' });
 
         const newStatus = product.status === 'active' ? 'inactive' : 'active';
         product.status = newStatus;

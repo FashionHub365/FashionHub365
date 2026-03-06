@@ -18,10 +18,11 @@ import { CheckoutShipping } from "./pages/CheckoutShipping";
 import { CheckoutReview } from "./pages/CheckoutReview";
 import { Layout } from "./components/Layout";
 import "./App.css";
-import SellerOrders from "./pages/seller/SellerOrders";
+import SellerOrders from "./pages/seller/sellerOrders/SellerOrders";
 import SellerProducts from "./pages/seller/SellerProducts";
 import AdminCategories from "./pages/admin/AdminCategories";
-import SellerDashboard from "./pages/seller/SellerDashboard";
+import SellerDashboard from "./pages/seller/sellerDashboard/SellerDashboard";
+import SellerLayout from "./pages/seller/components/SellerLayout";
 
 function App() {
   return (
@@ -51,9 +52,11 @@ function App() {
                 <Route path="/profile" element={<Profile />} />
 
                 {/* Seller Routes */}
-                <Route path="/seller/dashboard" element={<SellerDashboard />} />
-                <Route path="/seller/orders" element={<SellerOrders />} />
-                <Route path="/seller/products" element={<SellerProducts />} />
+                <Route path="/seller" element={<SellerLayout />}>
+                  <Route path="dashboard" element={<SellerDashboard />} />
+                  <Route path="orders" element={<SellerOrders />} />
+                  <Route path="products" element={<SellerProducts />} />
+                </Route>
 
                 {/* Admin Routes */}
                 <Route path="/admin/categories" element={<AdminCategories />} />
