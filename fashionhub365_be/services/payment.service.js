@@ -1,7 +1,11 @@
 const crypto = require('crypto');
 const httpStatus = require('http-status');
+const config = require('../config/config');
 const ApiError = require('../utils/ApiError');
 const { Order, Payment, PaymentMethod } = require('../models');
+const { runWithTransaction } = require('../utils/transaction');
+const stockReservationService = require('./stockReservation.service');
+const outboxService = require('./outbox.service');
 
 const DEFAULT_BANK_INFO = {
     bank_name: 'FashionHub365 Bank',
@@ -100,6 +104,23 @@ const ensurePaymentOwnership = async (payment, userId) => {
     return order;
 };
 
+const countOpenPaymentsForOrder = async (orderId, options = {}) => {
+    const { session, excludePaymentId } = options;
+    const query = {
+        order_id: orderId,
+        status: { $in: ['PENDING', 'PAID'] },
+    };
+    if (excludePaymentId) {
+        query._id = { $ne: excludePaymentId };
+    }
+
+    const countQuery = Payment.countDocuments(query);
+    if (session) {
+        countQuery.session(session);
+    }
+    return countQuery;
+};
+
 const ensureOrderCanCreatePayment = (order, amount, currency) => {
     if (order.payment_status === 'paid') {
         throw new ApiError(httpStatus.BAD_REQUEST, 'Order has already been paid');
@@ -145,6 +166,7 @@ const createBasePayment = async (payload) => {
     const { normalizedCode, method } = await resolvePaymentMethod(paymentMethodCode);
     const transactionId = buildTransactionId();
     const transferContent = buildTransferContent(transactionId);
+    const expiresAt = new Date(Date.now() + Number(config.payment.pendingTtlMinutes || 15) * 60 * 1000);
 
     const payment = await Payment.create({
         order_id: order._id,
@@ -156,6 +178,7 @@ const createBasePayment = async (payload) => {
         amount,
         currency,
         status: 'PENDING',
+        expires_at: extra.expires_at || expiresAt,
         bank_info: {
             ...DEFAULT_BANK_INFO,
             ...(method?.config?.bankInfo || {}),
@@ -174,6 +197,22 @@ const createBasePayment = async (payload) => {
         ...extra,
     });
 
+    if (order.payment_status !== 'unpaid') {
+        order.payment_status = 'unpaid';
+    }
+    if (order.status === 'created') {
+        order.status_history.push({
+            oldStatus: 'created',
+            newStatus: 'pending_payment',
+            changedBy: 'system',
+            note: 'Waiting for payment gateway confirmation',
+        });
+        order.status = 'pending_payment';
+    }
+    if (order.isModified()) {
+        await order.save();
+    }
+
     return payment;
 };
 
@@ -183,60 +222,99 @@ const createPayment = async (payload) => {
 };
 
 const markPaymentPaid = async (payment, meta = {}) => {
-    if (payment.status === 'PAID') {
-        return payment;
-    }
-
-    payment.status = 'PAID';
-    payment.paid_at = new Date();
-    if (meta.rawPayload) {
-        payment.raw_payload = JSON.stringify(meta.rawPayload);
-    }
-    if (meta.providerTxnId || meta.amount) {
-        payment.transactions.push({
-            providerTxnId: meta.providerTxnId || payment.transaction_id,
-            amount: meta.amount || payment.amount,
-            status: 'PAID',
-        });
-    }
-    await payment.save();
-
-    const order = await Order.findById(payment.order_id);
-    if (order) {
-        order.payment_status = 'paid';
-        if (order.status === 'created') {
-            order.status = 'confirmed';
+    return runWithTransaction(async (session) => {
+        const lockedPayment = await Payment.findById(payment._id).session(session || null);
+        if (!lockedPayment) {
+            throw new ApiError(httpStatus.NOT_FOUND, 'Payment not found');
         }
-        await order.save();
-    }
+        if (!['PENDING', 'PAID'].includes(lockedPayment.status)) {
+            return lockedPayment;
+        }
 
-    return payment;
+        if (lockedPayment.status === 'PENDING') {
+            lockedPayment.status = 'PAID';
+            lockedPayment.paid_at = new Date();
+            if (meta.rawPayload) {
+                lockedPayment.raw_payload = JSON.stringify(meta.rawPayload);
+            }
+            if (meta.providerTxnId || meta.amount) {
+                lockedPayment.transactions.push({
+                    providerTxnId: meta.providerTxnId || lockedPayment.transaction_id,
+                    amount: meta.amount || lockedPayment.amount,
+                    status: 'PAID',
+                });
+            }
+            await lockedPayment.save({ session });
+        }
+
+        const order = await Order.findById(lockedPayment.order_id).session(session || null);
+        if (order) {
+            order.payment_status = 'paid';
+            if (['created', 'pending_payment'].includes(order.status)) {
+                const oldStatus = order.status;
+                order.status = 'confirmed';
+                order.status_history.push({
+                    oldStatus,
+                    newStatus: 'confirmed',
+                    changedBy: 'system',
+                    note: 'Payment confirmed by gateway callback',
+                });
+            }
+            await order.save({ session });
+            await stockReservationService.confirmReservationsForOrder(order._id, { session });
+            await outboxService.enqueueEventIfNotExists(
+                {
+                    aggregateType: 'ORDER',
+                    aggregateId: order._id.toString(),
+                    eventType: 'ORDER_CONFIRMED',
+                    payload: {
+                        orderId: order._id.toString(),
+                        orderUuid: order.uuid,
+                        userId: order.user_id.toString(),
+                    },
+                },
+                { session }
+            );
+        }
+
+        return lockedPayment;
+    });
 };
 
 const markPaymentFailed = async (payment, meta = {}) => {
-    if (payment.status !== 'PENDING') {
-        return payment;
-    }
+    return runWithTransaction(async (session) => {
+        const lockedPayment = await Payment.findById(payment._id).session(session || null);
+        if (!lockedPayment) {
+            throw new ApiError(httpStatus.NOT_FOUND, 'Payment not found');
+        }
+        if (lockedPayment.status !== 'PENDING') {
+            return lockedPayment;
+        }
 
-    payment.status = 'FAILED';
-    payment.failed_at = new Date();
-    if (meta.rawPayload) {
-        payment.raw_payload = JSON.stringify(meta.rawPayload);
-    }
-    payment.transactions.push({
-        providerTxnId: meta.providerTxnId || payment.transaction_id,
-        amount: meta.amount || payment.amount,
-        status: 'FAILED',
+        lockedPayment.status = 'FAILED';
+        lockedPayment.failed_at = new Date();
+        if (meta.rawPayload) {
+            lockedPayment.raw_payload = JSON.stringify(meta.rawPayload);
+        }
+        lockedPayment.transactions.push({
+            providerTxnId: meta.providerTxnId || lockedPayment.transaction_id,
+            amount: meta.amount || lockedPayment.amount,
+            status: 'FAILED',
+        });
+        await lockedPayment.save({ session });
+
+        const order = await Order.findById(lockedPayment.order_id).session(session || null);
+        if (order && order.payment_status !== 'paid') {
+            const remainingOpenPayments = await countOpenPaymentsForOrder(lockedPayment.order_id, {
+                session,
+                excludePaymentId: lockedPayment._id,
+            });
+            order.payment_status = remainingOpenPayments === 0 ? 'failed' : 'unpaid';
+            await order.save({ session });
+        }
+
+        return lockedPayment;
     });
-    await payment.save();
-
-    const order = await Order.findById(payment.order_id);
-    if (order && order.payment_status === 'unpaid') {
-        order.payment_status = 'failed';
-        await order.save();
-    }
-
-    return payment;
 };
 
 const getPaymentStatus = async (paymentUuid, userId) => {
@@ -288,31 +366,71 @@ const cancelPayment = async (transactionId, reason, userId) => {
         throw new ApiError(httpStatus.NOT_FOUND, 'Payment not found');
     }
 
-    const order = await ensurePaymentOwnership(payment, userId);
+    await ensurePaymentOwnership(payment, userId);
 
-    if (payment.status !== 'PENDING') {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Only pending payments can be cancelled');
-    }
+    return runWithTransaction(async (session) => {
+        const lockedPayment = await Payment.findOne({
+            _id: payment._id,
+        }).session(session || null);
+        if (!lockedPayment) {
+            throw new ApiError(httpStatus.NOT_FOUND, 'Payment not found');
+        }
+        if (lockedPayment.status !== 'PENDING') {
+            throw new ApiError(httpStatus.BAD_REQUEST, 'Only pending payments can be cancelled');
+        }
 
-    payment.status = 'CANCELLED';
-    payment.cancelled_at = new Date();
-    payment.transactions.push({
-        providerTxnId: transactionId,
-        amount: payment.amount,
-        status: 'CANCELLED',
+        lockedPayment.status = 'CANCELLED';
+        lockedPayment.cancelled_at = new Date();
+        lockedPayment.transactions.push({
+            providerTxnId: transactionId,
+            amount: lockedPayment.amount,
+            status: 'CANCELLED',
+        });
+        let parsedRawPayload = {};
+        try {
+            parsedRawPayload = lockedPayment.raw_payload ? JSON.parse(lockedPayment.raw_payload) : {};
+        } catch (error) {
+            parsedRawPayload = {};
+        }
+        lockedPayment.raw_payload = JSON.stringify({
+            ...parsedRawPayload,
+            cancelReason: reason,
+        });
+        await lockedPayment.save({ session });
+
+        const order = await Order.findById(lockedPayment.order_id).session(session || null);
+        if (order && order.payment_status !== 'paid') {
+            const remainingOpenPayments = await countOpenPaymentsForOrder(order._id, {
+                session,
+                excludePaymentId: lockedPayment._id,
+            });
+
+            if (remainingOpenPayments === 0) {
+                order.payment_status = 'failed';
+                if (order.status === 'pending_payment') {
+                    const oldStatus = order.status;
+                    order.status = 'cancelled';
+                    order.status_history.push({
+                        oldStatus,
+                        newStatus: 'cancelled',
+                        changedBy: 'customer',
+                        note: reason || 'Payment cancelled by user',
+                    });
+                }
+                await stockReservationService.releaseReservationsForOrder(order._id, {
+                    session,
+                    reason: 'PAYMENT_CANCELLED_BY_USER',
+                    nextStatus: 'RELEASED',
+                });
+            } else {
+                order.payment_status = 'unpaid';
+            }
+
+            await order.save({ session });
+        }
+
+        return lockedPayment;
     });
-    payment.raw_payload = JSON.stringify({
-        ...(payment.raw_payload ? JSON.parse(payment.raw_payload) : {}),
-        cancelReason: reason,
-    });
-    await payment.save();
-
-    if (order && order.payment_status === 'unpaid') {
-        order.payment_status = 'failed';
-        await order.save();
-    }
-
-    return payment;
 };
 
 const normalizeBankTransferItems = (payload) => {
@@ -357,20 +475,104 @@ const processBankTransferCallback = async (payload) => {
             continue;
         }
 
-        await markPaymentPaid(payment, {
+        const updatedPayment = await markPaymentPaid(payment, {
             providerTxnId,
             amount,
             rawPayload: payload,
         });
 
         processed.push({
-            paymentUuid: payment.uuid,
+            paymentUuid: updatedPayment.uuid,
             transactionId,
-            status: payment.status,
+            status: updatedPayment.status,
         });
     }
 
     return processed;
+};
+
+const expirePendingPayments = async (options = {}) => {
+    const { limit = 200, now = new Date() } = options;
+    const stalePayments = await Payment.find({
+        status: 'PENDING',
+        expires_at: { $lte: now },
+    })
+        .sort({ expires_at: 1 })
+        .limit(limit);
+
+    let expiredCount = 0;
+    for (const payment of stalePayments) {
+        const failed = await markPaymentFailed(payment, {
+            providerTxnId: payment.transaction_id,
+            amount: payment.amount,
+            rawPayload: { reconcile: 'PAYMENT_EXPIRED' },
+        });
+
+        if (failed.status !== 'FAILED') {
+            continue;
+        }
+
+        const remainingPendingOrPaid = await Payment.countDocuments({
+            order_id: failed.order_id,
+            status: { $in: ['PENDING', 'PAID'] },
+        });
+
+        if (remainingPendingOrPaid === 0) {
+            await runWithTransaction(async (session) => {
+                const order = await Order.findById(failed.order_id).session(session || null);
+                if (!order || order.payment_status === 'paid') {
+                    return;
+                }
+
+                await stockReservationService.releaseReservationsForOrder(order._id, {
+                    session,
+                    reason: 'PAYMENT_EXPIRED_RECONCILE',
+                    nextStatus: 'EXPIRED',
+                });
+
+                if (order.status === 'pending_payment') {
+                    order.status_history.push({
+                        oldStatus: 'pending_payment',
+                        newStatus: 'cancelled',
+                        changedBy: 'system',
+                        note: 'Auto-cancelled due to payment timeout',
+                    });
+                    order.status = 'cancelled';
+                }
+                order.payment_status = 'failed';
+                await order.save({ session });
+            });
+        }
+
+        expiredCount += 1;
+    }
+
+    return { expiredCount };
+};
+
+const repairPaidPaymentOrderState = async (options = {}) => {
+    const { limit = 200 } = options;
+    const paidPayments = await Payment.find({ status: 'PAID' })
+        .sort({ created_at: -1 })
+        .limit(limit);
+
+    let repairedCount = 0;
+    for (const payment of paidPayments) {
+        const order = await Order.findById(payment.order_id);
+        if (!order) {
+            continue;
+        }
+        if (order.payment_status !== 'paid' || ['pending_payment', 'created'].includes(order.status)) {
+            await markPaymentPaid(payment, {
+                providerTxnId: payment.transaction_id,
+                amount: payment.amount,
+                rawPayload: { reconcile: 'PAID_STATE_REPAIR' },
+            });
+            repairedCount += 1;
+        }
+    }
+
+    return { repairedCount };
 };
 
 module.exports = {
@@ -386,4 +588,6 @@ module.exports = {
     getPaymentByTransactionId,
     cancelPayment,
     processBankTransferCallback,
+    expirePendingPayments,
+    repairPaidPaymentOrderState,
 };

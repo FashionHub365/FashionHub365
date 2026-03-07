@@ -65,6 +65,46 @@ const readRawPayload = (payment) => {
     }
 };
 
+const validateVNPayQuery = async (query) => {
+    ensureVNPayConfig();
+
+    const params = { ...query };
+    const providedHash = params.vnp_SecureHash;
+    delete params.vnp_SecureHash;
+    delete params.vnp_SecureHashType;
+
+    if (!providedHash) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Missing VNPay signature');
+    }
+
+    const expectedHash = buildSecureHash(params);
+    if (expectedHash !== providedHash) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid VNPay signature');
+    }
+
+    const transactionId = params.vnp_TxnRef;
+    const payment = await Payment.findOne({ transaction_id: transactionId });
+    if (!payment) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'Payment not found');
+    }
+
+    if (params.vnp_TmnCode !== config.payment.vnpay.tmnCode) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid VNPay terminal code');
+    }
+
+    const callbackAmount = Number(params.vnp_Amount || 0) / 100;
+    if (callbackAmount !== Number(payment.amount)) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid VNPay amount');
+    }
+
+    return {
+        params,
+        payment,
+        transactionId,
+        callbackAmount,
+    };
+};
+
 const createVNPayPayment = async (payload) => {
     ensureVNPayConfig();
 
@@ -80,7 +120,8 @@ const createVNPayPayment = async (payload) => {
     });
 
     const createDate = formatDate(new Date());
-    const expireDate = formatDate(new Date(Date.now() + 15 * 60 * 1000));
+    const expireAt = new Date(Date.now() + Number(config.payment.pendingTtlMinutes || 15) * 60 * 1000);
+    const expireDate = formatDate(expireAt);
     const vnPayReturnUrl = config.payment.vnpay.returnUrl;
     if (!vnPayReturnUrl) {
         throw new ApiError(httpStatus.BAD_REQUEST, 'VNPAY_RETURN_URL is required');
@@ -129,32 +170,9 @@ const createVNPayPayment = async (payload) => {
 };
 
 const processVNPayCallback = async (query) => {
-    ensureVNPayConfig();
-
-    const params = { ...query };
-    const providedHash = params.vnp_SecureHash;
-    delete params.vnp_SecureHash;
-    delete params.vnp_SecureHashType;
-
-    const expectedHash = buildSecureHash(params);
-    if (expectedHash !== providedHash) {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid VNPay signature');
-    }
-
-    const transactionId = params.vnp_TxnRef;
-    const payment = await Payment.findOne({ transaction_id: transactionId });
-    if (!payment) {
-        throw new ApiError(httpStatus.NOT_FOUND, 'Payment not found');
-    }
-
-    if (params.vnp_TmnCode !== config.payment.vnpay.tmnCode) {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid VNPay terminal code');
-    }
-
-    const callbackAmount = Number(params.vnp_Amount || 0) / 100;
-    if (callbackAmount !== Number(payment.amount)) {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid VNPay amount');
-    }
+    const {
+        params, payment, transactionId, callbackAmount,
+    } = await validateVNPayQuery(query);
 
     if (params.vnp_ResponseCode === '00' && params.vnp_TransactionStatus === '00') {
         await paymentService.markPaymentPaid(payment, {
@@ -181,6 +199,21 @@ const processVNPayCallback = async (query) => {
     };
 };
 
+const getVNPayReturnState = async (query) => {
+    const { params, payment, transactionId } = await validateVNPayQuery(query);
+    const latestPayment = await Payment.findById(payment._id);
+    const responsePayment = latestPayment || payment;
+    const rawPayload = readRawPayload(responsePayment);
+
+    return {
+        paymentUuid: responsePayment.uuid,
+        transactionId,
+        status: responsePayment.status,
+        responseCode: params.vnp_ResponseCode,
+        frontendReturnUrl: rawPayload.frontendReturnUrl || `${config.frontendUrl}/payment-result`,
+    };
+};
+
 const queryVNPayPayment = async (transactionId, userId) => {
     const payment = await paymentService.getPaymentByTransactionId(transactionId, userId);
     return {
@@ -195,5 +228,6 @@ const queryVNPayPayment = async (transactionId, userId) => {
 module.exports = {
     createVNPayPayment,
     processVNPayCallback,
+    getVNPayReturnState,
     queryVNPayPayment,
 };

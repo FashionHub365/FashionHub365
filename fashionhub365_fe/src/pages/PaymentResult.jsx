@@ -14,46 +14,92 @@ export const PaymentResult = () => {
     const responseCode = searchParams.get('responseCode');
 
     useEffect(() => {
-        const loadPayment = async () => {
+        let mounted = true;
+        let timer = null;
+        let attempts = 0;
+        const MAX_ATTEMPTS = 40;
+        const POLL_INTERVAL_MS = 3000;
+
+        const loadCurrentStatus = async () => {
+            if (transactionId) {
+                const response = await paymentApi.queryVNPayPayment(transactionId);
+                if (response.success) {
+                    return response.data;
+                }
+            }
+
+            if (paymentUuid) {
+                const response = await paymentApi.getPaymentStatus(paymentUuid);
+                if (response.success) {
+                    return response.data;
+                }
+            }
+
+            return {
+                paymentUuid,
+                transactionId,
+                status: statusFromQuery || 'PENDING',
+            };
+        };
+
+        const poll = async () => {
+            let scheduledNext = false;
             try {
-                if (transactionId) {
-                    const response = await paymentApi.queryVNPayPayment(transactionId);
-                    if (response.success) {
-                        setPayment(response.data);
-                        return;
-                    }
+                const current = await loadCurrentStatus();
+                if (!mounted) {
+                    return;
                 }
 
-                if (paymentUuid) {
-                    const response = await paymentApi.getPaymentStatus(paymentUuid);
-                    if (response.success) {
-                        setPayment(response.data);
-                        return;
-                    }
-                }
+                setPayment(current);
+                setError('');
 
-                setPayment({
+                const currentStatus = current?.status || 'PENDING';
+                const shouldPoll = currentStatus === 'PENDING' && attempts < MAX_ATTEMPTS;
+
+                if (shouldPoll) {
+                    attempts += 1;
+                    scheduledNext = true;
+                    timer = setTimeout(poll, POLL_INTERVAL_MS);
+                    return;
+                }
+            } catch (err) {
+                if (!mounted) {
+                    return;
+                }
+                setError(err.response?.data?.message || 'Unable to verify payment right now');
+                setPayment((prev) => prev || {
                     paymentUuid,
                     transactionId,
                     status: statusFromQuery || 'PENDING',
                 });
-            } catch (err) {
-                setError(err.response?.data?.message || 'Unable to load payment result');
-                setPayment({
-                    paymentUuid,
-                    transactionId,
-                    status: statusFromQuery || 'FAILED',
-                });
+
+                if (attempts < MAX_ATTEMPTS) {
+                    attempts += 1;
+                    scheduledNext = true;
+                    timer = setTimeout(poll, POLL_INTERVAL_MS);
+                    return;
+                }
             } finally {
-                setLoading(false);
+                if (mounted && !scheduledNext) {
+                    setLoading(false);
+                }
             }
         };
 
-        loadPayment();
+        poll();
+
+        return () => {
+            mounted = false;
+            if (timer) {
+                clearTimeout(timer);
+            }
+        };
     }, [paymentUuid, transactionId, statusFromQuery]);
 
     const status = payment?.status || statusFromQuery || 'PENDING';
     const isSuccess = status === 'PAID';
+    const isPending = status === 'PENDING';
+    const isFailed = !isSuccess && !isPending;
 
     return (
         <div className="min-h-screen bg-gray-50 px-4 py-12">
@@ -63,14 +109,14 @@ export const PaymentResult = () => {
 
                 {loading && (
                     <div className="mt-6 rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
-                        Checking payment status...
+                        Dang xac nhan thanh toan...
                     </div>
                 )}
 
                 {!loading && (
-                    <div className={`mt-6 rounded-xl border p-5 ${isSuccess ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
-                        <div className={`text-lg font-semibold ${isSuccess ? 'text-green-700' : 'text-red-700'}`}>
-                            {isSuccess ? 'Payment successful' : 'Payment not completed'}
+                    <div className={`mt-6 rounded-xl border p-5 ${isSuccess ? 'border-green-200 bg-green-50' : isPending ? 'border-amber-200 bg-amber-50' : 'border-red-200 bg-red-50'}`}>
+                        <div className={`text-lg font-semibold ${isSuccess ? 'text-green-700' : isPending ? 'text-amber-700' : 'text-red-700'}`}>
+                            {isSuccess ? 'Payment successful' : isPending ? 'Dang cho webhook xac nhan' : 'Payment not completed'}
                         </div>
                         <div className="mt-4 space-y-2 text-sm text-gray-700">
                             <div>Payment UUID: {payment?.paymentUuid || 'N/A'}</div>
@@ -84,6 +130,12 @@ export const PaymentResult = () => {
                 {error && (
                     <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
                         {error}
+                    </div>
+                )}
+
+                {!loading && isFailed && (
+                    <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+                        Neu ban da thanh toan nhung trang thai chua cap nhat, vui long cho 1-2 phut de he thong reconcile.
                     </div>
                 )}
 

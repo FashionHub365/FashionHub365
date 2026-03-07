@@ -12,6 +12,7 @@ const routes = require('./routes');
 const errorHandler = require('./middleware/error');
 const ApiError = require('./utils/ApiError');
 const apiLogger = require('./middleware/apiLogger');
+const { workerService } = require('./services');
 
 
 const app = express();
@@ -60,6 +61,9 @@ connectDB()
         
         if (typeof initDB === 'function') {
             initDB();
+        }
+        if (env !== 'test') {
+            workerService.startWorkers();
         }
 
         

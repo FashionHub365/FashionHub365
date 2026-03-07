@@ -24,6 +24,11 @@ const envVarsSchema = Joi.object()
         VNPAY_HASH_SECRET: Joi.string().allow('').description('VNPay hash secret'),
         VNPAY_URL: Joi.string().allow('').description('VNPay payment URL'),
         VNPAY_RETURN_URL: Joi.string().allow('').description('VNPay return URL'),
+        PAYMENT_PENDING_TTL_MINUTES: Joi.number().default(15).description('ttl minutes for pending payment and stock reservation'),
+        PAYMENT_RECONCILE_INTERVAL_SECONDS: Joi.number().default(60).description('interval for reconcile worker'),
+        OUTBOX_WORKER_INTERVAL_SECONDS: Joi.number().default(10).description('interval for outbox worker'),
+        OUTBOX_MAX_RETRY: Joi.number().default(10).description('max retry count for outbox events'),
+        OUTBOX_PROCESSING_TIMEOUT_SECONDS: Joi.number().default(300).description('seconds before processing outbox event is treated as stale'),
     })
     .unknown();
 
@@ -61,11 +66,18 @@ module.exports = {
     },
     payment: {
         bankTransferWebhookSecret: envVars.BANK_TRANSFER_WEBHOOK_SECRET || '',
+        pendingTtlMinutes: envVars.PAYMENT_PENDING_TTL_MINUTES,
+        reconcileIntervalSeconds: envVars.PAYMENT_RECONCILE_INTERVAL_SECONDS,
         vnpay: {
             tmnCode: envVars.VNPAY_TMN_CODE || '',
             hashSecret: envVars.VNPAY_HASH_SECRET || '',
             url: envVars.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
             returnUrl: envVars.VNPAY_RETURN_URL || '',
         },
+    },
+    outbox: {
+        intervalSeconds: envVars.OUTBOX_WORKER_INTERVAL_SECONDS,
+        maxRetry: envVars.OUTBOX_MAX_RETRY,
+        processingTimeoutSeconds: envVars.OUTBOX_PROCESSING_TIMEOUT_SECONDS,
     },
 };

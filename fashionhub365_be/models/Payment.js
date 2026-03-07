@@ -67,6 +67,9 @@ const paymentSchema = new mongoose.Schema({
     raw_payload: {
         type: String
     },
+    expires_at: {
+        type: Date
+    },
     transactions: [{
         providerTxnId: String,
         amount: Number,
@@ -85,5 +88,6 @@ const paymentSchema = new mongoose.Schema({
 
 paymentSchema.index({ order_id: 1, status: 1 });
 paymentSchema.index({ store_id: 1, status: 1 });
+paymentSchema.index({ status: 1, expires_at: 1 });
 
 module.exports = mongoose.model('Payment', paymentSchema);

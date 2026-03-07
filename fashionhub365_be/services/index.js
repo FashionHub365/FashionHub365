@@ -10,6 +10,10 @@ const cartService = require('./cart.service');
 const productService = require('./product.service');
 const storeService = require('./store.service');
 const orderService = require('./order.service');
+const outboxService = require('./outbox.service');
+const stockReservationService = require('./stockReservation.service');
+const paymentReconcileService = require('./paymentReconcile.service');
+const workerService = require('./worker.service');
 
 module.exports = {
     authService,
@@ -24,4 +28,8 @@ module.exports = {
     productService,
     storeService,
     orderService,
+    outboxService,
+    stockReservationService,
+    paymentReconcileService,
+    workerService,
 };

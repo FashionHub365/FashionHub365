@@ -49,8 +49,9 @@ function App() {
                 <Route path="/stores" element={<Stores />} />
                 <Route path="/men" element={<Listing />} />
                 <Route path="/listing" element={<Listing />} />
-                 <Route path="/checkout" element={<CheckoutShipping />} />
+                <Route path="/checkout" element={<CheckoutShipping />} />
                 <Route path="/checkout/review" element={<CheckoutReview />} />
+                <Route path="/payment-result" element={<PaymentResult />} />
 
                 {/* Protected Routes */}
                 <Route element={<PrivateRoute />}>

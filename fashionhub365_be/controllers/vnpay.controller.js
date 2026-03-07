@@ -17,7 +17,7 @@ const createVNPayPayment = catchAsync(async (req, res) => {
 });
 
 const callback = catchAsync(async (req, res) => {
-    const result = await vnpayService.processVNPayCallback(req.query);
+    const result = await vnpayService.getVNPayReturnState(req.query);
     const redirectUrl = new URL(result.frontendReturnUrl);
     redirectUrl.searchParams.set('paymentUuid', result.paymentUuid);
     redirectUrl.searchParams.set('transactionId', result.transactionId);
@@ -38,6 +38,7 @@ const ipn = catchAsync(async (req, res) => {
         });
     } catch (error) {
         const statusMap = {
+            'Missing VNPay signature': { RspCode: '97', Message: 'Invalid Checksum' },
             'Invalid VNPay signature': { RspCode: '97', Message: 'Invalid Checksum' },
             'Payment not found': { RspCode: '01', Message: 'Order not Found' },
             'Invalid VNPay amount': { RspCode: '04', Message: 'Invalid Amount' },

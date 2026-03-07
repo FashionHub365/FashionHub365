@@ -21,7 +21,7 @@ const orderSchema = new mongoose.Schema({
     shipping_address: mongoose.Schema.Types.Mixed,
     status: {
         type: String,
-        enum: ['created', 'confirmed', 'shipped', 'delivered', 'cancelled', 'refunded'],
+        enum: ['pending_payment', 'created', 'confirmed', 'shipped', 'delivered', 'cancelled', 'refunded'],
         default: 'created'
     },
     payment_status: {

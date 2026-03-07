@@ -22,6 +22,8 @@ const Wishlist = require('./Wishlist');
 const Order = require('./Order');
 const Payment = require('./Payment');
 const PaymentMethod = require('./PaymentMethod');
+const StockReservation = require('./StockReservation');
+const OutboxEvent = require('./OutboxEvent');
 const Refund = require('./Refund');
 const Return = require('./Return');
 const Cancellation = require('./Cancellation');
@@ -81,6 +83,8 @@ module.exports = {
     Order,
     Payment,
     PaymentMethod,
+    StockReservation,
+    OutboxEvent,
     Refund,
     Return,
     Cancellation,

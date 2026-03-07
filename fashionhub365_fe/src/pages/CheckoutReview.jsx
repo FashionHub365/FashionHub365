@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useCart } from "../contexts/CartContext";
 import checkoutApi from "../apis/checkoutApi";
+import paymentApi from "../apis/paymentApi";
 
 // ── Step indicator ──────────────────────────────────────────────────
 const StepBar = ({ step }) => (
@@ -89,18 +90,53 @@ export const CheckoutReview = () => {
     const { items = [], totalItems = 0, totalAmount = 0 } = cartData;
     const shippingFee = totalAmount >= 1000000 ? 0 : 30000;
     const grandTotal = totalAmount + shippingFee;
+    const uniqueStoreCount = new Set(items.map((item) => item.storeId).filter(Boolean)).size;
+    const isVnPayBlockedByMultiStore = paymentMethod === "vnpay" && uniqueStoreCount > 1;
 
     const handlePlaceOrder = async () => {
         if (!shipping) return;
+        if (isVnPayBlockedByMultiStore) {
+            setError("VNPAY currently supports one-store checkout only. Please checkout items by store.");
+            return;
+        }
         setPlacing(true);
         setError("");
 
         try {
-            await checkoutApi.placeOrder({
+            const orderRes = await checkoutApi.placeOrder({
                 shipping_address: shipping,
                 payment_method: paymentMethod,
                 note: shipping.note || "",
             });
+
+            if (paymentMethod === "vnpay") {
+                const createdOrders = orderRes?.data?.orders || [];
+                const firstOrder = createdOrders[0];
+                const orderUuid = firstOrder?.uuid;
+                const orderAmount = Number(firstOrder?.total_amount);
+
+                if (!orderUuid || !(orderAmount > 0)) {
+                    throw new Error("Unable to initialize VNPAY payment.");
+                }
+
+                const paymentRes = await paymentApi.createVNPayPayment({
+                    orderId: orderUuid,
+                    amount: orderAmount,
+                    currency: firstOrder?.currency || "VND",
+                    locale: "vn",
+                    returnUrl: `${window.location.origin}/payment-result`,
+                });
+
+                const paymentUrl = paymentRes?.data?.paymentUrl;
+                if (!paymentUrl) {
+                    throw new Error("VNPAY payment URL is missing.");
+                }
+
+                sessionStorage.removeItem("checkout_shipping");
+                await fetchCart();
+                window.location.assign(paymentUrl);
+                return;
+            }
 
             // Success!
             sessionStorage.removeItem("checkout_shipping");
@@ -213,12 +249,12 @@ export const CheckoutReview = () => {
                                     description="Chuyển khoản trực tiếp vào tài khoản của chúng tôi"
                                 />
                                 <PaymentCard
-                                    id="momo"
-                                    selected={paymentMethod === "momo"}
+                                    id="vnpay"
+                                    selected={paymentMethod === "vnpay"}
                                     onSelect={setPaymentMethod}
                                     icon="📱"
-                                    title="Ví MoMo"
-                                    description="Thanh toán qua ví điện tử MoMo"
+                                    title="VNPay"
+                                    description="Thanh toan qua cong thanh toan VNPay"
                                 />
                             </div>
 
@@ -239,12 +275,17 @@ export const CheckoutReview = () => {
                                 {error}
                             </div>
                         )}
+                        {isVnPayBlockedByMultiStore && (
+                            <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm rounded-sm">
+                                VNPAY currently supports one-store checkout only. Please split your cart by store.
+                            </div>
+                        )}
 
                         <button
                             onClick={handlePlaceOrder}
-                            disabled={placing || items.length === 0}
+                            disabled={placing || items.length === 0 || isVnPayBlockedByMultiStore}
                             className={`w-full py-4 font-bold tracking-wider uppercase text-white transition-all flex items-center justify-center gap-2
-                ${placing || items.length === 0 ? "bg-gray-400 cursor-not-allowed" : "bg-black hover:bg-gray-800"}`}
+                ${placing || items.length === 0 || isVnPayBlockedByMultiStore ? "bg-gray-400 cursor-not-allowed" : "bg-black hover:bg-gray-800"}`}
                         >
                             {placing ? (
                                 <>
