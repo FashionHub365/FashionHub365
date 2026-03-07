@@ -9,6 +9,7 @@ import { BlogPost } from "./pages/BlogPost";
 import { ProductDetail } from "./pages/ProductDetail";
 import { Stores } from "./pages/Stores";
 import { Listing } from "./pages/Listing";
+import { StoreProfile } from "./pages/StoreProfile";
 import { NotFound } from "./pages/NotFound";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
@@ -42,6 +43,7 @@ function App() {
               <Route path="/product-detail" element={<ProductDetail />} />
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/stores" element={<Stores />} />
+              <Route path="/store/:storeId" element={<StoreProfile />} />
               <Route path="/men" element={<Listing />} />
               <Route path="/listing" element={<Listing />} />
               <Route path="/checkout" element={<CheckoutShipping />} />

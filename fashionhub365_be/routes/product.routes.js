@@ -1,16 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/product.controller');
+const { auth } = require('../middleware/auth');
+const { storeAuth } = require("../middleware/storeAuth");
 const catchAsync = require('../utils/catchAsync');
 const { productService } = require('../services');
-const auth = require("../middleware/auth");
-const { storeAuth } = require("../middleware/storeAuth");
+
+// Tất cả các route trong file này yêu cầu đăng nhập
+router.use(auth());
 
 // UC-09: Đăng bán sản phẩm
-router.post('/', auth.auth(), storeAuth(), productController.createProduct);
+router.post('/', storeAuth(), productController.createProduct);
 
 // UC-16: Quản lý danh sách sản phẩm
-router.get('/seller', auth.auth(), storeAuth(), productController.getSellerProducts);
+router.get('/seller', storeAuth(), productController.getSellerProducts);
+
+// Gợi ý sản phẩm cho giỏ hàng
 router.get('/cart-recommendations', catchAsync(async (req, res) => {
     const { cartProductIds, storeIds, categoryIds, cartTotal, limit } = req.query;
 
@@ -24,10 +29,12 @@ router.get('/cart-recommendations', catchAsync(async (req, res) => {
 
     res.json({ success: true, data: result });
 }));
-router.get('/:id', productController.getProductById);
-router.put('/:id', auth.auth(), storeAuth(), productController.updateProduct);
-router.delete('/:id', auth.auth(), storeAuth(), productController.deleteProduct);
-router.patch('/:id/stock-status', auth.auth(), storeAuth(), productController.toggleStockStatus);
+
+// Chi tiết sản phẩm, cập nhật, xóa, trạng thái kho (Yêu cầu storeAuth)
+router.get('/:id', storeAuth(), productController.getProductById);
+router.put('/:id', storeAuth(), productController.updateProduct);
+router.delete('/:id', storeAuth(), productController.deleteProduct);
+router.patch('/:id/stock-status', storeAuth(), productController.toggleStockStatus);
 
 module.exports = router;
 

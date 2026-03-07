@@ -3,7 +3,7 @@ import axiosClient from '../apis/axiosClient';
 // UC-16: Lấy danh sách sản phẩm của seller
 export const getSellerProducts = async (params = {}) => {
   try {
-    const response = await axiosClient.get(`/products/seller`, { params });
+    const response = await axiosClient.get('/products/seller', { params });
     return response;
   } catch (error) {
     console.error('Error fetching seller products:', error);
@@ -18,6 +18,17 @@ export const getProductById = async (id) => {
     return response;
   } catch (error) {
     console.error('Error fetching product:', error);
+    throw error;
+  }
+};
+
+// UC-09: Tạo sản phẩm mới
+export const createProduct = async (data) => {
+  try {
+    const response = await axiosClient.post('/products', data);
+    return response;
+  } catch (error) {
+    console.error('Error creating product:', error);
     throw error;
   }
 };
@@ -53,4 +64,31 @@ export const toggleStockStatus = async (id) => {
     console.error('Error toggling stock status:', error);
     throw error;
   }
+};
+
+// Lấy danh sách danh mục (để seller chọn khi đăng SP)
+export const getCategories = async () => {
+    try {
+      const response = await axiosClient.get('/listing/categories');
+      return response;
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      throw error;
+    }
+};
+
+// Upload ảnh lên Cloudinary
+export const uploadImage = async (file) => {
+    try {
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('folder', 'products');
+        const response = await axiosClient.post('/upload/single', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data; // { publicId, url, ... }
+    } catch (error) {
+        console.error('Error uploading image:', error);
+        throw error;
+    }
 };
