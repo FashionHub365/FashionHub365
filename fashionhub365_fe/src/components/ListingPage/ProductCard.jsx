@@ -155,7 +155,6 @@ export const ProductCard = ({ product, activeColor = "" }) => {
             </span>
           </div>
         )}
-
         {/* Badges tròn góc trái trên - giống style wishlist button */}
         <div className="absolute top-2 left-2 flex flex-col gap-1.5 z-10 pointer-events-none">
           {product.isBestSeller && (
@@ -197,7 +196,6 @@ export const ProductCard = ({ product, activeColor = "" }) => {
         >
           <Heart className="!relative !w-5 !h-5" filled={isInWishlist} />
         </button>
-
       </Link>
 
       <div className="flex flex-col items-start gap-[3px] relative self-stretch w-full flex-[0_0_auto]">

@@ -1,6 +1,6 @@
 const httpStatus = require('http-status');
 const catchAsync = require('../utils/catchAsync');
-const { productService } = require('../services');
+const { productService, storeService } = require('../services');
 
 /**
  * GET /api/v1/listing/products
@@ -60,6 +60,18 @@ const getRecommendedProducts = catchAsync(async (req, res) => {
 });
 
 /**
+ * GET /api/v1/listing/stores/:id
+ * Lấy thông tin chi tiết 1 cửa hàng công khai
+ */
+const getStoreById = catchAsync(async (req, res) => {
+    const store = await storeService.getPublicStoreById(req.params.id);
+    res.status(httpStatus.OK).send({
+        success: true,
+        data: store,
+    });
+});
+
+/**
  * POST /api/v1/listing/products/:id/view
  * Tăng view_count mỗi khi user xem Product Detail
  * Fire-and-forget: không block response nếu lỗi
@@ -104,6 +116,7 @@ module.exports = {
     getCategories,
     getProductById,
     getRecommendedProducts,
+    getStoreById,
     trackProductView,
     getProductReviews,
     createProductReview,

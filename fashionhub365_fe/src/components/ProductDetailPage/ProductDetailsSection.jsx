@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Heart } from "../Icons";
+import { Link, useNavigate } from "react-router-dom";
+import { Star, Heart } from "../Icons";
+import axiosClient from "../../apis/axiosClient";
 import wishlistApi from "../../apis/wishlistApi";
 import { useAuth } from "../../contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
 import Skeleton from "../common/Skeleton";
 import { useCart } from "../../contexts/CartContext";
 

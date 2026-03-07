@@ -19,14 +19,15 @@ const app = express();
 
 app.use(helmet());
 
+// Cấu hình CORS cho frontend
+const env = config?.env || process.env.NODE_ENV || 'development';
 app.use(cors({
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    credentials: true,
+  origin: env === 'development' ? true : ["http://localhost:3000"], // 'true' reflects the request origin
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  credentials: true,
 }));
 
-
-const env = config?.env || process.env.NODE_ENV || 'development';
+// Ghi log request (Chỉ chạy ở môi trường development)
 if (env === 'development') {
     app.use(morgan('dev'));
 }

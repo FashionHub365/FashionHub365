@@ -15,23 +15,16 @@ const COLOR_OPTIONS = [
 
 const CLOTHING_SIZES = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"];
 
-const STATUS_LABELS = {
-    draft: { label: 'Nháp', className: 'bg-gray-100 text-gray-700' },
-    active: { label: 'Đang bán', className: 'bg-green-100 text-green-700' },
-    inactive: { label: 'Hết hàng', className: 'bg-red-100 text-red-700' },
-    blocked: { label: 'Bị khóa', className: 'bg-orange-100 text-orange-700' },
-};
-
-const EditProductModal = ({ product, onClose, onSave }) => {
+const CreateProductModal = ({ onClose, onSave }) => {
     const [form, setForm] = useState({
-        name: product.name || '',
-        short_description: product.short_description || '',
-        description: product.description || '',
-        base_price: product.base_price ? product.base_price / 1000 : '',
-        status: product.status || 'draft',
-        primary_category_id: product.primary_category_id?._id || product.primary_category_id || '',
-        media: product.media || [],
-        variants: product.variants || []
+        name: '',
+        short_description: '',
+        description: '',
+        base_price: '',
+        status: 'active',
+        primary_category_id: '',
+        media: [],
+        variants: []
     });
     const [selectedColors, setSelectedColors] = useState([]);
     const [selectedSizes, setSelectedSizes] = useState([]);
@@ -39,81 +32,6 @@ const EditProductModal = ({ product, onClose, onSave }) => {
     const [uploading, setUploading] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-
-    // Pre-fill selected colors and sizes from existing variants
-    useEffect(() => {
-        if (product.variants && product.variants.length > 0) {
-            const colors = new Set();
-            const sizes = new Set();
-            product.variants.forEach(v => {
-                if (v.attributes?.color) colors.add(v.attributes.color);
-                if (v.attributes?.size) sizes.add(v.attributes.size);
-            });
-            setSelectedColors(Array.from(colors));
-            setSelectedSizes(Array.from(sizes));
-        }
-    }, [product.variants]);
-
-    // Generate/Update variants when selections change
-    useEffect(() => {
-        // Only auto-generate if we're adding new combinations
-        // This is tricky for Edit, let's just allow adding/removing
-        if (selectedColors.length === 0 && selectedSizes.length === 0) {
-            return;
-        }
-
-        const newVariants = [];
-        if (selectedColors.length > 0 && selectedSizes.length === 0) {
-            selectedColors.forEach(color => {
-                const existing = form.variants.find(v => v.attributes?.color === color && !v.attributes?.size);
-                newVariants.push(existing || {
-                    variantName: color,
-                    price: form.base_price ? Number(form.base_price) * 1000 : 0,
-                    stock: 0,
-                    attributes: { color }
-                });
-            });
-        } else if (selectedColors.length === 0 && selectedSizes.length > 0) {
-            selectedSizes.forEach(size => {
-                const existing = form.variants.find(v => v.attributes?.size === size && !v.attributes?.color);
-                newVariants.push(existing || {
-                    variantName: size,
-                    price: form.base_price ? Number(form.base_price) * 1000 : 0,
-                    stock: 0,
-                    attributes: { size }
-                });
-            });
-        } else {
-            selectedColors.forEach(color => {
-                selectedSizes.forEach(size => {
-                    const existing = form.variants.find(v => v.attributes?.color === color && v.attributes?.size === size);
-                    newVariants.push(existing || {
-                        variantName: `${color} - ${size}`,
-                        price: form.base_price ? Number(form.base_price) * 1000 : 0,
-                        stock: 0,
-                        attributes: { color, size }
-                    });
-                });
-            });
-        }
-        setForm(prev => ({ ...prev, variants: newVariants }));
-    }, [selectedColors, selectedSizes]);
-
-    const toggleColor = (colorName) => {
-        setSelectedColors(prev => prev.includes(colorName) ? prev.filter(c => c !== colorName) : [...prev, colorName]);
-    };
-
-    const toggleSize = (size) => {
-        setSelectedSizes(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]);
-    };
-
-    const handleVariantChange = (index, field, value) => {
-        setForm(prev => {
-            const newVariants = [...prev.variants];
-            newVariants[index] = { ...newVariants[index], [field]: value };
-            return { ...prev, variants: newVariants };
-        });
-    };
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -126,6 +44,74 @@ const EditProductModal = ({ product, onClose, onSave }) => {
         };
         fetchCategories();
     }, []);
+
+    // Generate variants automatically when colors or sizes change
+    useEffect(() => {
+        if (selectedColors.length === 0 && selectedSizes.length === 0) {
+            setForm(prev => ({ ...prev, variants: [] }));
+            return;
+        }
+
+        const newVariants = [];
+        
+        // If only colors are selected
+        if (selectedColors.length > 0 && selectedSizes.length === 0) {
+            selectedColors.forEach(color => {
+                newVariants.push({
+                    variantName: color,
+                    price: form.base_price ? Number(form.base_price) * 1000 : 0,
+                    stock: 0,
+                    attributes: { color }
+                });
+            });
+        } 
+        // If only sizes are selected
+        else if (selectedColors.length === 0 && selectedSizes.length > 0) {
+            selectedSizes.forEach(size => {
+                newVariants.push({
+                    variantName: size,
+                    price: form.base_price ? Number(form.base_price) * 1000 : 0,
+                    stock: 0,
+                    attributes: { size }
+                });
+            });
+        }
+        // If both are selected (Cartesian product)
+        else {
+            selectedColors.forEach(color => {
+                selectedSizes.forEach(size => {
+                    newVariants.push({
+                        variantName: `${color} - ${size}`,
+                        price: form.base_price ? Number(form.base_price) * 1000 : 0,
+                        stock: 0,
+                        attributes: { color, size }
+                    });
+                });
+            });
+        }
+
+        setForm(prev => ({ ...prev, variants: newVariants }));
+    }, [selectedColors, selectedSizes, form.base_price]);
+
+    const toggleColor = (colorName) => {
+        setSelectedColors(prev => 
+            prev.includes(colorName) ? prev.filter(c => c !== colorName) : [...prev, colorName]
+        );
+    };
+
+    const toggleSize = (size) => {
+        setSelectedSizes(prev => 
+            prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
+        );
+    };
+
+    const handleVariantChange = (index, field, value) => {
+        setForm(prev => {
+            const newVariants = [...prev.variants];
+            newVariants[index] = { ...newVariants[index], [field]: value };
+            return { ...prev, variants: newVariants };
+        });
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -151,7 +137,7 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                 return {
                     url: res.url,
                     publicId: res.publicId,
-                    isPrimary: false
+                    isPrimary: false // Will set primary later if needed
                 };
             });
 
@@ -166,7 +152,8 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                 return { ...prev, media: newMedia };
             });
         } catch (err) {
-            setError('Lỗi khi tải một hoặc nhiều ảnh lên.');
+            setError('Lỗi khi tải một hoặc nhiều ảnh lên. Thử lại sau.');
+            console.error(err);
         } finally {
             setUploading(false);
         }
@@ -187,17 +174,18 @@ const EditProductModal = ({ product, onClose, onSave }) => {
         e.preventDefault();
         if (!form.name.trim()) { setError('Tên sản phẩm không được để trống'); return; }
         if (!form.base_price || Number(form.base_price) <= 0) { setError('Giá phải lớn hơn 0'); return; }
+        if (!form.primary_category_id) { setError('Vui lòng chọn danh mục'); return; }
 
         setLoading(true);
         setError('');
         try {
-            await onSave(product._id, {
+            await onSave({
                 ...form,
                 base_price: Number(form.base_price) * 1000, // Multiply by 1000 as requested
             });
             onClose();
         } catch (err) {
-            setError(err?.response?.data?.message || 'An error occurred while saving.');
+            setError(err?.response?.data?.message || 'Có lỗi xảy ra khi tạo sản phẩm.');
         } finally {
             setLoading(false);
         }
@@ -209,8 +197,8 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                 {/* Header - Fixed */}
                 <div className="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-white flex-none">
                     <div>
-                        <h2 className="text-2xl font-black text-gray-900 tracking-tight">Chỉnh sửa sản phẩm</h2>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Product ID: {product._id?.substring(0, 8)}...</p>
+                        <h2 className="text-2xl font-black text-gray-900 tracking-tight">Đăng sản phẩm mới</h2>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">FashionHub365 Seller Center</p>
                     </div>
                     <button 
                         onClick={onClose} 
@@ -222,7 +210,7 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                         </svg>
                     </button>
                 </div>
-
+                
                 {/* Body - Scrollable */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                     <form onSubmit={handleSubmit} className="px-8 py-6 space-y-8">
@@ -240,7 +228,7 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                         {/* Section: Thông tin cơ bản */}
                         <div className="space-y-5">
                             <div className="flex items-center gap-3">
-                                <h3 className="text-[12px] font-black text-gray-900 uppercase tracking-wider">Thông tin sản phẩm</h3>
+                                <h3 className="text-[12px] font-black text-gray-900 uppercase tracking-wider">Thông tin cơ bản</h3>
                             </div>
                             
                             <div className="grid grid-cols-1 gap-5 pl-9">
@@ -249,13 +237,13 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                                     <input
                                         type="text" name="name" value={form.name} onChange={handleChange}
                                         className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-sm font-medium placeholder:text-gray-300 shadow-sm"
-                                        placeholder="Nhập tên sản phẩm"
+                                        placeholder="Nhập tên sản phẩm (ví dụ: Áo thun Polo nam)"
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                                    <div className="md:col-span-1">
-                                        <label className="block text-[11px] font-black text-gray-500 mb-2 uppercase tracking-widest">Danh mục</label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div>
+                                        <label className="block text-[11px] font-black text-gray-500 mb-2 uppercase tracking-widest">Danh mục *</label>
                                         <div className="relative group">
                                             <select
                                                 name="primary_category_id" value={form.primary_category_id} onChange={handleChange}
@@ -274,35 +262,16 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                                         </div>
                                     </div>
 
-                                    <div className="md:col-span-1">
-                                        <label className="block text-[11px] font-black text-gray-500 mb-2 uppercase tracking-widest">Giá cơ bản *</label>
+                                    <div>
+                                        <label className="block text-[11px] font-black text-gray-500 mb-2 uppercase tracking-widest">Giá niêm yết *</label>
                                         <div className="relative group">
                                             <input
                                                 type="number" name="base_price" value={form.base_price} onChange={handleChange} min="0"
-                                                className="w-full pl-5 pr-16 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-[15px] font-black text-blue-600 shadow-sm"
-                                                placeholder="Ví dụ: 150"
+                                                className="w-full pl-5 pr-20 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-[15px] font-black text-blue-600 shadow-sm"
+                                                placeholder="0.000"
                                             />
                                             <div className="absolute right-2 top-2 bottom-2 px-4 bg-gray-100 border border-gray-200 rounded-xl flex items-center justify-center group-focus-within:bg-blue-600 group-focus-within:border-blue-600 transition-all">
-                                                <span className="text-[10px] font-black text-gray-500 group-focus-within:text-white uppercase tracking-tighter">.000đ</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="md:col-span-1">
-                                        <label className="block text-[11px] font-black text-gray-500 mb-2 uppercase tracking-widest">Trạng thái</label>
-                                        <div className="relative group">
-                                            <select
-                                                name="status" value={form.status} onChange={handleChange}
-                                                className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-sm font-black cursor-pointer appearance-none shadow-sm"
-                                            >
-                                                {Object.entries(STATUS_LABELS).map(([val, { label }]) => (
-                                                    <option key={val} value={val}>{label}</option>
-                                                ))}
-                                            </select>
-                                            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                                                </svg>
+                                                <span className="text-[10px] font-black text-gray-500 group-focus-within:text-white uppercase tracking-tighter">VNĐ</span>
                                             </div>
                                         </div>
                                     </div>
@@ -345,7 +314,7 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                                                             </svg>
                                                         )}
                                                     </div>
-                                                    <span className={`text-[8px] font-black uppercase tracking-tighter truncate w-full text-center transition-colors ${selectedColors.includes(color.name) ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}`}>
+                                                    <span className={`text-[8px] font-black uppercase tracking-tighter truncate w-full text-center transition-colors ${selectedColors.includes(color.name) ? 'text-blue-600' : 'text-gray-400group-hover:text-gray-600'}`}>
                                                         {color.name}
                                                     </span>
                                                 </button>
@@ -469,7 +438,7 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                                     <input
                                         type="text" name="short_description" value={form.short_description} onChange={handleChange}
                                         className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-sm font-medium shadow-sm"
-                                        placeholder="Tóm tắt điểm nổi bật..."
+                                        placeholder="Tóm tắt điểm nổi bật của sản phẩm..."
                                     />
                                 </div>
 
@@ -478,7 +447,7 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                                     <textarea
                                         name="description" value={form.description} onChange={handleChange} rows={5}
                                         className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-[2rem] focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-sm font-medium resize-none shadow-sm"
-                                        placeholder="Mô tả kỹ hơn về sản phẩm..."
+                                        placeholder="Mô tả kỹ hơn về chất liệu, nguồn gốc, quy cách..."
                                     />
                                 </div>
                             </div>
@@ -497,11 +466,12 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                     </button>
                     <button 
                         type="submit" 
+                        form={undefined} // Use a separate button outside form if needed, but here we'll trigger via ref or just standard
                         onClick={(e) => handleSubmit(e)}
                         disabled={loading || uploading}
-                        className="flex-[1.5] px-8 py-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 hover:shadow-2xl hover:shadow-blue-200 transition-all font-black text-[11px] uppercase tracking-[0.2em] disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-blue-100 active:scale-95 relative overflow-hidden group"
+                        className="flex-[2] px-8 py-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 hover:shadow-2xl hover:shadow-blue-200 transition-all font-black text-[11px] uppercase tracking-[0.2em] disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-blue-100 active:scale-95 relative overflow-hidden group"
                     >
-                        <span className="relative z-10">{loading ? 'Đang lưu...' : 'Lưu thay đổi ngay'}</span>
+                        <span className="relative z-10">{loading ? 'Hệ thống đang xử lý...' : 'Xác nhận Đăng bán'}</span>
                         <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-[20deg]"></div>
                     </button>
                 </div>
@@ -510,4 +480,4 @@ const EditProductModal = ({ product, onClose, onSave }) => {
     );
 };
 
-export default EditProductModal;
+export default CreateProductModal;

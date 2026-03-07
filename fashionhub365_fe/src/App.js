@@ -11,6 +11,7 @@ import { ProductDetail } from "./pages/ProductDetail";
 import { PaymentResult } from "./pages/PaymentResult";
 import { Stores } from "./pages/Stores";
 import { Listing } from "./pages/Listing";
+import { StoreProfile } from "./pages/StoreProfile";
 import { NotFound } from "./pages/NotFound";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
@@ -18,10 +19,11 @@ import { Profile } from "./pages/Profile";
 import VerifyEmail from "./pages/VerifyEmail"; // Correct default import
 import { Layout } from "./components/Layout";
 import "./App.css";
-import SellerOrders from "./pages/seller/SellerOrders";
+import SellerOrders from "./pages/seller/sellerOrders/SellerOrders";
 import SellerProducts from "./pages/seller/SellerProducts";
 import AdminCategories from "./pages/admin/AdminCategories";
-import SellerDashboard from "./pages/seller/SellerDashboard";
+import SellerDashboard from "./pages/seller/sellerDashboard/SellerDashboard";
+import SellerLayout from "./pages/seller/components/SellerLayout";
 
 import { CheckoutShipping } from "./pages/CheckoutShipping";
 import { CheckoutReview } from "./pages/CheckoutReview";
@@ -54,10 +56,12 @@ function App() {
                 <Route element={<PrivateRoute />}>
                   <Route path="/profile" element={<Profile />} />
 
-                  {/* Seller Routes */}
-                  <Route path="/seller/dashboard" element={<SellerDashboard />} />
-                  <Route path="/seller/orders" element={<SellerOrders />} />
-                  <Route path="/seller/products" element={<SellerProducts />} />
+                {/* Seller Routes */}
+                <Route path="/seller" element={<SellerLayout />}>
+                  <Route path="dashboard" element={<SellerDashboard />} />
+                  <Route path="orders" element={<SellerOrders />} />
+                  <Route path="products" element={<SellerProducts />} />
+                </Route>
 
                   {/* Admin Routes */}
                   <Route path="/admin/categories" element={<AdminCategories />} />

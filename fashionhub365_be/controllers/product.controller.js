@@ -1,154 +1,122 @@
-const Product = require('../models/Product');
+const httpStatus = require('http-status');
+const catchAsync = require('../utils/catchAsync');
+const ApiError = require('../utils/ApiError');
+const { productService } = require('../services');
+const { StoreMember, Store } = require('../models');
 const { validateProductData } = require('../utils/validation');
-const { v4: uuidv4 } = require('uuid');
+
+/**
+ * Helper to get storeId for the logged in user
+ */
+const getStoreIdForUser = async (user) => {
+    // 1. Check StoreMember table (for staff/invited members)
+    const member = await StoreMember.findOne({ user_id: user._id, status: 'ACTIVE' });
+    if (member) {
+        return member.store_id;
+    }
+
+    // 2. Check Store table directly (for owners)
+    const store = await Store.findOne({ owner_user_id: user._id, status: 'active' });
+    if (store) {
+        return store._id;
+    }
+
+    throw new ApiError(httpStatus.FORBIDDEN, 'Bạn không thuộc về bất kỳ cửa hàng nào để thực hiện thao tác này.');
+};
 
 /**
  * UC-09: Đăng bán sản phẩm
- * Tạo mới một sản phẩm với thông tin được cung cấp
  */
-exports.createProduct = async (req, res) => {
-    try {
-        const productData = req.body;
-
-        // 1. Validate data
-        const { isValid, errors } = validateProductData(productData);
-        if (!isValid) {
-            return res.status(400).json({
-                message: 'Dữ liệu không hợp lệ',
-                errors
-            });
-        }
-
-        // 2. Generate slug from name
-        // Simple slug generation: lowercase, replace spaces with hyphens, remove special chars
-        const baseSlug = productData.name
-            .toLowerCase()
-            .replace(/ /g, '-')
-            .replace(/[^\w-]+/g, '');
-        
-        // Ensure slug uniqueness (simple implementation, improved in production with counter)
-        let slug = baseSlug;
-        let counter = 1;
-        while (await Product.findOne({ slug })) {
-            slug = `${baseSlug}-${counter}`;
-            counter++;
-        }
-
-        // 3. Create Product
-        const newProduct = new Product({
-            ...productData,
-            slug,
-            uuid: uuidv4(), // Explicitly setting UUID though default exists, good for clarity
-            status: productData.status || 'draft' // Default to draft if not provided
-        });
-
-        const savedProduct = await newProduct.save();
-
-        res.status(201).json({
-            message: 'Sản phẩm đã được tạo thành công.',
-            product: savedProduct
-        });
-
-    } catch (error) {
-        // Handle duplicate key checks if any slipped through
-        if (error.code === 11000) {
-             return res.status(400).json({
-                message: 'Dữ liệu bị trùng lặp (ví dụ: slug hoặc tên sản phẩm đã tồn tại).',
-                error: error.message
-            });
-        }
-        res.status(500).json({
-            message: 'Lỗi server khi tạo sản phẩm.',
-            error: error.message
-        });
+/**
+ * UC-09: Đăng bán sản phẩm
+ */
+const createProduct = catchAsync(async (req, res) => {
+    const storeId = await getStoreIdForUser(req.user);
+    
+    // Inject store_id for validation
+    const productData = { ...req.body, store_id: storeId.toString() };
+    
+    const { isValid, errors } = validateProductData(productData);
+    if (!isValid) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Dữ liệu không hợp lệ', errors);
     }
-};
 
-// UC-16: Lấy danh sách sản phẩm (tạm không cần auth)
-exports.getSellerProducts = async (req, res) => {
-    try {
-        const { status, search, page = 1, limit = 20 } = req.query;
-        const filter = {};
+    const product = await productService.createProductForSeller(req.body, storeId);
+    res.status(httpStatus.CREATED).json({
+        success: true,
+        message: 'Sản phẩm đã được tạo thành công.',
+        data: product
+    });
+});
 
-        if (status && status !== 'all') {
-            filter.status = status;
-        }
-        if (search) {
-            filter.name = { $regex: search, $options: 'i' };
-        }
+/**
+ * UC-16: Quản lý danh sách sản phẩm (Lọc theo store của seller)
+ */
+const getSellerProducts = catchAsync(async (req, res) => {
+    const storeId = await getStoreIdForUser(req.user);
+    const result = await productService.querySellerProducts(storeId, req.query);
+    res.json({
+        success: true,
+        data: result
+    });
+});
 
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-        const [products, total] = await Promise.all([
-            Product.find(filter).sort({ created_at: -1 }).skip(skip).limit(parseInt(limit)),
-            Product.countDocuments(filter)
-        ]);
+/**
+ * UC-16: Lấy chi tiết 1 sản phẩm (Có check store owner)
+ */
+const getProductById = catchAsync(async (req, res) => {
+    const storeId = await getStoreIdForUser(req.user);
+    const product = await productService.getProductByIdForSeller(req.params.id, storeId);
+    res.json({
+        success: true,
+        data: product
+    });
+});
 
-        res.json({ products, total, page: parseInt(page), limit: parseInt(limit) });
-    } catch (error) {
-        res.status(500).json({ message: 'Lỗi khi lấy danh sách sản phẩm.', error: error.message });
-    }
-};
+/**
+ * UC-11: Cập nhật sản phẩm
+ */
+const updateProduct = catchAsync(async (req, res) => {
+    const storeId = await getStoreIdForUser(req.user);
+    const product = await productService.updateProductBySeller(req.params.id, storeId, req.body);
+    res.json({
+        success: true,
+        message: 'Cập nhật sản phẩm thành công.',
+        data: product
+    });
+});
 
-// UC-16: Lấy chi tiết 1 sản phẩm
-exports.getProductById = async (req, res) => {
-    try {
-        const product = await Product.findById(req.params.id);
-        if (!product) return res.status(404).json({ message: 'Không tìm thấy sản phẩm.' });
-        res.json(product);
-    } catch (error) {
-        res.status(500).json({ message: 'Lỗi khi lấy sản phẩm.', error: error.message });
-    }
-};
+/**
+ * UC-12: Xóa sản phẩm
+ */
+const deleteProduct = catchAsync(async (req, res) => {
+    const storeId = await getStoreIdForUser(req.user);
+    await productService.deleteProductBySeller(req.params.id, storeId);
+    res.json({
+        success: true,
+        message: 'Xóa sản phẩm thành công.'
+    });
+});
 
-// UC-16: Cập nhật sản phẩm
-exports.updateProduct = async (req, res) => {
-    try {
-        const { name, short_description, description, base_price, status, media, variants } = req.body;
-        const updateData = { name, short_description, description, base_price, status, media, variants };
+/**
+ * UC-15: Bật/tắt trạng thái kinh doanh
+ */
+const toggleStockStatus = catchAsync(async (req, res) => {
+    const storeId = await getStoreIdForUser(req.user);
+    const product = await productService.toggleProductStatusBySeller(req.params.id, storeId);
+    res.json({
+        success: true,
+        message: `Đã chuyển trạng thái sang "${product.status}".`,
+        data: product
+    });
+});
 
-        // Cập nhật slug nếu tên thay đổi
-        if (name) {
-            const baseSlug = name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
-            const existing = await Product.findOne({ slug: baseSlug, _id: { $ne: req.params.id } });
-            updateData.slug = existing ? `${baseSlug}-${Date.now()}` : baseSlug;
-        }
-
-        const product = await Product.findByIdAndUpdate(
-            req.params.id,
-            { $set: updateData },
-            { new: true, runValidators: true }
-        );
-        if (!product) return res.status(404).json({ message: 'Không tìm thấy sản phẩm.' });
-        res.json({ message: 'Cập nhật sản phẩm thành công.', product });
-    } catch (error) {
-        res.status(500).json({ message: 'Lỗi khi cập nhật sản phẩm.', error: error.message });
-    }
-};
-
-// UC-16: Xóa sản phẩm
-exports.deleteProduct = async (req, res) => {
-    try {
-        const product = await Product.findByIdAndDelete(req.params.id);
-        if (!product) return res.status(404).json({ message: 'Không tìm thấy sản phẩm.' });
-        res.json({ message: 'Xóa sản phẩm thành công.' });
-    } catch (error) {
-        res.status(500).json({ message: 'Lỗi khi xóa sản phẩm.', error: error.message });
-    }
-};
-
-// UC-16: Bật/tắt trạng thái hết hàng (active <-> inactive)
-exports.toggleStockStatus = async (req, res) => {
-    try {
-        const product = await Product.findById(req.params.id);
-        if (!product) return res.status(404).json({ message: 'Không tìm thấy sản phẩm.' });
-
-        const newStatus = product.status === 'active' ? 'inactive' : 'active';
-        product.status = newStatus;
-        await product.save();
-
-        res.json({ message: `Đã chuyển trạng thái sang "${newStatus}".`, product });
-    } catch (error) {
-        res.status(500).json({ message: 'Lỗi khi cập nhật trạng thái.', error: error.message });
-    }
+module.exports = {
+    createProduct,
+    getSellerProducts,
+    getProductById,
+    updateProduct,
+    deleteProduct,
+    toggleStockStatus
 };
 
