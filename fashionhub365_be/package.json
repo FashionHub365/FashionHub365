@@ -23,7 +23,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-rate-limit": "^7.5.1",
-    "google-auth-library": "^10.5.0",
+    "google-auth-library": "^10.6.1",
     "helmet": "^7.1.0",
     "http-status": "^1.7.4",
     "joi": "^17.12.2",

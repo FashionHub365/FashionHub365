@@ -87,7 +87,8 @@ const trackProductView = catchAsync(async (req, res) => {
  * Lấy danh sách reviews sản phẩm kèm summary
  */
 const getProductReviews = catchAsync(async (req, res) => {
-    const reviewsData = await productService.getProductReviews(req.params.id);
+    // Public listing always filters hidden reviews
+    const reviewsData = await productService.getProductReviews(req.params.id, false);
     res.status(httpStatus.OK).send({
         success: true,
         data: reviewsData,

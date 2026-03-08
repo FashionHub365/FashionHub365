@@ -92,3 +92,36 @@ export const uploadImage = async (file) => {
         throw error;
     }
 };
+
+// UC-41, 42: Quản lý đánh giá (Seller)
+export const getProductReviews = async (productId, includeHidden = false) => {
+    try {
+        const response = await axiosClient.get(`/products/${productId}/reviews`, {
+            params: { includeHidden }
+        });
+        return response;
+    } catch (error) {
+        console.error('Error fetching reviews:', error);
+        throw error;
+    }
+};
+
+export const respondToReview = async (productId, reviewId, content) => {
+    try {
+        const response = await axiosClient.post(`/products/${productId}/reviews/${reviewId}/respond`, { content });
+        return response;
+    } catch (error) {
+        console.error('Error responding to review:', error);
+        throw error;
+    }
+};
+
+export const toggleReviewVisibility = async (productId, reviewId) => {
+    try {
+        const response = await axiosClient.patch(`/products/${productId}/reviews/${reviewId}/toggle-visibility`);
+        return response;
+    } catch (error) {
+        console.error('Error toggling review visibility:', error);
+        throw error;
+    }
+};
