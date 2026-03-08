@@ -111,12 +111,62 @@ const toggleStockStatus = catchAsync(async (req, res) => {
     });
 });
 
+/**
+ * Lấy danh sách reviews cho sản phẩm của seller
+ */
+const getSellerProductReviews = catchAsync(async (req, res) => {
+    const storeId = await getStoreIdForUser(req.user);
+    // Kiểm tra quyền sở hữu SP
+    await productService.getProductByIdForSeller(req.params.id, storeId);
+    
+    // includeHidden = true vì seller cần xem tất cả
+    const result = await productService.getProductReviews(req.params.id, true);
+    res.json({
+        success: true,
+        data: result
+    });
+});
+
+/**
+ * Phản hồi đánh giá
+ */
+const respondToReview = catchAsync(async (req, res) => {
+    const storeId = await getStoreIdForUser(req.user);
+    const { reviewId } = req.params;
+    const { content } = req.body;
+
+    const review = await productService.respondToReview(reviewId, storeId, content);
+    res.json({
+        success: true,
+        message: 'Đã gửi phản hồi thành công.',
+        data: review
+    });
+});
+
+/**
+ * Ẩn/hiện đánh giá
+ */
+const toggleReviewVisibility = catchAsync(async (req, res) => {
+    const storeId = await getStoreIdForUser(req.user);
+    const { reviewId } = req.params;
+
+    const review = await productService.toggleReviewVisibility(reviewId, storeId);
+    res.json({
+        success: true,
+        message: `Đã ${review.is_hidden ? 'ẩn' : 'hiện'} đánh giá thành công.`,
+        data: review
+    });
+});
+
 module.exports = {
     createProduct,
     getSellerProducts,
     getProductById,
     updateProduct,
     deleteProduct,
-    toggleStockStatus
+    toggleStockStatus,
+    getSellerProductReviews,
+    respondToReview,
+    toggleReviewVisibility,
 };
 

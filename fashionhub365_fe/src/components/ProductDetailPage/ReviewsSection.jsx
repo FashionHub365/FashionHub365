@@ -319,6 +319,17 @@ export const ReviewsSection = ({ productId, product }) => {
                 <p className="relative self-stretch font-text-300 font-[number:var(--text-300-font-weight)] text-x-600 text-[length:var(--text-300-font-size)] tracking-[var(--text-300-letter-spacing)] leading-[var(--text-300-line-height)] [font-style:var(--text-300-font-style)]">
                   {review.content}
                 </p>
+
+                {review.seller_response && (
+                  <div className="mt-6 ml-[-200px] p-5 bg-gray-50 border-l-4 border-gray-900 self-stretch rounded-r-lg">
+                    <p className="text-[11px] font-text-400-demi text-gray-500 mb-2 uppercase tracking-[0.1em]">
+                      Response from shop
+                    </p>
+                    <p className="text-[14px] font-text-300 text-gray-900 leading-relaxed italic">
+                      "{review.seller_response}"
+                    </p>
+                  </div>
+                )}
               </div>
 
               <time className="relative w-fit font-text-200 font-[number:var(--text-200-font-weight)] text-x-300 text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] whitespace-nowrap [font-style:var(--text-200-font-style)]">

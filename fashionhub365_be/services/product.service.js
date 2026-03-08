@@ -440,8 +440,12 @@ const updateProductRating = async (productId, newScore) => {
 /**
  * Lấy reviews
  */
-const getProductReviews = async (productId) => {
-    const reviews = await ProductReview.find({ product_id: productId }).sort({ created_at: -1 }).lean();
+const getProductReviews = async (productId, includeHidden = false) => {
+    const query = { product_id: productId };
+    if (!includeHidden) {
+        query.is_hidden = { $ne: true };
+    }
+    const reviews = await ProductReview.find(query).sort({ created_at: -1 }).lean();
     const breakdowns = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
     let totalScore = 0;
     reviews.forEach(rv => {
@@ -511,4 +515,24 @@ module.exports = {
     updateProductRating,
     getProductReviews,
     createProductReview,
+    respondToReview: async (reviewId, storeId, responseText) => {
+        const review = await ProductReview.findById(reviewId).populate('product_id');
+        if (!review) throw new ApiError(httpStatus.NOT_FOUND, 'Không tìm thấy đánh giá.');
+        if (review.product_id.store_id.toString() !== storeId.toString()) {
+            throw new ApiError(httpStatus.FORBIDDEN, 'Bạn không có quyền phản hồi đánh giá này.');
+        }
+        review.seller_response = responseText;
+        await review.save();
+        return review;
+    },
+    toggleReviewVisibility: async (reviewId, storeId) => {
+        const review = await ProductReview.findById(reviewId).populate('product_id');
+        if (!review) throw new ApiError(httpStatus.NOT_FOUND, 'Không tìm thấy đánh giá.');
+        if (review.product_id.store_id.toString() !== storeId.toString()) {
+            throw new ApiError(httpStatus.FORBIDDEN, 'Bạn không có quyền ẩn đánh giá này.');
+        }
+        review.is_hidden = !review.is_hidden;
+        await review.save();
+        return review;
+    },
 };

@@ -36,6 +36,14 @@ const productReviewSchema = new mongoose.Schema({
         body_type: String,
         size_purchased: String,
         name: String
+    },
+    is_hidden: {
+        type: Boolean,
+        default: false
+    },
+    seller_response: {
+        type: String,
+        maxLength: 1000
     }
 }, {
     timestamps: {
