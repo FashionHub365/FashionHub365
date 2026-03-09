@@ -2,7 +2,8 @@ import React from "react";
 
 export const StoreHeader = ({ store, totalProducts }) => {
   // Safe data extraction with real data priority
-  const storeName = store?.name || "Gian hàng";
+  const sellerName = store?.owner_user_id?.profile?.full_name;
+  const storeName = sellerName || store?.name || store?.information?.name || "Gian hàng đối tác";
   const isPremium = store?.level?.value === 'premium';
   const ratingAverage = store?.rating_summary?.avgStars?.toFixed(1) || "0.0";
   const ratingCount = store?.rating_summary?.totalRatings || 0;
@@ -78,7 +79,7 @@ export const StoreHeader = ({ store, totalProducts }) => {
                   <div className="relative shrink-0">
                     <div className="w-16 h-16 md:w-[72px] md:h-[72px] rounded-full border-2 border-white/30 p-1 bg-white/10 backdrop-blur-sm">
                       <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-3xl overflow-hidden shadow-inner font-bold text-[#ee4d2d]">
-                        {store?.name ? storeName.charAt(0).toUpperCase() : <Icons.Shop />}
+                        {storeName !== "Gian hàng đối tác" ? storeName.charAt(0).toUpperCase() : <Icons.Shop />}
                       </div>
                     </div>
                     {isPremium && (
@@ -88,7 +89,8 @@ export const StoreHeader = ({ store, totalProducts }) => {
                     )}
                   </div>
 
-                  <div className="flex-1 text-white flex flex-col justify-center min-w-0">
+                  <div className="flex-1 text-white flex flex-col justify-center min-w-0 items-start text-left">
+                    <p className="text-[10px] text-white/70 uppercase font-bold tracking-wider mb-0.5">Người bán</p>
                     <h2 className="text-base md:text-[17px] font-bold truncate leading-tight drop-shadow-md uppercase">{storeName}</h2>
                     <p className="text-[10px] text-white/90 mt-1 flex items-center gap-1.5 font-medium">
                        <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse border border-white/20"></span>

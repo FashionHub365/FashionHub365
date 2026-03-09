@@ -83,7 +83,14 @@ const getPublicProducts = async (query) => {
         Product.find(filter)
             .populate('primary_category_id', 'name slug')
             .populate('brand_id', 'name')
-            .populate('store_id', 'name slug description rating_summary')
+            .populate({
+                path: 'store_id',
+                select: 'name slug description rating_summary owner_user_id',
+                populate: {
+                    path: 'owner_user_id',
+                    select: 'profile.full_name'
+                }
+            })
             .populate('tag_ids', 'name')
             .sort(sortOption)
             .skip(skip)
@@ -152,7 +159,14 @@ const getPublicProductById = async (productId) => {
     const product = await Product.findOne({ _id: productId, status: 'active' })
         .populate('primary_category_id', 'name slug')
         .populate('brand_id', 'name')
-        .populate('store_id', 'name slug description rating_summary')
+        .populate({
+            path: 'store_id',
+            select: 'name slug description rating_summary owner_user_id',
+            populate: {
+                path: 'owner_user_id',
+                select: 'profile.full_name'
+            }
+        })
         .populate('tag_ids', 'name');
 
     if (!product) {
@@ -195,7 +209,14 @@ const getRecommendedProducts = async (categoryId, excludeId, limit = 4) => {
     })
         .populate('primary_category_id', 'name slug')
         .populate('brand_id', 'name')
-        .populate('store_id', 'name slug')
+        .populate({
+            path: 'store_id',
+            select: 'name slug description rating_summary owner_user_id',
+            populate: {
+                path: 'owner_user_id',
+                select: 'profile.full_name'
+            }
+        })
         .limit(parseInt(limit))
         .sort({ created_at: -1 });
 

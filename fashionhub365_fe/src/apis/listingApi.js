@@ -62,6 +62,13 @@ const listingApi = {
     createProductReview: (productId, reviewData) => {
         return axiosClient.post(`/listing/products/${productId}/reviews`, reviewData);
     },
+    /**
+     * Lấy thông tin chi tiết 1 cửa hàng theo ID
+     * @param {string} storeId 
+     */
+    getStoreById: (storeId) => {
+        return axiosClient.get(`/listing/stores/${storeId}`);
+    },
 };
 
 export default listingApi;

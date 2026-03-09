@@ -1,13 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { HeaderSection } from "../components/HeaderSection";
-import { FooterSection } from "../components/FooterSection";
 import { FilterSidebar } from "../components/ListingPage/FilterSidebar";
 import { StoreProductCard } from "../components/StorePage/StoreProductCard";
 import { ListingHeader } from "../components/ListingPage/ListingHeader";
 import { StoreHeader } from "../components/StorePage/StoreHeader";
 import listingApi from "../apis/listingApi";
-import axiosClient from "../apis/axiosClient";
 
 export const StoreProfile = () => {
   const { storeId } = useParams();
@@ -46,7 +43,7 @@ export const StoreProfile = () => {
 
   const fetchStoreInfo = useCallback(async () => {
     try {
-      const response = await axiosClient.get(`/listing/stores/${storeId}`);
+      const response = await listingApi.getStoreById(storeId);
       if (response.success) {
         setStore(response.data);
       }
@@ -134,7 +131,6 @@ export const StoreProfile = () => {
 
   return (
     <div className="flex flex-col items-center relative bg-[#f5f5f5] min-h-screen">
-      <HeaderSection />
       <StoreHeader store={store} totalProducts={total} />
       
       {/* Shopee Style Navigation Bar with Real Categories */}
@@ -260,7 +256,6 @@ export const StoreProfile = () => {
           )}
         </main>
       </div>
-      <FooterSection />
     </div>
   );
 };
