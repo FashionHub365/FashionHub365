@@ -15,6 +15,7 @@ const cartRoute = require('./cart.routes');
 const listingRoute = require('./listing.routes');
 const customerOrderRoute = require('./customer.order.routes');
 const wishlistRoute = require('./wishlist.routes');
+const storeRoute = require('./store.route');
 
 const router = express.Router();
 
@@ -35,7 +36,9 @@ const defaultRoutes = [
     { path: '/listing', route: listingRoute },
     { path: '/orders', route: customerOrderRoute },
     { path: '/wishlist', route: wishlistRoute },
+    { path: '/stores', route: storeRoute },
 ];
+
 
 defaultRoutes.forEach((route) => {
     router.use(route.path, route.route);

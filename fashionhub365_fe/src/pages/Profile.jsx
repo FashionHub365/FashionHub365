@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import checkoutApi from '../apis/checkoutApi';
 import wishlistApi from '../apis/wishlistApi';
+import storeApi from '../apis/store.api';
 import { Trash } from '../components/Icons';
 
 // ── Status config ────────────────────────────────────────────────────────
@@ -260,6 +261,13 @@ export const Profile = () => {
     const [totalItems, setTotalItems] = useState(0);
     const itemsPerPage = 6;
 
+    const [following, setFollowing] = useState([]);
+    const [loadingFollowing, setLoadingFollowing] = useState(false);
+    const [followingPage, setFollowingPage] = useState(1);
+    const [totalFollowingPages, setTotalFollowingPages] = useState(1);
+    const [totalFollowingItems, setTotalFollowingItems] = useState(0);
+    const followingLimit = 6;
+
     useEffect(() => {
         if (activeTab === 'orders') {
             setOrdersLoading(true);
@@ -272,7 +280,39 @@ export const Profile = () => {
         if (activeTab === 'wishlist' && user) {
             fetchWishlist(currentPage);
         }
-    }, [activeTab, user, currentPage]);
+        if (activeTab === 'following' && user) {
+            fetchFollowing(followingPage);
+        }
+    }, [activeTab, user, currentPage, followingPage]);
+
+    const fetchFollowing = async (page) => {
+        setLoadingFollowing(true);
+        try {
+            const response = await storeApi.getFollowingStores(page, followingLimit);
+            if (response.success) {
+                setFollowing(response.data);
+                if (response.pagination) {
+                    setTotalFollowingPages(response.pagination.totalPages);
+                    setTotalFollowingItems(response.pagination.totalItems);
+                }
+            }
+        } catch (err) {
+            console.error("Error fetching following stores:", err);
+        } finally {
+            setLoadingFollowing(false);
+        }
+    };
+
+    const handleUnfollowInProfile = async (storeId) => {
+        try {
+            const res = await storeApi.unfollowStore(storeId);
+            if (res.success) {
+                setFollowing(prev => prev.filter(s => s._id !== storeId));
+            }
+        } catch (err) {
+            console.error("Error unfollowing shop:", err);
+        }
+    };
 
     const fetchWishlist = async (page) => {
         setLoadingWishlist(true);
@@ -337,6 +377,13 @@ export const Profile = () => {
             )
         },
         {
+            id: 'following', label: 'Following', icon: (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+            )
+        },
+        {
             id: 'settings', label: 'Settings', icon: (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -345,6 +392,7 @@ export const Profile = () => {
             )
         },
     ];
+
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-slate-800">
@@ -449,9 +497,9 @@ export const Profile = () => {
                                 {/* Stats Row */}
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
                                     {[
-                                        { label: 'Total Orders', value: '0', icon: '🛍️', color: 'bg-blue-50 text-blue-600' },
+                                        { label: 'Total Orders', value: orders.length.toString(), icon: '🛍️', color: 'bg-blue-50 text-blue-600' },
+                                        { label: 'Following Shops', value: following.length.toString(), icon: '🏪', color: 'bg-green-50 text-green-600' },
                                         { label: 'Wishlist Items', value: totalItems.toString(), icon: '💖', color: 'bg-pink-50 text-pink-600' },
-                                        { label: 'Reward Points', value: '100', icon: '⭐', color: 'bg-yellow-50 text-yellow-600' },
                                     ].map((stat, i) => (
                                         <div key={i} className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex items-center space-x-4">
                                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${stat.color}`}>
@@ -616,6 +664,140 @@ export const Profile = () => {
                             </div>
                         )}
 
+                        {activeTab === 'following' && (
+                            <div className="animate-fadeIn">
+                                {loadingFollowing ? (
+                                    <div className="flex justify-center items-center py-20">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+                                    </div>
+                                ) : following.length > 0 ? (
+                                    <>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                                            {following.map((shop) => (
+                                                <div key={shop._id} className="group relative bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
+                                                    {/* Card Header with Banner */}
+                                                    <div className="relative h-32 overflow-hidden">
+                                                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 opacity-90 group-hover:scale-110 transition-transform duration-700"></div>
+                                                        <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+
+                                                        {/* Store Level Badge */}
+                                                        {shop.level?.value && (
+                                                            <div className="absolute top-3 right-3 z-10">
+                                                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider backdrop-blur-md border shadow-sm
+                                                                    ${shop.level.value === 'premium' ? 'bg-yellow-400/20 border-yellow-400/50 text-yellow-100' :
+                                                                        shop.level.value === 'trusted' ? 'bg-blue-400/20 border-blue-400/50 text-blue-100' :
+                                                                            'bg-white/10 border-white/20 text-white'}`}>
+                                                                    {shop.level.value}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Store Info Section */}
+                                                    <div className="relative px-6 pb-6 pt-12">
+                                                        {/* Avatar Floating over Banner */}
+                                                        <div className="absolute -top-10 left-6">
+                                                            <div className="w-20 h-20 rounded-2xl border-4 border-white overflow-hidden bg-white shadow-xl transform rotate-3 group-hover:rotate-0 transition-transform duration-300">
+                                                                <div className="w-full h-full flex items-center justify-center text-3xl font-black text-white bg-gradient-to-tr from-indigo-500 to-purple-500">
+                                                                    {shop.name?.charAt(0).toUpperCase() || "S"}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex justify-between items-start mb-4">
+                                                            <div>
+                                                                <h4 className="font-extrabold text-xl text-gray-900 group-hover:text-indigo-600 transition-colors leading-tight">
+                                                                    {shop.name}
+                                                                </h4>
+                                                                <div className="flex items-center mt-1 space-x-2">
+                                                                    <div className="flex text-yellow-400 text-xs">
+                                                                        {"★".repeat(Math.round(shop.rating_summary?.avgStars || 5))}
+                                                                        <span className="text-gray-300">{"★".repeat(5 - Math.round(shop.rating_summary?.avgStars || 5))}</span>
+                                                                    </div>
+                                                                    <span className="text-[10px] text-gray-400 font-medium">({shop.rating_summary?.totalRatings || 0})</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <p className="text-gray-500 text-sm mb-6 line-clamp-2 min-h-[40px] italic">
+                                                            "{shop.description || "Thiên đường thời trang dành riêng cho bạn. Khám phá những bộ sưu tập mới nhất tại đây."}"
+                                                        </p>
+
+                                                        <div className="flex items-center gap-3 pt-4 border-t border-gray-50">
+                                                            <button
+                                                                onClick={() => navigate(`/store/${shop._id}`)}
+                                                                className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-indigo-600 transition-all duration-300 uppercase tracking-widest shadow-md hover:shadow-indigo-200"
+                                                            >
+                                                                Ghé thăm Shop
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleUnfollowInProfile(shop._id)}
+                                                                className="p-3 bg-gray-50 text-gray-400 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all duration-300 border border-transparent hover:border-red-100"
+                                                                title="Bỏ theo dõi"
+                                                            >
+                                                                <Trash className="w-5 h-5" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Pagination Controls for Following */}
+                                        {totalFollowingPages > 1 && (
+                                            <div className="mt-16 flex justify-center items-center space-x-3">
+                                                <button
+                                                    onClick={() => setFollowingPage(prev => Math.max(prev - 1, 1))}
+                                                    disabled={followingPage === 1}
+                                                    className="p-2 border border-gray-200 rounded-xl disabled:opacity-30 hover:bg-gray-50 transition-all text-gray-600"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                                                </button>
+
+                                                {[...Array(totalFollowingPages)].map((_, i) => (
+                                                    <button
+                                                        key={i + 1}
+                                                        onClick={() => setFollowingPage(i + 1)}
+                                                        className={`w-11 h-11 rounded-xl font-bold text-sm transition-all duration-300 
+                                                            ${followingPage === i + 1
+                                                                ? 'bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-200 scale-110'
+                                                                : 'bg-white text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 border border-gray-100'
+                                                            }`}
+                                                    >
+                                                        {i + 1}
+                                                    </button>
+                                                ))}
+
+                                                <button
+                                                    onClick={() => setFollowingPage(prev => Math.min(prev + 1, totalFollowingPages))}
+                                                    disabled={followingPage === totalFollowingPages}
+                                                    className="p-2 border border-gray-200 rounded-xl disabled:opacity-30 hover:bg-gray-50 transition-all text-gray-600"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                                                </button>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <div className="text-center py-24">
+                                        <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                            <svg className="w-10 h-10 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                            </svg>
+                                        </div>
+                                        <h3 className="text-2xl font-bold text-gray-900">You are not following any shops</h3>
+                                        <p className="text-gray-500 mt-2 max-w-sm mx-auto">Follow your favorite shops to stay updated on their latest collections and deals.</p>
+                                        <button
+                                            onClick={() => navigate('/stores')}
+                                            className="mt-8 px-8 py-3 bg-indigo-600 text-white font-bold rounded-full hover:shadow-lg transition-all"
+                                        >
+                                            Explore Shops
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         {activeTab === 'settings' && (
                             <div className="space-y-8 animate-fadeIn max-w-2xl">
                                 <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-lg shadow-gray-100/50">
@@ -641,7 +823,7 @@ export const Profile = () => {
                                 </div>
                                 <div className="bg-red-50 p-6 rounded-2xl border border-red-100 flex items-start space-x-4">
                                     <div className="p-2 bg-white rounded-lg text-red-500 shadow-sm">
-                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77-1.333.192 3 1.732 3z" /></svg>
                                     </div>
                                     <div>
                                         <h4 className="font-bold text-red-800">Delete Account</h4>
