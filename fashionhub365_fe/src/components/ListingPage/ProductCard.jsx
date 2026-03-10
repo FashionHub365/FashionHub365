@@ -134,7 +134,7 @@ export const ProductCard = ({ product, activeColor = "" }) => {
   // ── Store & Stats ──────────────────────────────────────────────────
   const storeName =
     typeof product.store_id === "object"
-      ? product.store_id?.name
+      ? (product.store_id?.owner_user_id?.profile?.full_name || product.store_id?.name || "Gian hàng đối tác")
       : null;
 
   const rating = product.rating || { average: 0, count: 0 };

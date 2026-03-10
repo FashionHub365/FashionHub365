@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { getSellerProducts, updateProduct, deleteProduct, toggleStockStatus, createProduct, getCategories } from '../../services/productService';
 import EditProductModal from './components/EditProductModal';
 import CreateProductModal from './components/CreateProductModal';
+import ReviewManagementModal from './components/ReviewManagementModal';
 import Swal from 'sweetalert2';
 
 const STATUS_CONFIG = {
@@ -26,6 +27,7 @@ const SellerProducts = () => {
     const [categories, setCategories] = useState([]);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [editProduct, setEditProduct] = useState(null);
+    const [reviewProduct, setReviewProduct] = useState(null);
     const [togglingId, setTogglingId] = useState(null);
 
     const loadInitialData = useCallback(async () => {
@@ -320,6 +322,15 @@ const SellerProducts = () => {
                                                             </svg>
                                                         </button>
                                                         <button
+                                                            onClick={() => setReviewProduct(product)}
+                                                            className="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition-all"
+                                                            title="Quản lý đánh giá"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                                            </svg>
+                                                        </button>
+                                                        <button
                                                             onClick={() => confirmDelete(product)}
                                                             className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"
                                                         >
@@ -351,6 +362,12 @@ const SellerProducts = () => {
                     product={editProduct}
                     onClose={() => setEditProduct(null)}
                     onSave={handleUpdate}
+                />
+            )}
+            {reviewProduct && (
+                <ReviewManagementModal
+                    product={reviewProduct}
+                    onClose={() => setReviewProduct(null)}
                 />
             )}
         </div>

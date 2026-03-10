@@ -1,8 +1,19 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import storeApi from "../../apis/store.api";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export const StoreHeader = ({ store, totalProducts }) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+
   // Safe data extraction with real data priority
-  const storeName = store?.name || "Gian hàng";
+  const sellerName = store?.owner_user_id?.profile?.full_name;
+  const storeName = sellerName || store?.name || store?.information?.name || "Gian hàng đối tác";
   const isPremium = store?.level?.value === 'premium';
   const ratingAverage = store?.rating_summary?.avgStars?.toFixed(1) || "0.0";
   const ratingCount = store?.rating_summary?.totalRatings || 0;
@@ -17,6 +28,60 @@ export const StoreHeader = ({ store, totalProducts }) => {
     const diffMonths = now.getMonth() - joinedDate.getMonth() + (12 * (now.getFullYear() - joinedDate.getFullYear()));
     if (diffMonths > 0) return `${diffMonths} Tháng Trước`;
     return "Tháng này";
+  };
+
+  useEffect(() => {
+    if (store?._id) {
+      if (user) {
+        storeApi.getFollowingStatus(store._id)
+          .then(res => {
+            if (res.success) setIsFollowing(res.data.isFollowing);
+          })
+          .catch(console.error);
+      }
+
+      storeApi.getFollowerCount(store._id)
+        .then(res => {
+          if (res.success) setFollowerCount(res.data.count);
+        })
+        .catch(console.error);
+    }
+  }, [store?._id, user]);
+
+  const handleFollowToggle = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    if (!store?._id || loading) return;
+
+    setLoading(true);
+    try {
+      if (isFollowing) {
+        const res = await storeApi.unfollowStore(store._id);
+        if (res.success) {
+          setIsFollowing(false);
+          setFollowerCount(prev => Math.max(0, prev - 1));
+        }
+      } else {
+        const res = await storeApi.followStore(store._id);
+        if (res.success) {
+          setIsFollowing(true);
+          setFollowerCount(prev => prev + 1);
+        }
+      }
+    } catch (err) {
+      console.error("Error toggling follow status:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatFollowerCount = (count) => {
+    if (count >= 1000) {
+      return (count / 1000).toFixed(1) + 'k';
+    }
+    return count;
   };
 
   // Bootstrap Icons as SVGs
@@ -104,8 +169,13 @@ export const StoreHeader = ({ store, totalProducts }) => {
               </div>
 
               <div className="flex gap-2">
-                <button className="flex-1 py-1.5 bg-transparent border border-white/50 text-white rounded text-[10px] font-bold hover:bg-white/10 transition-colors flex items-center justify-center gap-1 uppercase tracking-tight">
-                  <span className="text-base leading-none font-normal">+</span> Theo Dõi
+                <button
+                  disabled={loading}
+                  onClick={handleFollowToggle}
+                  className={`flex-1 py-1.5 border border-white/50 text-white rounded text-[10px] font-bold transition-colors flex items-center justify-center gap-1 uppercase tracking-tight
+                      ${isFollowing ? 'bg-white/20 hover:bg-white/30' : 'bg-transparent hover:bg-white/10'}`}
+                >
+                  <span className="text-base leading-none font-normal">{isFollowing ? '✓' : '+'}</span> {isFollowing ? 'Đang Theo Dõi' : 'Theo Dõi'}
                 </button>
                 <button className="flex-1 py-1.5 bg-transparent border border-white/50 text-white rounded text-[10px] font-bold hover:bg-white/10 transition-colors flex items-center justify-center gap-1 uppercase tracking-tight">
                   <Icons.ChatDots />
@@ -145,7 +215,7 @@ export const StoreHeader = ({ store, totalProducts }) => {
               <span className="text-gray-400"><Icons.People /></span>
               <div className="flex flex-col">
                 <span className="text-[11px] text-gray-500 font-medium">Người theo dõi:</span>
-                <span className="text-sm text-[#ee4d2d] font-bold uppercase">{store?.followers ? (store.followers / 1000).toFixed(1) + "k" : "75,8k"}</span>
+                <span className="text-sm text-[#ee4d2d] font-bold uppercase">{formatFollowerCount(followerCount)}</span>
               </div>
             </div>
 
@@ -174,3 +244,4 @@ export const StoreHeader = ({ store, totalProducts }) => {
     </div>
   );
 };
+

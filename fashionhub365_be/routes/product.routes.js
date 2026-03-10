@@ -36,5 +36,10 @@ router.put('/:id', storeAuth(), productController.updateProduct);
 router.delete('/:id', storeAuth(), productController.deleteProduct);
 router.patch('/:id/stock-status', storeAuth(), productController.toggleStockStatus);
 
+// Reviews management for sellers
+router.get('/:id/reviews', storeAuth(), productController.getSellerProductReviews);
+router.post('/:id/reviews/:reviewId/respond', storeAuth(), productController.respondToReview);
+router.patch('/:id/reviews/:reviewId/toggle-visibility', storeAuth(), productController.toggleReviewVisibility);
+
 module.exports = router;
 

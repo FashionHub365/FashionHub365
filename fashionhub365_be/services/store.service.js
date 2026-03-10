@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const httpStatus = require('http-status');
-const { Store } = require('../models');
+const { Store, StoreFollower } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 const PUBLIC_STORE_SELECT = 'uuid name slug description email phone rating_summary information created_at updated_at';
@@ -31,8 +31,9 @@ const buildUniqueSlug = async (baseSlug, excludeId = null) => {
         const existing = await Store.findOne(excludeId ? { slug, _id: { $ne: excludeId } } : { slug }).select('_id');
         if (!existing) return slug;
         suffix += 1;
-    }
-};
+
+
+        }};
 
 const listStores = async (query = {}) => {
     const page = Math.max(parseInt(query.page, 10) || 1, 1);
@@ -168,10 +169,99 @@ const updateStore = async (storeId, currentUserId, payload) => {
     return store;
 };
 
+/**
+ * Theo dõi cửa hàng
+ * @param {string} userId
+ * @param {string} storeId
+ * @returns {Promise<StoreFollower>}
+ */
+const followStore = async (userId, storeId) => {
+    const existingFollow = await StoreFollower.findOne({ user_id: userId, store_id: storeId });
+    if (existingFollow) {
+        return existingFollow;
+    }
+    return StoreFollower.create({ user_id: userId, store_id: storeId });
+};
+
+/**
+ * Bỏ theo dõi cửa hàng
+ * @param {string} userId
+ * @param {string} storeId
+ * @returns {Promise<void>}
+ */
+const unfollowStore = async (userId, storeId) => {
+    await StoreFollower.deleteOne({ user_id: userId, store_id: storeId });
+};
+
+/**
+ * Lấy trạng thái theo dõi
+ * @param {string} userId
+ * @param {string} storeId
+ * @returns {Promise<boolean>}
+ */
+const getFollowingStatus = async (userId, storeId) => {
+    if (!userId) return false;
+    const follow = await StoreFollower.findOne({ user_id: userId, store_id: storeId });
+    return !!follow;
+};
+
+/**
+ * Lấy số lượng người theo dõi cửa hàng
+ * @param {string} storeId
+ * @returns {Promise<number>}
+ */
+const getStoreFollowerCount = async (storeId) => {
+    return StoreFollower.countDocuments({ store_id: storeId });
+};
+
+/**
+ * Lấy danh sách cửa hàng đang theo dõi (có phân trang)
+ * @param {string} userId
+ * @param {number} page
+ * @param {number} limit
+ * @returns {Promise<Object>}
+ */
+const getFollowingStores = async (userId, page = 1, limit = 6) => {
+    const skip = (page - 1) * limit;
+
+    const totalItems = await StoreFollower.countDocuments({ user_id: userId });
+    const totalPages = Math.ceil(totalItems / limit);
+
+    const follows = await StoreFollower.find({ user_id: userId })
+        .sort({ followed_at: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate({
+            path: 'store_id',
+            populate: {
+                path: 'owner_user_id',
+                select: 'profile.full_name profile.avatar_url'
+            }
+        });
+
+    const items = follows.map(f => f.store_id).filter(s => s !== null);
+
+    return {
+        items,
+        pagination: {
+            totalItems,
+            totalPages,
+            currentPage: parseInt(page),
+            limit: parseInt(limit),
+        }
+    };
+};
+
 module.exports = {
     getPublicStoreById,
     listStores,
     getStoreById,
     createStore,
     updateStore,
+    followStore,
+    unfollowStore,
+    getFollowingStatus,
+    getStoreFollowerCount,
+    getFollowingStores,
 };
+

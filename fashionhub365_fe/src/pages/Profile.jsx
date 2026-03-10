@@ -472,6 +472,13 @@ export const Profile = () => {
     const [addressesError, setAddressesError] = useState("");
     const [addressesSubmitting, setAddressesSubmitting] = useState(false);
 
+    const [following, setFollowing] = useState([]);
+    const [loadingFollowing, setLoadingFollowing] = useState(false);
+    const [followingPage, setFollowingPage] = useState(1);
+    const [totalFollowingPages, setTotalFollowingPages] = useState(1);
+    const [totalFollowingItems, setTotalFollowingItems] = useState(0);
+    const followingLimit = 6;
+
     useEffect(() => {
         if (location.state?.tab) setActiveTab(location.state.tab);
     }, [location.state]);
@@ -604,6 +611,7 @@ export const Profile = () => {
         { id: "wishlist", label: "Wishlist" },
         { id: "settings", label: "Settings" },
     ];
+
 
     return (
         <div className="min-h-screen bg-gray-50">
