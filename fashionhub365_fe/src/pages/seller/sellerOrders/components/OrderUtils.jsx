@@ -2,6 +2,7 @@ import React from 'react';
 
 export const STATUS_CONFIG = {
     all: { label: 'All', color: '#64748b', bg: '#f1f5f9', dot: '#94a3b8' },
+    pending_payment: { label: 'Pending Payment', color: '#92400e', bg: '#fffbeb', dot: '#f59e0b' },
     created: { label: 'Pending', color: '#7c3aed', bg: '#f5f3ff', dot: '#8b5cf6' },
     confirmed: { label: 'Confirmed', color: '#1d4ed8', bg: '#eff6ff', dot: '#3b82f6' },
     shipped: { label: 'Shipped', color: '#0369a1', bg: '#f0f9ff', dot: '#0ea5e9' },

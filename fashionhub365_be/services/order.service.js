@@ -6,9 +6,22 @@ const ApiError = require('../utils/ApiError');
 const { runWithTransaction } = require('../utils/transaction');
 const stockReservationService = require('./stockReservation.service');
 
-const isOnlinePaymentMethod = (paymentMethod) => {
+const SUPPORTED_PAYMENT_METHODS = ['cod', 'bank_transfer', 'vnpay'];
+
+const normalizePaymentMethod = (paymentMethod = 'cod') => {
     const normalized = `${paymentMethod || ''}`.trim().toLowerCase();
-    return normalized && normalized !== 'cod';
+    return normalized || 'cod';
+};
+
+const ensureSupportedPaymentMethod = (paymentMethod) => {
+    if (!SUPPORTED_PAYMENT_METHODS.includes(paymentMethod)) {
+        throw new ApiError(httpStatus.BAD_REQUEST, `Unsupported payment method: ${paymentMethod}`);
+    }
+};
+
+const isOnlinePaymentMethod = (paymentMethod) => {
+    const normalized = normalizePaymentMethod(paymentMethod);
+    return normalized !== 'cod';
 };
 
 const toObjectId = (value) => {
@@ -47,7 +60,9 @@ const reserveOrDeductStock = async (cartItems, options = {}) => {
 };
 
 const createOrderFromCart = async (userId, { shipping_address, payment_method = 'cod', note }) => {
-    const onlinePayment = isOnlinePaymentMethod(payment_method);
+    const normalizedPaymentMethod = normalizePaymentMethod(payment_method);
+    ensureSupportedPaymentMethod(normalizedPaymentMethod);
+    const onlinePayment = isOnlinePaymentMethod(normalizedPaymentMethod);
     const reservationExpiry = new Date(Date.now() + Number(config.payment.pendingTtlMinutes || 15) * 60 * 1000);
 
     return runWithTransaction(async (session) => {
@@ -116,7 +131,7 @@ const createOrderFromCart = async (userId, { shipping_address, payment_method = 
             const storeFee = storeTotal >= 1000000 ? 0 : 30000;
             const status = onlinePayment ? 'pending_payment' : 'created';
             const statusNote = onlinePayment
-                ? 'Order created and waiting for payment confirmation'
+                ? `Order created and waiting for ${normalizedPaymentMethod} payment confirmation`
                 : 'Order created by customer';
 
             const order = await new Order({
@@ -126,6 +141,7 @@ const createOrderFromCart = async (userId, { shipping_address, payment_method = 
                 items,
                 total_amount: storeTotal + storeFee,
                 shipping_fee: storeFee,
+                payment_method: normalizedPaymentMethod,
                 payment_status: 'unpaid',
                 status,
                 status_history: [
@@ -162,17 +178,21 @@ const createOrderFromCart = async (userId, { shipping_address, payment_method = 
             orders,
             totalAmount: grandTotal,
             itemCount,
+            paymentMethod: normalizedPaymentMethod,
         };
     });
 };
 
 const getMyOrders = async (userId) => {
-    const orders = await Order.find({ user_id: userId }).sort({ created_at: -1 }).populate('store_id', 'name');
+    const orders = await Order.find({ user_id: userId }).sort({ created_at: -1 }).populate('store_id', 'name uuid');
     return orders.map((order) => ({
         id: order._id,
         uuid: order.uuid,
         status: order.status,
+        payment_method: order.payment_method,
         payment_status: order.payment_status,
+        store_id: order.store_id?._id || null,
+        store_uuid: order.store_id?.uuid || null,
         total_amount: order.total_amount,
         shipping_fee: order.shipping_fee,
         shipping_address: order.shipping_address,

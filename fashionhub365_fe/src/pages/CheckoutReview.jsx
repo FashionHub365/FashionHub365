@@ -77,6 +77,8 @@ export const CheckoutReview = () => {
     const [placing, setPlacing] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
+    const [bankTransferPayments, setBankTransferPayments] = useState([]);
+    const [createdOrderUuids, setCreatedOrderUuids] = useState([]);
 
     useEffect(() => {
         const saved = sessionStorage.getItem("checkout_shipping");
@@ -108,9 +110,10 @@ export const CheckoutReview = () => {
                 payment_method: paymentMethod,
                 note: shipping.note || "",
             });
+            const createdOrders = orderRes?.data?.orders || [];
+            const orderUuids = createdOrders.map((order) => order?.uuid).filter(Boolean);
 
             if (paymentMethod === "vnpay") {
-                const createdOrders = orderRes?.data?.orders || [];
                 const firstOrder = createdOrders[0];
                 const orderUuid = firstOrder?.uuid;
                 const orderAmount = Number(firstOrder?.total_amount);
@@ -138,7 +141,38 @@ export const CheckoutReview = () => {
                 return;
             }
 
+            if (paymentMethod === "bank_transfer") {
+                if (createdOrders.length === 0) {
+                    throw new Error("Unable to initialize bank transfer payment.");
+                }
+
+                const paymentResponses = await Promise.all(
+                    createdOrders.map((order) =>
+                        paymentApi.createPayment({
+                            orderId: order.uuid,
+                            paymentMethodCode: "BANK_TRANSFER",
+                            amount: Number(order.total_amount || 0),
+                            currency: order?.currency || "VND",
+                        })
+                    )
+                );
+
+                const payments = paymentResponses.map((response) => response?.data).filter(Boolean);
+                if (payments.length !== createdOrders.length) {
+                    throw new Error("Failed to create bank transfer payments.");
+                }
+
+                setCreatedOrderUuids(orderUuids);
+                setBankTransferPayments(payments);
+                sessionStorage.removeItem("checkout_shipping");
+                await fetchCart();
+                setSuccess(true);
+                return;
+            }
+
             // Success!
+            setCreatedOrderUuids(orderUuids);
+            setBankTransferPayments([]);
             sessionStorage.removeItem("checkout_shipping");
             await fetchCart(); // Refresh giỏ hàng (đã bị xoá phía BE)
             setSuccess(true);
@@ -152,22 +186,58 @@ export const CheckoutReview = () => {
 
     // ── Success Screen ──
     if (success) {
+        const totalBankTransferAmount = bankTransferPayments.reduce(
+            (sum, payment) => sum + Number(payment?.amount || 0),
+            0
+        );
+        const bankInfo = bankTransferPayments[0]?.bankInfo;
+
         return (
             <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-center px-4">
-                <div className="bg-white border border-gray-200 p-12 max-w-md w-full">
+                <div className="bg-white border border-gray-200 p-12 max-w-xl w-full">
                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                         <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                         </svg>
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Đặt hàng thành công! 🎉</h2>
-                    <p className="text-gray-500 mb-2">Cảm ơn bạn đã mua hàng tại FashionHub365.</p>
-                    <p className="text-gray-400 text-sm mb-8">
-                        Đơn hàng của bạn đang được xử lý. Chúng tôi sẽ gửi email xác nhận đến <strong>{shipping?.email}</strong>.
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        {bankTransferPayments.length > 0 ? "Order created, waiting for payment" : "Order placed successfully"}
+                    </h2>
+                    <p className="text-gray-500 mb-2">Thank you for shopping at FashionHub365.</p>
+                    <p className="text-gray-400 text-sm mb-4">
+                        {bankTransferPayments.length > 0
+                            ? "Please transfer with the correct content below so we can confirm your order."
+                            : <>Your order is being processed. A confirmation email will be sent to <strong>{shipping?.email}</strong>.</>
+                        }
                     </p>
+
+                    {bankTransferPayments.length > 0 && (
+                        <div className="text-left text-sm border border-blue-200 bg-blue-50 p-4 rounded-sm mb-6">
+                            <p className="font-semibold text-blue-800 mb-1">
+                                Total transfer amount: {totalBankTransferAmount.toLocaleString("vi-VN")} VND
+                            </p>
+                            {bankInfo && (
+                                <>
+                                    <p>Bank: <strong>{bankInfo.bank_name}</strong></p>
+                                    <p>Account name: <strong>{bankInfo.account_name}</strong></p>
+                                    <p>Account number: <strong>{bankInfo.account_number}</strong></p>
+                                </>
+                            )}
+                            <div className="mt-2 space-y-1">
+                                {bankTransferPayments.map((payment, idx) => (
+                                    <p key={payment.transactionId || idx} className="break-all">
+                                        Order <strong>#{createdOrderUuids[idx]?.slice(0, 8)?.toUpperCase() || idx + 1}</strong>: {" "}
+                                        <span className="font-semibold">{Number(payment.amount || 0).toLocaleString("vi-VN")} VND</span>{" "}
+                                        - Content: <strong>{payment.transferContent}</strong>
+                                    </p>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     <p className="text-sm text-gray-600 mb-6">
-                        Địa chỉ giao hàng: <br />
-                        <strong>{shipping?.full_name}</strong> – {shipping?.phone}<br />
+                        Shipping address: <br />
+                        <strong>{shipping?.full_name}</strong> - {shipping?.phone}<br />
                         {shipping?.address_line}, {shipping?.ward}, {shipping?.district}, {shipping?.province}
                     </p>
                     <div className="flex flex-col gap-3">
@@ -175,13 +245,13 @@ export const CheckoutReview = () => {
                             onClick={() => navigate("/profile")}
                             className="w-full bg-black text-white py-3 font-semibold hover:bg-gray-800 transition-colors"
                         >
-                            Xem đơn hàng của tôi
+                            View my orders
                         </button>
                         <button
                             onClick={() => navigate("/listing")}
                             className="w-full border border-gray-300 py-3 text-sm hover:bg-gray-50 transition-colors"
                         >
-                            Tiếp tục mua sắm
+                            Continue shopping
                         </button>
                     </div>
                 </div>
@@ -360,3 +430,4 @@ export const CheckoutReview = () => {
 };
 
 export default CheckoutReview;
+

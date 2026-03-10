@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useCart } from "../contexts/CartContext";
+import { useAuth } from "../contexts/AuthContext";
+import addressApi from "../apis/addressApi";
 
 // ── Step indicator ────────────────────────────────────────────────────
 const StepBar = ({ step }) => (
@@ -222,11 +224,48 @@ const SearchableSelect = ({ label, id, required, error, loading, disabled, optio
 
 // ── Vietnam address API (provinces.open-api.vn) ───────────────────────
 const VN_API = "https://provinces.open-api.vn/api";
+const CHECKOUT_SHIPPING_KEY = "checkout_shipping";
+
+const shippingToForm = (shipping = {}, fallbackEmail = "") => ({
+    fullName: shipping.full_name || shipping.fullName || "",
+    phone: shipping.phone || "",
+    email: shipping.email || fallbackEmail || "",
+    province: shipping.province || shipping.city || "",
+    district: shipping.district || "",
+    ward: shipping.ward || "",
+    addressLine: shipping.address_line || shipping.addressLine || shipping.line1 || "",
+    note: shipping.note || "",
+});
+
+const savedAddressToForm = (address = {}, fallbackEmail = "") => ({
+    fullName: address.full_name || "",
+    phone: address.phone || "",
+    email: fallbackEmail || "",
+    province: address.city || "",
+    district: address.district || "",
+    ward: address.ward || "",
+    addressLine: [address.line1, address.line2].filter(Boolean).join(", "),
+    note: address.note || "",
+});
+
+const formToShipping = (form, selectedAddressUuid = "") => ({
+    ...(selectedAddressUuid ? { uuid: selectedAddressUuid } : {}),
+    full_name: form.fullName,
+    phone: form.phone,
+    email: form.email,
+    province: form.province,
+    district: form.district,
+    ward: form.ward,
+    address_line: form.addressLine,
+    note: form.note,
+});
 
 // ── Main Component ────────────────────────────────────────────────────
 export const CheckoutShipping = () => {
     const { cartData } = useCart();
+    const { user } = useAuth();
     const navigate = useNavigate();
+    const userEmail = user?.email || "";
 
     const [form, setForm] = useState({
         fullName: "",
@@ -247,6 +286,9 @@ export const CheckoutShipping = () => {
     const [provincesLoading, setProvincesLoading] = useState(true);
     const [districtsLoading, setDistrictsLoading] = useState(false);
     const [wardsLoading, setWardsLoading] = useState(false);
+    const [savedAddresses, setSavedAddresses] = useState([]);
+    const [savedAddressesLoading, setSavedAddressesLoading] = useState(false);
+    const [selectedAddressUuid, setSelectedAddressUuid] = useState("");
 
 
     // Fetch danh sách Tỉnh/Thành phố khi mount
@@ -258,6 +300,112 @@ export const CheckoutShipping = () => {
             .finally(() => setProvincesLoading(false));
     }, []);
 
+    // Fill form from session storage (or user email fallback)
+    useEffect(() => {
+        const savedShipping = sessionStorage.getItem(CHECKOUT_SHIPPING_KEY);
+        if (savedShipping) {
+            try {
+                const parsed = JSON.parse(savedShipping);
+                setForm((f) => ({
+                    ...f,
+                    ...shippingToForm(parsed, userEmail || f.email || ""),
+                }));
+                setSelectedAddressUuid(parsed?.uuid || "");
+                return;
+            } catch {
+                sessionStorage.removeItem(CHECKOUT_SHIPPING_KEY);
+            }
+        }
+
+        if (userEmail) {
+            setForm((f) => ({ ...f, email: f.email || userEmail }));
+        }
+    }, [userEmail]);
+
+    // Load saved user addresses for quick checkout selection
+    useEffect(() => {
+        let active = true;
+
+        const run = async () => {
+            if (!userEmail) {
+                setSavedAddresses([]);
+                return;
+            }
+            setSavedAddressesLoading(true);
+            try {
+                const res = await addressApi.getAddresses();
+                const list = res?.data?.addresses || [];
+                if (!active) return;
+                setSavedAddresses(list);
+
+                const hasSessionShipping = Boolean(sessionStorage.getItem(CHECKOUT_SHIPPING_KEY));
+                if (!hasSessionShipping && list.length > 0) {
+                    const preferred = list.find((a) => a.is_default) || list[0];
+                    setForm((f) => ({
+                        ...f,
+                        ...savedAddressToForm(preferred, userEmail || f.email || ""),
+                    }));
+                    setSelectedAddressUuid(preferred.uuid || "");
+                }
+            } catch {
+                if (active) setSavedAddresses([]);
+            } finally {
+                if (active) setSavedAddressesLoading(false);
+            }
+        };
+
+        run();
+        return () => {
+            active = false;
+        };
+    }, [userEmail]);
+
+    // Ensure district/ward options are available when a saved address is selected
+    useEffect(() => {
+        if (!selectedAddressUuid || !form.province || provinces.length === 0 || districts.length > 0) return;
+        const selectedProv = provinces.find((p) => p.name === form.province);
+        if (!selectedProv?.code) return;
+
+        let active = true;
+        const run = async () => {
+            setDistrictsLoading(true);
+            setDistricts([]);
+            setWards([]);
+            try {
+                const distRes = await fetch(`${VN_API}/p/${selectedProv.code}?depth=2`);
+                const distData = await distRes.json();
+                if (!active) return;
+                const nextDistricts = (distData.districts || []).map((d) => ({ code: d.code, name: d.name }));
+                setDistricts(nextDistricts);
+
+                if (!form.district) return;
+                const selectedDist = nextDistricts.find((d) => d.name === form.district);
+                if (!selectedDist?.code) return;
+
+                setWardsLoading(true);
+                try {
+                    const wardRes = await fetch(`${VN_API}/d/${selectedDist.code}?depth=2`);
+                    const wardData = await wardRes.json();
+                    if (!active) return;
+                    setWards((wardData.wards || []).map((w) => ({ code: w.code, name: w.name })));
+                } finally {
+                    if (active) setWardsLoading(false);
+                }
+            } catch {
+                if (!active) return;
+                setDistricts([]);
+                setWards([]);
+            } finally {
+                if (active) setDistrictsLoading(false);
+            }
+        };
+
+        run();
+        return () => {
+            active = false;
+        };
+    }, [selectedAddressUuid, form.province, form.district, provinces, districts.length]);
+
     // Khi chọn Tỉnh → fetch Quận/Huyện
     const handleProvinceChange = async (selectedName) => {
         const selectedProv = provinces.find((p) => p.name === selectedName);
@@ -266,6 +414,7 @@ export const CheckoutShipping = () => {
         setErrors((er) => ({ ...er, province: "", district: "", ward: "" }));
         setDistricts([]);
         setWards([]);
+        setSelectedAddressUuid("");
 
 
         if (!selectedProv?.code) return;
@@ -288,6 +437,7 @@ export const CheckoutShipping = () => {
         setForm((f) => ({ ...f, district: selectedName, ward: "" }));
         setErrors((er) => ({ ...er, district: "", ward: "" }));
         setWards([]);
+        setSelectedAddressUuid("");
 
 
         if (!selectedDist?.code) return;
@@ -306,11 +456,22 @@ export const CheckoutShipping = () => {
     const handleWardChange = (selectedName) => {
         setForm((f) => ({ ...f, ward: selectedName }));
         setErrors((er) => ({ ...er, ward: "" }));
+        setSelectedAddressUuid("");
+    };
+
+    const applySavedAddress = (address) => {
+        setForm((f) => ({
+            ...f,
+            ...savedAddressToForm(address, userEmail || f.email || ""),
+        }));
+        setErrors({});
+        setSelectedAddressUuid(address.uuid || "");
     };
 
     const set = (key, val) => {
         setForm((f) => ({ ...f, [key]: val }));
         setErrors((e) => ({ ...e, [key]: "" }));
+        setSelectedAddressUuid("");
     };
 
     const validate = () => {
@@ -335,19 +496,7 @@ export const CheckoutShipping = () => {
             setErrors(e);
             return;
         }
-        sessionStorage.setItem(
-            "checkout_shipping",
-            JSON.stringify({
-                full_name: form.fullName,
-                phone: form.phone,
-                email: form.email,
-                province: form.province,
-                district: form.district,
-                ward: form.ward,
-                address_line: form.addressLine,
-                note: form.note,
-            })
-        );
+        sessionStorage.setItem(CHECKOUT_SHIPPING_KEY, JSON.stringify(formToShipping(form, selectedAddressUuid)));
         navigate("/checkout/review");
     };
 
@@ -376,6 +525,51 @@ export const CheckoutShipping = () => {
                     {/* ───── Form ───── */}
                     <div className="bg-white border border-gray-200 p-8 h-fit">
                         <h2 className="text-xl font-semibold text-gray-900 mb-6">Thông tin giao hàng</h2>
+
+                        {user && (
+                            <div className="mb-6">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <p className="text-sm font-semibold text-gray-800">Địa chỉ đã lưu</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate("/profile")}
+                                        className="text-xs font-semibold text-gray-700 underline"
+                                    >
+                                        Quản lý địa chỉ
+                                    </button>
+                                </div>
+
+                                {savedAddressesLoading ? (
+                                    <div className="py-2 text-xs text-gray-500">Đang tải địa chỉ...</div>
+                                ) : savedAddresses.length === 0 ? (
+                                    <div className="py-2 text-xs text-gray-500">Chưa có địa chỉ đã lưu. Bạn có thể nhập thủ công bên dưới.</div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {savedAddresses.map((address) => (
+                                            <button
+                                                key={address.uuid}
+                                                type="button"
+                                                onClick={() => applySavedAddress(address)}
+                                                className={`w-full rounded-sm border px-3 py-2 text-left transition ${
+                                                    selectedAddressUuid === address.uuid ? "border-black bg-gray-50" : "border-gray-200 hover:border-gray-400"
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-sm font-semibold text-gray-900">{address.full_name}</p>
+                                                    {address.is_default && (
+                                                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">MẶC ĐỊNH</span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-gray-500">{address.phone}</p>
+                                                <p className="mt-1 text-xs text-gray-600">
+                                                    {[address.line1, address.line2, address.ward, address.district, address.city].filter(Boolean).join(", ")}
+                                                </p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div className="md:col-span-2">

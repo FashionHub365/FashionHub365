@@ -17,7 +17,8 @@ const createVNPayPayment = catchAsync(async (req, res) => {
 });
 
 const callback = catchAsync(async (req, res) => {
-    const result = await vnpayService.getVNPayReturnState(req.query);
+    // Process callback here as well to avoid pending orders when IPN is delayed/missing.
+    const result = await vnpayService.processVNPayCallback(req.query);
     const redirectUrl = new URL(result.frontendReturnUrl);
     redirectUrl.searchParams.set('paymentUuid', result.paymentUuid);
     redirectUrl.searchParams.set('transactionId', result.transactionId);

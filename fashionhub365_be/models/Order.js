@@ -24,6 +24,11 @@ const orderSchema = new mongoose.Schema({
         enum: ['pending_payment', 'created', 'confirmed', 'shipped', 'delivered', 'cancelled', 'refunded'],
         default: 'created'
     },
+    payment_method: {
+        type: String,
+        enum: ['cod', 'bank_transfer', 'vnpay'],
+        default: 'cod'
+    },
     payment_status: {
         type: String,
         enum: ['unpaid', 'paid', 'failed', 'refunded'],

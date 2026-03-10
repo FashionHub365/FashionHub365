@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             return {
                 success: false,
-                message: error.response?.data?.message || 'Login failed'
+                message: error.response?.data?.error?.message || error.response?.data?.message || 'Login failed'
             };
         }
     };
@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             return {
                 success: false,
-                message: error.response?.data?.message || 'OTP verification failed'
+                message: error.response?.data?.error?.message || error.response?.data?.message || 'OTP verification failed'
             };
         }
     };
@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             return {
                 success: false,
-                message: error.response?.data?.message || 'Google Login failed'
+                message: error.response?.data?.error?.message || error.response?.data?.message || 'Google Login failed'
             };
         }
     };
@@ -109,7 +109,7 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             return {
                 success: false,
-                message: error.response?.data?.message || 'Registration failed'
+                message: error.response?.data?.error?.message || error.response?.data?.message || 'Registration failed'
             };
         }
     };

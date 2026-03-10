@@ -15,6 +15,8 @@ import { StoreProfile } from "./pages/StoreProfile";
 import { NotFound } from "./pages/NotFound";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
+import { ForgotPassword } from "./pages/ForgotPassword";
+import { ResetPassword } from "./pages/ResetPassword";
 import { Profile } from "./pages/Profile";
 import VerifyEmail from "./pages/VerifyEmail"; // Correct default import
 import { Layout } from "./components/Layout";
@@ -40,6 +42,8 @@ function App() {
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/blog" element={<Blog />} />
@@ -47,15 +51,16 @@ function App() {
                 <Route path="/product-detail" element={<ProductDetail />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/stores" element={<Stores />} />
+                <Route path="/stores/:storeId" element={<StoreProfile />} />
                 <Route path="/men" element={<Listing />} />
                 <Route path="/listing" element={<Listing />} />
-                <Route path="/checkout" element={<CheckoutShipping />} />
-                <Route path="/checkout/review" element={<CheckoutReview />} />
                 <Route path="/payment-result" element={<PaymentResult />} />
 
                 {/* Protected Routes */}
                 <Route element={<PrivateRoute />}>
                   <Route path="/profile" element={<Profile />} />
+                  <Route path="/checkout" element={<CheckoutShipping />} />
+                  <Route path="/checkout/review" element={<CheckoutReview />} />
 
                 {/* Seller Routes */}
                 <Route path="/seller" element={<SellerLayout />}>

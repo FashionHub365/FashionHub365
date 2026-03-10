@@ -78,7 +78,9 @@ userSchema.methods.isPasswordChangedAfter = function (JWTTimestamp) {
 
 // Statics
 userSchema.statics.isEmailTaken = async function (email, excludeUserId) {
-  const user = await this.findOne({ email, _id: { $ne: excludeUserId } });
+  const query = { email };
+  if (excludeUserId) query._id = { $ne: excludeUserId };
+  const user = await this.findOne(query);
   return !!user;
 };
 

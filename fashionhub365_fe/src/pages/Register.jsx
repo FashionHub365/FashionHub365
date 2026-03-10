@@ -7,13 +7,14 @@ export const Register = () => {
     const [formData, setFormData] = useState({
         username: '',
         email: '',
+        phone: '',
         password: '',
         confirmPassword: '',
         full_name: '',
     });
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [error, setError] = useState('');
+    const [errors, setErrors] = useState({});
     const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const { register, googleLogin } = useAuth();
@@ -23,28 +24,61 @@ export const Register = () => {
         flow: 'auth-code',
         onSuccess: async (codeResponse) => {
             setIsGoogleLoading(true);
-            setError('');
+            setErrors({});
             const result = await googleLogin(codeResponse.code);
             setIsGoogleLoading(false);
             if (result.success) {
                 navigate('/');
             } else {
-                setError(result.message);
+                setErrors({ global: result.message });
             }
         },
-        onError: errorResponse => setError('Google Registration Dialog Failed')
+        onError: errorResponse => setErrors({ global: 'Google Registration Dialog Failed' })
     });
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+        if (errors[e.target.name]) {
+            setErrors({ ...errors, [e.target.name]: '' });
+        }
+        if (errors.global) {
+            setErrors({ ...errors, global: '' });
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        setErrors({});
+
+        let newErrors = {};
+
+        if (!formData.username.trim()) newErrors.username = 'Vui lòng nhập Username';
+        if (!formData.full_name.trim()) newErrors.full_name = 'Vui lòng nhập Họ tên';
+
+        if (!formData.email.trim()) {
+            newErrors.email = 'Vui lòng nhập Email';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+            newErrors.email = 'Email không hợp lệ';
+        }
+
+        if (!formData.phone.trim()) {
+            newErrors.phone = 'Vui lòng nhập Số điện thoại';
+        } else if (!/^\d{10,11}$/.test(formData.phone)) {
+            newErrors.phone = 'Số điện thoại không hợp lệ (10-11 số)';
+        }
+
+        if (!formData.password) {
+            newErrors.password = 'Vui lòng nhập Mật khẩu';
+        } else if (formData.password.length < 6) {
+            newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+        }
 
         if (formData.password !== formData.confirmPassword) {
-            setError('Confirm password does not match.');
+            newErrors.confirmPassword = 'Xác nhận mật khẩu không trùng khớp';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
             return;
         }
 
@@ -52,9 +86,17 @@ export const Register = () => {
         const result = await register(formData);
         setIsLoading(false);
         if (result.success) {
+            alert('Đăng ký thành công! Đang chuyển hướng đến đăng nhập...');
             navigate('/login');
         } else {
-            setError(result.message);
+            const msg = result.message || '';
+            if (msg.toLowerCase().includes('email')) {
+                setErrors({ email: msg });
+            } else if (msg.includes('điện thoại') || msg.toLowerCase().includes('phone')) {
+                setErrors({ phone: msg });
+            } else {
+                setErrors({ global: msg });
+            }
         }
     };
 
@@ -84,7 +126,7 @@ export const Register = () => {
                         <p className="text-gray-500 dark:text-gray-400">Get started with your free account today.</p>
                     </div>
 
-                    <form className="space-y-5" onSubmit={handleSubmit}>
+                    <form className="space-y-5" onSubmit={handleSubmit} noValidate>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div>
                                 <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
@@ -92,12 +134,12 @@ export const Register = () => {
                                     id="username"
                                     name="username"
                                     type="text"
-                                    required
-                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white transition duration-200 outline-none"
+                                    className={`w-full px-4 py-2 rounded-lg border ${errors.username ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:ring-purple-500'} focus:ring-2 focus:border-transparent bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white transition duration-200 outline-none`}
                                     placeholder="johndoe"
                                     value={formData.username}
                                     onChange={handleChange}
                                 />
+                                {errors.username && <p className="mt-1 text-xs text-red-600 font-medium" style={{ color: '#dc2626' }}>{errors.username}</p>}
                             </div>
                             <div>
                                 <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
@@ -105,28 +147,43 @@ export const Register = () => {
                                     id="full_name"
                                     name="full_name"
                                     type="text"
-                                    required
-                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white transition duration-200 outline-none"
+                                    className={`w-full px-4 py-2 rounded-lg border ${errors.full_name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:ring-purple-500'} focus:ring-2 focus:border-transparent bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white transition duration-200 outline-none`}
                                     placeholder="John Doe"
                                     value={formData.full_name}
                                     onChange={handleChange}
                                 />
+                                {errors.full_name && <p className="mt-1 text-xs text-red-600 font-medium" style={{ color: '#dc2626' }}>{errors.full_name}</p>}
                             </div>
                         </div>
 
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
-                            <input
-                                id="email"
-                                name="email"
-                                type="email"
-                                autoComplete="email"
-                                required
-                                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white transition duration-200 outline-none"
-                                placeholder="name@company.com"
-                                value={formData.email}
-                                onChange={handleChange}
-                            />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div>
+                                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
+                                <input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    autoComplete="email"
+                                    className={`w-full px-4 py-2 rounded-lg border ${errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:ring-purple-500'} focus:ring-2 focus:border-transparent bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white transition duration-200 outline-none`}
+                                    placeholder="name@company.com"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                />
+                                {errors.email && <p className="mt-1 text-xs text-red-600 font-medium" style={{ color: '#dc2626' }}>{errors.email}</p>}
+                            </div>
+                            <div>
+                                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
+                                <input
+                                    id="phone"
+                                    name="phone"
+                                    type="text"
+                                    className={`w-full px-4 py-2 rounded-lg border ${errors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:ring-purple-500'} focus:ring-2 focus:border-transparent bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white transition duration-200 outline-none`}
+                                    placeholder="0912345678"
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                />
+                                {errors.phone && <p className="mt-1 text-xs text-red-600 font-medium" style={{ color: '#dc2626' }}>{errors.phone}</p>}
+                            </div>
                         </div>
 
                         <div>
@@ -137,8 +194,7 @@ export const Register = () => {
                                     name="password"
                                     type={showPassword ? "text" : "password"}
                                     autoComplete="new-password"
-                                    required
-                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white transition duration-200 outline-none pr-10"
+                                    className={`w-full px-4 py-2 rounded-lg border ${errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:ring-purple-500'} focus:ring-2 focus:border-transparent bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white transition duration-200 outline-none pr-10`}
                                     placeholder="Create a strong password"
                                     value={formData.password}
                                     onChange={handleChange}
@@ -160,7 +216,11 @@ export const Register = () => {
                                     )}
                                 </button>
                             </div>
-                            <p className="mt-1 text-xs text-gray-500">Must be at least 8 characters long.</p>
+                            {errors.password ? (
+                                <p className="mt-1 text-xs text-red-600 font-medium" style={{ color: '#dc2626' }}>{errors.password}</p>
+                            ) : (
+                                <p className="mt-1 text-xs text-gray-500">Must be at least 6 characters long.</p>
+                            )}
                         </div>
 
                         <div>
@@ -171,8 +231,7 @@ export const Register = () => {
                                     name="confirmPassword"
                                     type={showConfirmPassword ? "text" : "password"}
                                     autoComplete="new-password"
-                                    required
-                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white transition duration-200 outline-none pr-10"
+                                    className={`w-full px-4 py-2 rounded-lg border ${errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:ring-purple-500'} focus:ring-2 focus:border-transparent bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white transition duration-200 outline-none pr-10`}
                                     placeholder="Confirm your password"
                                     value={formData.confirmPassword}
                                     onChange={handleChange}
@@ -194,12 +253,15 @@ export const Register = () => {
                                     )}
                                 </button>
                             </div>
+                            {errors.confirmPassword && (
+                                <p className="mt-1 text-xs text-red-600 font-medium" style={{ color: '#dc2626' }}>{errors.confirmPassword}</p>
+                            )}
                         </div>
 
-                        {error && (
+                        {errors.global && (
                             <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm border border-red-200 flex items-center">
                                 <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
-                                {error}
+                                {errors.global}
                             </div>
                         )}
 

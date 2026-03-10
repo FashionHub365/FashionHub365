@@ -24,7 +24,7 @@ const loginUserWithEmailAndPassword = async (identifier, password, ipAddress, us
             user_agent: userAgent,
             metadata: { identifier: normalizedIdentifier },
         });
-        throw new ApiError(httpStatus.UNAUTHORIZED, 'Incorrect email or password');
+        throw new ApiError(httpStatus.NOT_FOUND, 'Tài khoản không tồn tại');
     }
 
     // Brute force — check lock
@@ -79,7 +79,7 @@ const loginUserWithEmailAndPassword = async (identifier, password, ipAddress, us
                 role_slugs: roleSlugs,
             },
         });
-        throw new ApiError(httpStatus.UNAUTHORIZED, 'Incorrect email or password');
+        throw new ApiError(httpStatus.UNAUTHORIZED, 'Sai mật khẩu');
     }
 
     if (user.status === 'BANNED') {

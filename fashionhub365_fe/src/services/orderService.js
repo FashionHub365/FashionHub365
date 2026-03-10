@@ -28,7 +28,7 @@ const normalizeOrder = (order) => ({
 // Fetch all seller orders (UC-33 & 35)
 export const fetchSellerOrders = async () => {
   try {
-    const response = await axiosClient.get('/orders/seller/history');
+    const response = await axiosClient.get('/seller/orders/seller/history');
     const data = Array.isArray(response) ? response : [];
     return data.map(normalizeOrder);
   } catch (error) {
@@ -40,7 +40,7 @@ export const fetchSellerOrders = async () => {
 // Confirm order (UC-29)
 export const confirmOrder = async (orderId) => {
   try {
-    const response = await axiosClient.post(`/orders/${orderId}/confirm`);
+    const response = await axiosClient.post(`/seller/orders/${orderId}/confirm`);
     return response;
   } catch (error) {
     console.error('Error confirming order:', error);
@@ -51,7 +51,7 @@ export const confirmOrder = async (orderId) => {
 // Cancel order (UC-30)
 export const cancelOrder = async (orderId, reason) => {
   try {
-    const response = await axiosClient.post(`/orders/${orderId}/cancel`, {
+    const response = await axiosClient.post(`/seller/orders/${orderId}/cancel`, {
       reason
     });
     return response;
@@ -64,7 +64,7 @@ export const cancelOrder = async (orderId, reason) => {
 // Update order status (UC-32)
 export const updateOrderStatus = async (orderId, status, note) => {
   try {
-    const response = await axiosClient.patch(`/orders/${orderId}/status`, {
+    const response = await axiosClient.patch(`/seller/orders/${orderId}/status`, {
       status,
       note
     });
@@ -78,7 +78,7 @@ export const updateOrderStatus = async (orderId, status, note) => {
 // Get Store Stats (UC-50)
 export const getStoreStats = async () => {
   try {
-    const response = await axiosClient.get('/orders/stats');
+    const response = await axiosClient.get('/seller/orders/stats');
     return response;
   } catch (error) {
     console.error('Error fetching store stats:', error);

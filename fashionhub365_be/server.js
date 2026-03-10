@@ -22,8 +22,13 @@ app.use(helmet());
 
 // Cấu hình CORS cho frontend
 const env = config?.env || process.env.NODE_ENV || 'development';
+const configuredOrigins = String(config?.frontendUrl || "")
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const productionOrigins = [...new Set([...configuredOrigins, 'http://localhost:3000'])];
 app.use(cors({
-  origin: env === 'development' ? true : ["http://localhost:3000"], // 'true' reflects the request origin
+  origin: env === 'development' ? true : productionOrigins,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   credentials: true,
 }));

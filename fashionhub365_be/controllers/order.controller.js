@@ -1,18 +1,117 @@
-const Order = require("../models/Order");
-const { productService } = require("../services");
-const Product = require("../models/Product");
-const StoreMember = require("../models/StoreMember");
-const Store = require("../models/Store");
-const catchAsync = require("../utils/catchAsync");
-const ApiError = require("../utils/ApiError");
 const httpStatus = require("http-status");
 const mongoose = require("mongoose");
+const { runWithTransaction } = require("../utils/transaction");
+const catchAsync = require("../utils/catchAsync");
+const ApiError = require("../utils/ApiError");
+const Order = require("../models/Order");
+const Product = require("../models/Product");
+const Payment = require("../models/Payment");
+const stockReservationService = require("../services/stockReservation.service");
+const { productService } = require("../services");
 
-// Thống kê cho Seller Dashboard
+const STATUS_TRANSITIONS = {
+  pending_payment: ["cancelled"],
+  created: ["confirmed", "cancelled"],
+  confirmed: ["shipped", "cancelled"],
+  shipped: ["delivered"],
+  delivered: [],
+  cancelled: [],
+  refunded: [],
+};
+
+const CANCELLABLE_STATUSES = new Set(["pending_payment", "created", "confirmed"]);
+
+const getIdQuery = (id) => {
+  if (mongoose.Types.ObjectId.isValid(id)) {
+    return { _id: new mongoose.Types.ObjectId(id) };
+  }
+  return { uuid: id };
+};
+
+const normalizeStoreId = (storeId) => {
+  if (mongoose.Types.ObjectId.isValid(storeId)) {
+    return new mongoose.Types.ObjectId(storeId);
+  }
+  return storeId;
+};
+
+const loadOrderForSeller = async (orderId, storeId, session = null) => {
+  const query = {
+    ...getIdQuery(orderId),
+    store_id: normalizeStoreId(storeId),
+  };
+  const findQuery = Order.findOne(query);
+  if (session) {
+    findQuery.session(session);
+  }
+  return findQuery;
+};
+
+const restoreStockForOrder = async (order, session = null) => {
+  for (const item of order.items || []) {
+    const qty = Number(item.qty || 0);
+    if (!item.productId || !item.variantId || qty <= 0) {
+      continue;
+    }
+
+    await Product.updateOne(
+      { _id: item.productId, "variants._id": item.variantId },
+      { $inc: { "variants.$.stock": qty } },
+      session ? { session } : {}
+    );
+  }
+};
+
+const cancelOrderWithConsistency = async ({ order, reason, actor, session = null }) => {
+  if (order.payment_status === "paid") {
+    throw new ApiError(httpStatus.BAD_REQUEST, "Cannot cancel a paid order");
+  }
+
+  if (!CANCELLABLE_STATUSES.has(order.status)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, `Cannot cancel order in status "${order.status}"`);
+  }
+
+  const releasedCount = await stockReservationService.releaseReservationsForOrder(order._id, {
+    session,
+    reason: "SELLER_CANCELLED_ORDER",
+    nextStatus: "RELEASED",
+  });
+
+  // COD orders deduct stock directly at order creation.
+  if (releasedCount === 0 && ["created", "confirmed"].includes(order.status)) {
+    await restoreStockForOrder(order, session);
+  }
+
+  await Payment.updateMany(
+    { order_id: order._id, status: "PENDING" },
+    { $set: { status: "CANCELLED", cancelled_at: new Date() } },
+    session ? { session } : {}
+  );
+
+  const oldStatus = order.status;
+  order.status = "cancelled";
+  order.payment_status = "failed";
+  order.status_history.push({
+    oldStatus,
+    newStatus: "cancelled",
+    changedBy: actor,
+    note: reason || "Order cancelled by seller",
+  });
+  await order.save(session ? { session } : {});
+  return order;
+};
+
+const sendOrderError = (res, error) => {
+  if (error instanceof ApiError) {
+    return res.status(error.statusCode).json({ message: error.message });
+  }
+  return res.status(500).json({ error: error.message });
+};
+
+// Seller dashboard stats
 exports.getStoreStats = catchAsync(async (req, res) => {
   const storeId = req.storeId;
 
-  // 2. Tổng quan (Doanh thu, số đơn, số SP của store)
   const [orderSummary, totalProducts] = await Promise.all([
     Order.aggregate([
       { $match: { store_id: storeId } },
@@ -32,25 +131,18 @@ exports.getStoreStats = catchAsync(async (req, res) => {
     Product.countDocuments({ store_id: storeId }),
   ]);
 
-  // 3. Thống kê đơn hàng theo status
   const ordersByStatus = await Order.aggregate([
     { $match: { store_id: storeId } },
     { $group: { _id: "$status", count: { $sum: 1 } } },
   ]);
 
-  // 4. Doanh thu và số đơn theo tháng (12 tháng gần nhất)
   const twelveMonthsAgo = new Date();
   twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11);
   twelveMonthsAgo.setDate(1);
   twelveMonthsAgo.setHours(0, 0, 0, 0);
 
   const monthlyStats = await Order.aggregate([
-    {
-      $match: {
-        store_id: storeId,
-        created_at: { $gte: twelveMonthsAgo }
-      }
-    },
+    { $match: { store_id: storeId, created_at: { $gte: twelveMonthsAgo } } },
     {
       $group: {
         _id: {
@@ -64,139 +156,128 @@ exports.getStoreStats = catchAsync(async (req, res) => {
     { $sort: { "_id.year": 1, "_id.month": 1 } },
   ]);
 
-  // Backend seller stats không cần monthlyUsers như admin, hoặc nếu cần thì mock/bỏ qua
-  // Ở đây FE đang dùng monthlyUsers để vẽ biểu đồ, ta trả về mảng rỗng để tránh crash
-  const monthlyUsers = [];
-
   res.json({
     summary: {
       totalRevenue: orderSummary[0]?.totalRevenue || 0,
       paidRevenue: orderSummary[0]?.paidRevenue || 0,
       totalOrders: orderSummary[0]?.totalOrders || 0,
-      totalUsers: 0, // Seller không quản lý user hệ thống
+      totalUsers: 0,
       totalProducts,
     },
     ordersByStatus,
     monthlyStats,
-    monthlyUsers,
+    monthlyUsers: [],
   });
 });
 
-
-// Helper to build ID query since frontend might pass _id or uuid
-const getIdQuery = (id) => {
-  if (mongoose.Types.ObjectId.isValid(id)) {
-    return { _id: new mongoose.Types.ObjectId(id) };
-  }
-  return { uuid: id };
-};
-
-// UC-29: Xác nhận đơn hàng
+// Confirm order
 exports.confirmOrder = async (req, res) => {
   try {
-    const order = await Order.findOneAndUpdate(
-      { ...getIdQuery(req.params.id), status: "created", store_id: req.storeId },
-      {
-        $set: { status: "confirmed" },
-        $push: {
-          status_history: {
-            oldStatus: "created",
-            newStatus: "confirmed",
-            changedBy: "seller_test",
-            note: "Xác nhận đơn hàng test",
-          },
-        },
-      },
-      { new: true },
-    );
-    if (!order)
+    const order = await loadOrderForSeller(req.params.id, req.storeId);
+    if (!order || order.status !== "created") {
       return res
-        .status(404)
-        .json({
-          message:
-            "Không tìm thấy đơn hàng hoặc đơn không ở trạng thái 'created'",
-        });
-    res.json(order);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// UC-30: Hủy đơn hàng
-exports.cancelOrder = async (req, res) => {
-  try {
-    const order = await Order.findOneAndUpdate(
-      { ...getIdQuery(req.params.id), store_id: req.storeId },
-      {
-        $set: { status: "cancelled" },
-        $push: {
-          status_history: {
-            oldStatus: "current",
-            newStatus: "cancelled",
-            changedBy: "seller_test",
-            note: req.body.reason || "Hủy đơn test",
-          },
-        },
-      },
-      { new: true },
-    );
-    if (!order)
-      return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
-    res.json(order);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// UC-32: Cập nhật trạng thái
-exports.updateOrderStatus = async (req, res) => {
-  try {
-    const { status, note } = req.body;
-
-    // Đảm bảo storeId là ObjectID để so khớp chính xác
-    const storeId = mongoose.Types.ObjectId.isValid(req.storeId)
-      ? new mongoose.Types.ObjectId(req.storeId)
-      : req.storeId;
-
-    const query = { ...getIdQuery(req.params.id), store_id: storeId };
-
-    console.log('[updateOrderStatus] Query:', query);
-    console.log('[updateOrderStatus] storeId:', storeId);
-
-    // Lấy order hiện tại
-    const order = await Order.findOne(query);
-    if (!order) {
-      console.log('[updateOrderStatus] Order NOT found for query:', query);
-      return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
+        .status(httpStatus.NOT_FOUND)
+        .json({ message: "Order not found or not in created status" });
     }
 
-    const oldStatus = order.status;
-
-    // Cập nhật status
-    order.status = status;
+    order.status = "confirmed";
     order.status_history.push({
-      oldStatus: oldStatus,
-      newStatus: status,
-      changedBy: "seller_test",
-      note: note || "Cập nhật trạng thái bởi Seller",
+      oldStatus: "created",
+      newStatus: "confirmed",
+      changedBy: req.user?._id?.toString() || "seller",
+      note: req.body?.note || "Order confirmed by seller",
     });
     await order.save();
 
-    // ── Khi giao hàng thành công → tăng sold_count các sản phẩm ──
-    if (status === "delivered" && order.items && order.items.length > 0) {
-      // Fire-and-forget: không block response
+    res.json(order);
+  } catch (error) {
+    sendOrderError(res, error);
+  }
+};
+
+// Cancel order
+exports.cancelOrder = async (req, res) => {
+  try {
+    const order = await runWithTransaction(async (session) => {
+      const current = await loadOrderForSeller(req.params.id, req.storeId, session);
+      if (!current) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Order not found");
+      }
+      return cancelOrderWithConsistency({
+        order: current,
+        reason: req.body?.reason,
+        actor: req.user?._id?.toString() || "seller",
+        session,
+      });
+    });
+
+    res.json(order);
+  } catch (error) {
+    sendOrderError(res, error);
+  }
+};
+
+// Update order status
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const nextStatus = `${req.body?.status || ""}`.trim().toLowerCase();
+    const note = req.body?.note;
+
+    if (!nextStatus) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Status is required");
+    }
+    if (!Object.keys(STATUS_TRANSITIONS).includes(nextStatus)) {
+      throw new ApiError(httpStatus.BAD_REQUEST, `Invalid status: ${nextStatus}`);
+    }
+
+    const order = await runWithTransaction(async (session) => {
+      const current = await loadOrderForSeller(req.params.id, req.storeId, session);
+      if (!current) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Order not found");
+      }
+
+      if (nextStatus === "cancelled") {
+        return cancelOrderWithConsistency({
+          order: current,
+          reason: note,
+          actor: req.user?._id?.toString() || "seller",
+          session,
+        });
+      }
+
+      const allowedNext = STATUS_TRANSITIONS[current.status] || [];
+      if (!allowedNext.includes(nextStatus)) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Invalid transition: ${current.status} -> ${nextStatus}`
+        );
+      }
+
+      const oldStatus = current.status;
+      current.status = nextStatus;
+      current.status_history.push({
+        oldStatus,
+        newStatus: nextStatus,
+        changedBy: req.user?._id?.toString() || "seller",
+        note: note || "Order status updated by seller",
+      });
+      await current.save(session ? { session } : {});
+      return current;
+    });
+
+    if (nextStatus === "delivered" && order.items && order.items.length > 0) {
       productService.incrementSoldCount(order.items).catch((err) => {
-        console.error("[sold_count] Lỗi khi tăng sold_count:", err.message);
+        console.error("[sold_count]", err.message);
       });
     }
 
     res.json(order);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendOrderError(res, error);
   }
 };
 
-// UC-33 & 35: Lấy toàn bộ đơn hàng (Để test)
+// Seller order history
 exports.getSellerOrderHistory = async (req, res) => {
   try {
     const orders = await Order.find({ store_id: req.storeId }).sort({ created_at: -1 });
