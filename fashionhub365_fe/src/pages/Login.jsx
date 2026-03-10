@@ -10,7 +10,7 @@ export const Login = () => {
     const [pendingEmail, setPendingEmail] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(true);
-    const [error, setError] = useState('');
+    const [errors, setErrors] = useState({});
     const [info, setInfo] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -22,22 +22,37 @@ export const Login = () => {
         flow: 'auth-code',
         onSuccess: async (codeResponse) => {
             setIsGoogleLoading(true);
-            setError('');
+            setErrors({});
             const result = await googleLogin(codeResponse.code);
             setIsGoogleLoading(false);
             if (result.success) {
                 navigate('/');
             } else {
-                setError(result.message);
+                setErrors({ global: result.message });
             }
         },
-        onError: () => setError('Google Login Dialog Failed')
+        onError: () => setErrors({ global: 'Google Login Dialog Failed' })
     });
 
     const handleCredentialSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        setErrors({});
         setInfo('');
+
+        // Validation
+        let newErrors = {};
+        if (!identifier.trim()) {
+            newErrors.identifier = 'Vui lòng nhập Email hoặc Số điện thoại/Username';
+        }
+        if (!password) {
+            newErrors.password = 'Vui lòng nhập Mật khẩu';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
         setIsLoading(true);
         const result = await login(identifier, password, rememberMe);
         setIsLoading(false);
@@ -51,14 +66,28 @@ export const Login = () => {
                 navigate('/');
             }
         } else {
-            setError(result.message);
+            const msg = result.message || '';
+            // Handle backend messages
+            if (msg.includes('Tài khoản không tồn tại')) {
+                setErrors({ identifier: msg });
+            } else if (msg.includes('Sai mật khẩu')) {
+                setErrors({ password: msg });
+            } else {
+                setErrors({ global: msg });
+            }
         }
     };
 
     const handleOtpSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        setErrors({});
         setInfo('');
+
+        if (!otpCode.trim() || otpCode.length < 6) {
+            setErrors({ otpCode: 'Vui lòng nhập đúng 6 số OTP' });
+            return;
+        }
+
         setIsLoading(true);
         const result = await verifyOtpLogin(pendingEmail, otpCode, rememberMe);
         setIsLoading(false);
@@ -66,7 +95,7 @@ export const Login = () => {
         if (result.success) {
             navigate('/');
         } else {
-            setError(result.message);
+            setErrors({ global: result.message });
         }
     };
 
@@ -75,7 +104,7 @@ export const Login = () => {
         setOtpCode('');
         setPendingEmail('');
         setInfo('');
-        setError('');
+        setErrors({});
     };
 
     return (
@@ -106,20 +135,23 @@ export const Login = () => {
                     </div>
 
                     {!isOtpStep ? (
-                        <form className="space-y-6" onSubmit={handleCredentialSubmit}>
+                        <form className="space-y-6" onSubmit={handleCredentialSubmit} noValidate>
                             <div>
-                                <label htmlFor="identifier" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email or Username</label>
+                                <label htmlFor="identifier" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email or Phone/Username</label>
                                 <input
                                     id="identifier"
                                     name="identifier"
                                     type="text"
                                     autoComplete="username"
-                                    required
-                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white transition duration-200 outline-none"
+                                    className={`w-full px-4 py-3 rounded-lg border ${errors.identifier ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:ring-indigo-500'} focus:ring-2 focus:border-transparent bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white transition duration-200 outline-none`}
                                     placeholder="Enter your email or username"
                                     value={identifier}
-                                    onChange={(e) => setIdentifier(e.target.value)}
+                                    onChange={(e) => {
+                                        setIdentifier(e.target.value);
+                                        if (errors.identifier) setErrors({ ...errors, identifier: '' });
+                                    }}
                                 />
+                                {errors.identifier && <p className="mt-1 text-xs text-red-600 font-medium" style={{ color: '#dc2626' }}>{errors.identifier}</p>}
                             </div>
 
                             <div>
@@ -130,11 +162,13 @@ export const Login = () => {
                                         name="password"
                                         type={showPassword ? 'text' : 'password'}
                                         autoComplete="current-password"
-                                        required
-                                        className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white transition duration-200 outline-none pr-10"
+                                        className={`w-full px-4 py-3 rounded-lg border ${errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:ring-indigo-500'} focus:ring-2 focus:border-transparent bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white transition duration-200 outline-none pr-10`}
                                         placeholder="Enter your password"
                                         value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
+                                        onChange={(e) => {
+                                            setPassword(e.target.value);
+                                            if (errors.password) setErrors({ ...errors, password: '' });
+                                        }}
                                     />
                                     <button
                                         type="button"
@@ -154,6 +188,7 @@ export const Login = () => {
                                         )}
                                     </button>
                                 </div>
+                                {errors.password && <p className="mt-1 text-xs text-red-600 font-medium" style={{ color: '#dc2626' }}>{errors.password}</p>}
                                 <div className="flex items-center justify-between mt-2">
                                     <label className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400 cursor-pointer select-none">
                                         <input
@@ -168,7 +203,7 @@ export const Login = () => {
                                 </div>
                             </div>
 
-                            {error && <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm border border-red-200">{error}</div>}
+                            {errors.global && <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm border border-red-200">{errors.global}</div>}
                             {info && <div className="p-3 rounded-lg bg-green-50 text-green-700 text-sm border border-green-200">{info}</div>}
 
                             <button
@@ -180,7 +215,7 @@ export const Login = () => {
                             </button>
                         </form>
                     ) : (
-                        <form className="space-y-6" onSubmit={handleOtpSubmit}>
+                        <form className="space-y-6" onSubmit={handleOtpSubmit} noValidate>
                             <div>
                                 <label htmlFor="otpCode" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">OTP Code</label>
                                 <input
@@ -189,18 +224,21 @@ export const Login = () => {
                                     type="text"
                                     inputMode="numeric"
                                     maxLength={6}
-                                    required
-                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white transition duration-200 outline-none tracking-[0.4em]"
+                                    className={`w-full px-4 py-3 rounded-lg border ${errors.otpCode ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:ring-indigo-500'} focus:ring-2 focus:border-transparent bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white transition duration-200 outline-none tracking-[0.4em]`}
                                     placeholder="123456"
                                     value={otpCode}
-                                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                                    onChange={(e) => {
+                                        setOtpCode(e.target.value.replace(/\D/g, ''));
+                                        if (errors.otpCode) setErrors({ ...errors, otpCode: '' });
+                                    }}
                                 />
+                                {errors.otpCode && <p className="mt-1 text-xs text-red-600 font-medium" style={{ color: '#dc2626' }}>{errors.otpCode}</p>}
                                 <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                                     Code sent to <span className="font-medium">{pendingEmail}</span>
                                 </p>
                             </div>
 
-                            {error && <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm border border-red-200">{error}</div>}
+                            {errors.global && <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm border border-red-200">{errors.global}</div>}
                             {info && <div className="p-3 rounded-lg bg-green-50 text-green-700 text-sm border border-green-200">{info}</div>}
 
                             <button

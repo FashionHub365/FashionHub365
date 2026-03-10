@@ -15,6 +15,7 @@ const cartRoute = require('./cart.routes');
 const listingRoute = require('./listing.routes');
 const customerOrderRoute = require('./customer.order.routes');
 const wishlistRoute = require('./wishlist.routes');
+const storeRoute = require('./store.route');
 
 const router = express.Router();
 
@@ -24,7 +25,7 @@ const defaultRoutes = [
     { path: '/users/addresses', route: userAddressRoute },
     { path: '/users', route: userRoute },
     { path: '/admin', route: adminRoute },
-    { path: '/orders', route: orderRoute },
+    { path: '/seller/orders', route: orderRoute },
     { path: '/payments', route: paymentRoute },
     { path: '/payments/vnpay', route: vnpayRoute },
     { path: '/payment-methods', route: paymentMethodRoute },
@@ -33,9 +34,12 @@ const defaultRoutes = [
     { path: '/webhook', route: webhookRoute },
     { path: '/cart', route: cartRoute },
     { path: '/listing', route: listingRoute },
+    { path: '/stores', route: storeRoute },
     { path: '/orders', route: customerOrderRoute },
     { path: '/wishlist', route: wishlistRoute },
+    { path: '/stores', route: storeRoute },
 ];
+
 
 defaultRoutes.forEach((route) => {
     router.use(route.path, route.route);

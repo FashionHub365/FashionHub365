@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
+
 const axiosClient = axios.create({
-    baseURL: 'http://localhost:5000/api/v1', // Adjusted to match BE prefix
+    baseURL: API_BASE_URL,
     withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
@@ -32,7 +34,7 @@ axiosClient.interceptors.response.use(
             originalRequest._retry = true;
             try {
                 const response = await axios.post(
-                    'http://localhost:5000/api/v1/auth/refresh',
+                    `${API_BASE_URL}/auth/refresh`,
                     {},
                     { withCredentials: true }
                 );

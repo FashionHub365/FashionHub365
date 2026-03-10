@@ -15,6 +15,8 @@ import { StoreProfile } from "./pages/StoreProfile";
 import { NotFound } from "./pages/NotFound";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
+import { ForgotPassword } from "./pages/ForgotPassword";
+import { ResetPassword } from "./pages/ResetPassword";
 import { Profile } from "./pages/Profile";
 import VerifyEmail from "./pages/VerifyEmail"; // Correct default import
 import { Layout } from "./components/Layout";
@@ -27,6 +29,8 @@ import SellerLayout from "./pages/seller/components/SellerLayout";
 
 import { CheckoutShipping } from "./pages/CheckoutShipping";
 import { CheckoutReview } from "./pages/CheckoutReview";
+import RoleRoute from "./components/RoleRoute";
+import Forbidden from "./pages/Forbidden";
 
 function App() {
   return (
@@ -40,6 +44,8 @@ function App() {
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/blog" element={<Blog />} />
@@ -47,25 +53,30 @@ function App() {
                 <Route path="/product-detail" element={<ProductDetail />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/stores" element={<Stores />} />
-                <Route path="/store/:storeId" element={<StoreProfile />} />
+                <Route path="/stores/:storeId" element={<StoreProfile />} />
                 <Route path="/men" element={<Listing />} />
                 <Route path="/listing" element={<Listing />} />
-                <Route path="/checkout" element={<CheckoutShipping />} />
-                <Route path="/checkout/review" element={<CheckoutReview />} />
                 <Route path="/payment-result" element={<PaymentResult />} />
+                <Route path="/forbidden" element={<Forbidden />} />
 
                 {/* Protected Routes */}
                 <Route element={<PrivateRoute />}>
                   <Route path="/profile" element={<Profile />} />
-
-                {/* Seller Routes */}
-                <Route path="/seller" element={<SellerLayout />}>
-                  <Route path="dashboard" element={<SellerDashboard />} />
-                  <Route path="orders" element={<SellerOrders />} />
-                  <Route path="products" element={<SellerProducts />} />
+                  <Route path="/checkout" element={<CheckoutShipping />} />
+                  <Route path="/checkout/review" element={<CheckoutReview />} />
                 </Route>
 
-                  {/* Admin Routes */}
+                {/* Seller Routes (Admin can also access) */}
+                <Route element={<RoleRoute allowedRoles={['seller', 'admin']} />}>
+                  <Route path="/seller" element={<SellerLayout />}>
+                    <Route path="dashboard" element={<SellerDashboard />} />
+                    <Route path="orders" element={<SellerOrders />} />
+                    <Route path="products" element={<SellerProducts />} />
+                  </Route>
+                </Route>
+
+                {/* Admin Routes */}
+                <Route element={<RoleRoute allowedRoles={['admin']} />}>
                   <Route path="/admin/categories" element={<AdminCategories />} />
                 </Route>
 

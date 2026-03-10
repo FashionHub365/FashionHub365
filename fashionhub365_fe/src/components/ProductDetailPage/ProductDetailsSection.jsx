@@ -1,17 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Star, Heart } from "../Icons";
+import { Star, Heart, CaretLeft, CaretRight } from "../Icons";
 import axiosClient from "../../apis/axiosClient";
 import wishlistApi from "../../apis/wishlistApi";
+import storeApi from "../../apis/store.api";
 import { useAuth } from "../../contexts/AuthContext";
 import Skeleton from "../common/Skeleton";
 import { useCart } from "../../contexts/CartContext";
 
-/**
- * ProductDetailsSection
- * Nhận prop `product` từ ProductDetail page (dữ liệu từ API)
- * Nếu product === null → hiển thị UI tĩnh như thiết kế gốc (fallback cho /product-detail)
- */
 export const ProductDetailsSection = ({ product, loading = false }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -24,6 +20,10 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const { addToCart, loading: cartLoading } = useCart();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const [isFollowingShop, setIsFollowingShop] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   // ── FETCH WISHLIST STATUS ─────────────────────────────────────────────
   useEffect(() => {
@@ -66,6 +66,45 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
     } finally {
       setWishlistLoading(false);
       setTimeout(() => setCartMessage(null), 3000);
+    }
+  };
+
+  // ── FETCH FOLLOW STATUS ───────────────────────────────────────────
+  useEffect(() => {
+    const fetchFollowStatus = async () => {
+      const storeId = product?.store_id?._id || product?.store_id;
+      if (!user || !storeId) return;
+      try {
+        const res = await storeApi.getFollowingStatus(storeId);
+        if (res.success) setIsFollowingShop(res.data.isFollowing);
+      } catch (err) {
+        console.error("Error fetching follow status:", err);
+      }
+    };
+    fetchFollowStatus();
+  }, [user, product?.store_id]);
+
+  const handleFollowShopToggle = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    const storeId = product?.store_id?._id || product?.store_id;
+    if (!storeId || followLoading) return;
+
+    setFollowLoading(true);
+    try {
+      if (isFollowingShop) {
+        const res = await storeApi.unfollowStore(storeId);
+        if (res.success) setIsFollowingShop(false);
+      } else {
+        const res = await storeApi.followStore(storeId);
+        if (res.success) setIsFollowingShop(true);
+      }
+    } catch (err) {
+      console.error("Error toggling follow shop:", err);
+    } finally {
+      setFollowLoading(false);
     }
   };
 
@@ -113,6 +152,15 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
     { id: 3, icon: "/textures/productdetailpage/gift.jpg", title: "Send It As A Gift", description: "Add a free personalized note during checkout" },
   ];
 
+  // ── AUTOPLAY IMAGES ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!productImages || productImages.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % productImages.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [productImages.length]);
+
   // ── VARIANT & STOCK ──────────────────────────────────────
   const selectedColor = colorVariants[selectedColorIndex]?.name;
   const matchedVariant = product?.variants?.find(
@@ -137,10 +185,11 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
   const categoryName = product?.primary_category_id?.name || "Men / Outerwear";
 
   // ── STATS & BADGES ────────────────────────────────────────────────
-  const storeName =
-    typeof product?.store_id === "object"
-      ? (product.store_id?.owner_user_id?.profile?.full_name || product.store_id?.name || "Gian hàng đối tác")
-      : null;
+  const store = typeof product?.store_id === "object" ? product.store_id : null;
+  const storeName = store
+    ? (store.owner_user_id?.profile?.full_name || store.name || "Gian hàng đối tác")
+    : null;
+  const storeSlug = store?.slug || store?._id;
   const rating = product?.rating || { average: 0, count: 0 };
   const soldCount = product?.sold_count || 0;
 
@@ -178,13 +227,14 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
   if (loading) {
     return (
       <section className="items-start gap-6 px-20 py-[30px] flex relative self-stretch w-full flex-[0_0_auto]">
-        <div className="flex flex-col items-start gap-2 relative flex-1 grow">
-          {[1, 2, 3].map((row) => (
-            <div key={row} className="flex items-start gap-2 relative self-stretch w-full flex-[0_0_auto]">
-              <Skeleton className="h-[508px] flex-1 grow" />
-              <Skeleton className="h-[508px] flex-1 grow" />
-            </div>
-          ))}
+        <div className="flex flex-col items-start gap-4 relative flex-1 grow w-full max-w-[600px] lg:max-w-none">
+          <Skeleton className="w-full aspect-[3/4] flex-1 grow" />
+          <div className="flex gap-2 w-full justify-center">
+            <Skeleton className="w-20 h-28" />
+            <Skeleton className="w-20 h-28" />
+            <Skeleton className="w-20 h-28" />
+            <Skeleton className="w-20 h-28" />
+          </div>
         </div>
         <aside className="flex flex-col w-96 items-start gap-6 relative">
           <div className="w-full space-y-4 pb-4 border-b border-gray-200">
@@ -227,35 +277,82 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
 
   // ── RENDER ACTUAL CONTENT ─────────────────────────────────────────
   return (
-    <section className="items-start gap-6 px-20 py-[30px] flex relative self-stretch w-full flex-[0_0_auto]">
-      <div className="flex flex-col items-start gap-2 relative flex-1 grow">
-        {[0, 2, 4].map((startIndex) => (
-          <div key={startIndex} className="flex items-start gap-2 relative self-stretch w-full flex-[0_0_auto]">
-            {productImages.slice(startIndex, startIndex + 2).map((img, index) => (
-              <div key={img.id} className="flex h-[508px] items-start gap-2.5 relative flex-1 grow">
-                <img className="flex-1 grow relative self-stretch object-cover" alt={img.alt} src={img.src} />
-                {startIndex === 0 && index === 0 && salePrice < originalPrice && (
-                  <div className="inline-flex items-center justify-center gap-2.5 px-1.5 py-1 absolute top-2 left-2 bg-white text-red font-bold">
-                    {Math.round(((originalPrice - salePrice) / originalPrice) * 100)}% off
-                  </div>
-                )}
-              </div>
-            ))}
+    <section className="items-start gap-10 px-20 py-[30px] flex md:flex-row flex-col relative self-stretch w-full flex-[0_0_auto] justify-center">
+      <div className="flex flex-col items-center gap-4 relative w-full max-w-[550px]">
+        {/* Main Image */}
+        <div className="w-full relative aspect-[3/4] overflow-hidden bg-gray-100 flex items-center justify-center">
+          <img
+            className="w-full h-full object-cover transition-opacity duration-500"
+            alt={productImages[currentImageIndex]?.alt || "Product image"}
+            src={productImages[currentImageIndex]?.src}
+          />
+          {salePrice < originalPrice && (
+            <div className="inline-flex items-center justify-center gap-2.5 px-3 py-1.5 absolute top-3 left-3 bg-red-600 text-white text-sm font-bold shadow-sm z-10">
+              {Math.round(((originalPrice - salePrice) / originalPrice) * 100)}% off
+            </div>
+          )}
+        </div>
+
+        {/* Thumbnail Carousels */}
+        {productImages.length > 1 && (
+          <div className="w-full relative flex items-center gap-2 px-10 mt-2 pb-2">
+            <button
+              className="absolute left-0 w-8 h-8 flex items-center justify-center bg-white border border-gray-200 shadow-sm hover:bg-gray-50 z-10"
+              onClick={() => setCurrentImageIndex(prev => prev === 0 ? productImages.length - 1 : prev - 1)}
+              aria-label="Previous image"
+            >
+              <CaretLeft className="w-5 h-5 text-gray-600" />
+            </button>
+
+            <div className="flex gap-2 w-full overflow-x-auto snap-x scroll-smooth [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {productImages.map((img, idx) => (
+                <button
+                  key={img.id}
+                  onClick={() => setCurrentImageIndex(idx)}
+                  className={`shrink-0 w-20 h-28 md:w-24 md:h-32 relative snap-center transition-all ${currentImageIndex === idx ? 'border-2 border-red-600' : 'border border-gray-200 hover:border-gray-400'}`}
+                >
+                  <img src={img.src} alt={img.alt} className="w-full h-full object-cover" />
+                  {currentImageIndex !== idx && <div className="absolute inset-0 bg-white/40 transition-colors hover:bg-transparent" />}
+                </button>
+              ))}
+            </div>
+
+            <button
+              className="absolute right-0 w-8 h-8 flex items-center justify-center bg-white border border-gray-200 shadow-sm hover:bg-gray-50 z-10"
+              onClick={() => setCurrentImageIndex(prev => (prev + 1) % productImages.length)}
+              aria-label="Next image"
+            >
+              <CaretRight className="w-5 h-5 text-gray-600" />
+            </button>
           </div>
-        ))}
+        )}
       </div>
 
-      <aside className="flex flex-col w-96 items-start gap-px relative">
+      <aside className="flex flex-col w-[450px] shrink-0 items-start gap-px relative">
         <header className="flex flex-col items-start gap-3 pb-5 border-b border-x-100 w-full">
 
           {/* Breadcrumbs & Store */}
           <nav aria-label="Breadcrumb" className="flex flex-col items-start gap-1 w-full">
             {storeName && (
-              <span className="text-[11px] font-bold text-x-400 uppercase tracking-widest mt-1">
-                {storeName}
-              </span>
+              <Link
+                to={`/stores/${storeSlug}`}
+                className="group flex flex-col items-start gap-1 pt-1 pb-2 w-full"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center shrink-0 border border-gray-300">
+                    {store?.avatar ? (
+                      <img src={store.avatar} alt={storeName} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[10px] font-bold text-gray-500 uppercase">{storeName.charAt(0)}</span>
+                    )}
+                  </div>
+                  <span className="text-[14px] font-bold text-gray-800 uppercase tracking-wider group-hover:text-blue-600 group-hover:underline transition-colors">
+                    {storeName}
+                  </span>
+                </div>
+              </Link>
             )}
-            <p className="font-text-100 text-x-300 text-[13px] tracking-wide mt-0.5">
+            <p className="font-text-100 text-x-400 text-[13px] tracking-wide mt-1">
               {categoryName}
             </p>
           </nav>
@@ -321,29 +418,44 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
 
           {/* Thông tin Cửa hàng (Seller) */}
           {product?.store_id && (
-            <div className="flex items-center gap-3 mt-3 p-3 bg-gray-50 rounded-lg w-full border border-gray-100">
-              <div className="w-10 h-10 rounded-full bg-[#ee4d2d]/10 flex items-center justify-center text-[#ee4d2d] shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M2.97 1.35A1 1 0 0 1 3.73 1h8.54a1 1 0 0 1 .76.35l2.609 3.044A1.5 1.5 0 0 1 16 5.37v.255a2.375 2.375 0 0 1-4.25 1.458A2.371 2.371 0 0 1 9.875 8 2.37 2.37 0 0 1 8 7.083 2.37 2.37 0 0 1 6.125 8a2.37 2.37 0 0 1-1.875-.917A2.375 2.375 0 0 1 0 5.625V5.37a1.5 1.5 0 0 1 .361-.976l2.61-3.044zm1.78 4.275a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 1 0 2.458-.725L12.394 1.5H3.606L1.242 4.9a1.375 1.375 0 0 0 2.458.725.5.5 0 0 1 1 0zM5 8a.5.5 0 0 1 .5.5V11h5V8.5a.5.5 0 0 1 1 0V12a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5V8.5A.5.5 0 0 1 5 8zm1.5 2h3v1h-3v-1z"/>
-                </svg>
+            <div className="flex flex-col gap-3 mt-3 w-full">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg w-full border border-gray-100">
+                <div className="w-10 h-10 rounded-full bg-[#ee4d2d]/10 flex items-center justify-center text-[#ee4d2d] shadow-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M2.97 1.35A1 1 0 0 1 3.73 1h8.54a1 1 0 0 1 .76.35l2.609 3.044A1.5 1.5 0 0 1 16 5.37v.255a2.375 2.375 0 0 1-4.25 1.458A2.371 2.371 0 0 1 9.875 8 2.37 2.37 0 0 1 8 7.083 2.37 2.37 0 0 1 6.125 8a2.37 2.37 0 0 1-1.875-.917A2.375 2.375 0 0 1 0 5.625V5.37a1.5 1.5 0 0 1 .361-.976l2.61-3.044zm1.78 4.275a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 1 0 2.458-.725L12.394 1.5H3.606L1.242 4.9a1.375 1.375 0 0 0 2.458.725.5.5 0 0 1 1 0zM5 8a.5.5 0 0 1 .5.5V11h5V8.5a.5.5 0 0 1 1 0V12a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5V8.5A.5.5 0 0 1 5 8zm1.5 2h3v1h-3v-1z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Người bán</p>
+                  <Link
+                    to={`/store/${product.store_id._id || product.store_id}`}
+                    className="text-sm font-bold text-gray-900 hover:text-[#ee4d2d] transition-colors uppercase truncate block"
+                  >
+                    {product.store_id.owner_user_id?.profile?.full_name || product.store_id.name || "Gian hàng đối tác"}
+                  </Link>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleFollowShopToggle}
+                    disabled={followLoading}
+                    className={`text-[11px] font-bold px-3 py-1.5 rounded-sm transition-all uppercase border
+                      ${isFollowingShop
+                        ? "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200"
+                        : "text-[#ee4d2d] border-[#ee4d2d] hover:bg-[#ee4d2d]/5"}`}
+                  >
+                    {isFollowingShop ? "Đang Theo Dõi" : "+ Theo Dõi"}
+                  </button>
+                  <Link
+                    to={`/store/${product.store_id._id || product.store_id}`}
+                    className="text-[11px] font-bold text-gray-600 border border-gray-300 px-3 py-1.5 rounded-sm hover:bg-gray-50 transition-all uppercase"
+                  >
+                    Xem Shop
+                  </Link>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Người bán</p>
-                <Link
-                  to={`/store/${product.store_id._id || product.store_id}`}
-                  className="text-sm font-bold text-gray-900 hover:text-[#ee4d2d] transition-colors uppercase"
-                >
-                  {product.store_id.owner_user_id?.profile?.full_name || product.store_id.name || "Gian hàng đối tác"}
-                </Link>
-              </div>
-              <Link
-                to={`/store/${product.store_id._id || product.store_id}`}
-                className="text-[11px] font-bold text-[#ee4d2d] border border-[#ee4d2d] px-3 py-1.5 rounded-sm hover:bg-[#ee4d2d]/5 transition-all uppercase"
-              >
-                Xem Shop
-              </Link>
             </div>
           )}
+
 
           <p className="text-sm text-gray-600 pt-2">{description}</p>
         </header>

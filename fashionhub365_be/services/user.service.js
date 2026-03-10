@@ -4,7 +4,14 @@ const ApiError = require('../utils/ApiError');
 
 const createUser = async (userBody) => {
     if (await User.isEmailTaken(userBody.email)) {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
+        throw new ApiError(httpStatus.CONFLICT, 'Email đã được đăng ký');
+    }
+
+    if (userBody.profile && userBody.profile.phone) {
+        const phoneExists = await User.findOne({ 'profile.phone': userBody.profile.phone });
+        if (phoneExists) {
+            throw new ApiError(httpStatus.CONFLICT, 'Số điện thoại đã được đăng ký');
+        }
     }
 
     // R2: Centralize Password Hashing
@@ -32,7 +39,17 @@ const updateUserById = async (userId, updateBody) => {
         throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
     }
     if (updateBody.email && (await User.isEmailTaken(updateBody.email, userId))) {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
+        throw new ApiError(httpStatus.CONFLICT, 'Email đã được đăng ký');
+    }
+
+    if (updateBody.profile && updateBody.profile.phone) {
+        const phoneExists = await User.findOne({
+            'profile.phone': updateBody.profile.phone,
+            _id: { $ne: userId }
+        });
+        if (phoneExists) {
+            throw new ApiError(httpStatus.CONFLICT, 'Số điện thoại đã được đăng ký');
+        }
     }
 
     // R2: Centralize Password Hashing for Update

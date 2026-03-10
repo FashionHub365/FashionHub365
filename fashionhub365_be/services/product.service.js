@@ -1,6 +1,9 @@
 const httpStatus = require('http-status');
-const { Product, Category, ProductReview } = require('../models');
+const mongoose = require('mongoose');
+const { Product, Category, ProductReview, Store } = require('../models');
 const ApiError = require('../utils/ApiError');
+
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * Lấy danh sách sản phẩm công khai cho trang Listing
@@ -19,20 +22,57 @@ const getPublicProducts = async (query) => {
         page = 1,
         limit = 9,
     } = query;
+    const parsedPage = Math.max(parseInt(page, 10) || 1, 1);
+    const parsedLimit = Math.max(parseInt(limit, 10) || 9, 1);
 
     // 1. Build filter
     const filter = { status: 'active' };
 
-    // Filter theo storeId
+    // Filter theo storeId (ho tro ca ObjectId va UUID)
     if (storeId) {
-        filter.store_id = storeId;
+        let resolvedStoreId = null;
+
+        if (mongoose.Types.ObjectId.isValid(storeId)) {
+            resolvedStoreId = storeId;
+        } else {
+            const store = await Store.findOne({ $or: [{ uuid: storeId }, { slug: storeId }] }).select('_id');
+            if (store) resolvedStoreId = store._id;
+        }
+
+        if (!resolvedStoreId) {
+            return {
+                products: [],
+                total: 0,
+                page: parsedPage,
+                limit: parsedLimit,
+                totalPages: 0,
+            };
+        }
+
+        filter.store_id = resolvedStoreId;
     }
 
-    // Filter theo category slug hoặc id
+    // Filter theo category slug, id hoac name
     if (category) {
-        const cat = await Category.findOne({ slug: category });
+        let cat = null;
+
+        if (mongoose.Types.ObjectId.isValid(category)) {
+            cat = await Category.findById(category).select('_id');
+        }
+
+        if (!cat) {
+            cat = await Category.findOne({ slug: category }).select('_id');
+        }
+
+        if (!cat) {
+            cat = await Category.findOne({ name: new RegExp(`^${escapeRegex(category)}$`, 'i') }).select('_id');
+        }
+
         if (cat) {
-            filter.category_ids = cat._id;
+            filter.$or = [
+                { category_ids: cat._id },
+                { primary_category_id: cat._id },
+            ];
         }
     }
 
@@ -76,7 +116,7 @@ const getPublicProducts = async (query) => {
     }
 
     // 3. Pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parsedPage - 1) * parsedLimit;
 
     // 4. Query DB
     const [products, total] = await Promise.all([
@@ -94,7 +134,7 @@ const getPublicProducts = async (query) => {
             .populate('tag_ids', 'name')
             .sort(sortOption)
             .skip(skip)
-            .limit(parseInt(limit)),
+            .limit(parsedLimit),
         Product.countDocuments(filter),
     ]);
 
@@ -133,9 +173,9 @@ const getPublicProducts = async (query) => {
     return {
         products: finalProducts,
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / parseInt(limit)),
+        page: parsedPage,
+        limit: parsedLimit,
+        totalPages: Math.ceil(total / parsedLimit),
     };
 };
 
@@ -235,7 +275,7 @@ const createProductForSeller = async (productBody, storeId) => {
         .toLowerCase()
         .replace(/ /g, '-')
         .replace(/[^\w-]+/g, '');
-    
+
     let slug = baseSlug;
     let counter = 1;
     while (await Product.findOne({ slug })) {
