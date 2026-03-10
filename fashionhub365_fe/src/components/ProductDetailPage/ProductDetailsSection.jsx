@@ -137,7 +137,10 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
   const categoryName = product?.primary_category_id?.name || "Men / Outerwear";
 
   // ── STATS & BADGES ────────────────────────────────────────────────
-  const storeName = typeof product?.store_id === "object" ? product.store_id?.name : null;
+  const storeName =
+    typeof product?.store_id === "object"
+      ? (product.store_id?.owner_user_id?.profile?.full_name || product.store_id?.name || "Gian hàng đối tác")
+      : null;
   const rating = product?.rating || { average: 0, count: 0 };
   const soldCount = product?.sold_count || 0;
 

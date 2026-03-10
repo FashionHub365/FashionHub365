@@ -97,8 +97,8 @@ export const StoreProfile = () => {
     setFilters((prev) => ({ ...prev, ...newFilters, page: 1 }));
   };
 
-  const handleCategoryClick = (categoryName) => {
-    setFilters((prev) => ({ ...prev, category: categoryName, page: 1 }));
+  const handleCategoryClick = (categorySlug) => {
+    setFilters((prev) => ({ ...prev, category: categorySlug, page: 1 }));
   };
 
   const handleSearchChange = (e) => {
@@ -149,7 +149,11 @@ export const StoreProfile = () => {
             </button>
             <button 
               onClick={() => handleCategoryClick("")}
-              className="px-8 py-4 text-sm font-medium text-gray-800 hover:text-[#ee4d2d] transition-colors whitespace-nowrap uppercase tracking-tight"
+              className={`px-8 py-4 text-sm font-medium uppercase tracking-tight transition-all border-b-2 ${
+                filters.category === "" 
+                ? "text-[#ee4d2d]" 
+                : "text-gray-800 hover:text-[#ee4d2d]"
+              }`}
             >
               TẤT CẢ SẢN PHẨM
             </button>
@@ -157,9 +161,9 @@ export const StoreProfile = () => {
             {visibleCategories.map((cat) => (
               <button 
                 key={cat._id}
-                onClick={() => handleCategoryClick(cat.name)}
+                onClick={() => handleCategoryClick(cat.slug)}
                 className={`px-8 py-4 text-sm font-medium uppercase tracking-tight transition-all border-b-2 ${
-                  filters.category === cat.name 
+                  filters.category === cat.slug 
                   ? "border-[#ee4d2d] text-[#ee4d2d]" 
                   : "border-transparent text-gray-800 hover:text-[#ee4d2d]"
                 }`}
@@ -187,11 +191,11 @@ export const StoreProfile = () => {
                       <button
                         key={cat._id}
                         onClick={() => {
-                          handleCategoryClick(cat.name);
+                          handleCategoryClick(cat.slug);
                           setShowMoreCategories(false);
                         }}
                         className={`w-full text-left px-6 py-3 text-xs font-medium uppercase tracking-wide transition-colors hover:bg-gray-50 hover:text-[#ee4d2d] ${
-                          filters.category === cat.name ? "text-[#ee4d2d] bg-gray-50" : "text-gray-700"
+                          filters.category === cat.slug ? "text-[#ee4d2d] bg-gray-50" : "text-gray-700"
                         }`}
                       >
                         {cat.name}
@@ -210,7 +214,9 @@ export const StoreProfile = () => {
         
         <div className="flex items-center justify-between">
            <h3 className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">
-             {filters.category ? `Danh mục: ${filters.category}` : "GỢI Ý CHO BẠN"}
+             {filters.category 
+               ? `Danh mục: ${categories.find(c => c.slug === filters.category)?.name || filters.category}` 
+               : "GỢI Ý CHO BẠN"}
            </h3>
            <div className="flex items-center gap-4">
               <span className="text-xs text-gray-400 font-medium">Sắp xếp theo:</span>

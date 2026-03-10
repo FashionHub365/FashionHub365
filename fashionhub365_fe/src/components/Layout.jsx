@@ -3,11 +3,11 @@ import { HeaderSection } from "./HeaderSection";
 import { FooterSection } from "./FooterSection";
 
 export const Layout = ({ children }) => {
-    return (
+  return (
         <div className="App">
             <HeaderSection />
-            {children}
+        {children}
             <FooterSection />
-        </div>
-    );
+    </div>
+  );
 };
