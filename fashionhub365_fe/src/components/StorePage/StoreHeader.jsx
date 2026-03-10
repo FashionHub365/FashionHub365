@@ -23,10 +23,11 @@ export const StoreHeader = ({ store, totalProducts }) => {
     if (!store?.created_at) return "Mới tham gia";
     const joinedDate = new Date(store.created_at);
     const now = new Date();
-    const diffYears = now.getFullYear() - joinedDate.getFullYear();
-    if (diffYears > 0) return `${diffYears} Năm Trước`;
-    const diffMonths = now.getMonth() - joinedDate.getMonth() + (12 * (now.getFullYear() - joinedDate.getFullYear()));
-    if (diffMonths > 0) return `${diffMonths} Tháng Trước`;
+    const years = now.getFullYear() - joinedDate.getFullYear();
+    const months = (now.getFullYear() - joinedDate.getFullYear()) * 12 + (now.getMonth() - joinedDate.getMonth());
+
+    if (years > 0) return `${years} Năm Trước`;
+    if (months > 0) return `${months} Tháng Trước`;
     return "Tháng này";
   };
 

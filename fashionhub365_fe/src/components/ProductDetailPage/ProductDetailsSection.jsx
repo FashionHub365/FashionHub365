@@ -186,7 +186,9 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
 
   // ── STATS & BADGES ────────────────────────────────────────────────
   const store = typeof product?.store_id === "object" ? product.store_id : null;
-  const storeName = store?.name;
+  const storeName = store
+    ? (store.owner_user_id?.profile?.full_name || store.name || "Gian hàng đối tác")
+    : null;
   const storeSlug = store?.slug || store?._id;
   const rating = product?.rating || { average: 0, count: 0 };
   const soldCount = product?.sold_count || 0;
