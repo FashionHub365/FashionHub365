@@ -1,56 +1,38 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { CaretLeft, CaretRight } from "../Icons";
+import listingApi from "../../apis/listingApi";
+import Skeleton from "../common/Skeleton";
 
 export const ProductHighlightsSection = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const products = [
-    {
-      id: 1,
-      image: "/textures/landingpage/image-9.jpg",
-      title: "The Waffle Long-Sleeve Crew",
-      price: "$60",
-      color: "Bone",
-      imageAlt: "The Waffle Long-Sleeve Crew in Bone",
-    },
-    {
-      id: 2,
-      image: "/textures/landingpage/image-10.jpg",
-      title: "The Bomber Jacket | Uniform",
-      price: "$148",
-      color: "Toasted Coconut",
-      imageAlt: "The Bomber Jacket | Uniform in Toasted Coconut",
-    },
-    {
-      id: 3,
-      image: "/textures/landingpage/image-11.jpg",
-      title: "The Slim 4-Way Stretch Organic Jean | Uniform",
-      price: "$98",
-      color: "Dark Indigo",
-      imageAlt: "The Slim 4-Way Stretch Organic Jean | Uniform in Dark Indigo",
-    },
-    {
-      id: 4,
-      image: "/textures/landingpage/image-12.jpg",
-      title: "The Essential Organic Crew",
-      price: "$30",
-      color: "Vintage Black",
-      imageAlt: "The Essential Organic Crew in Vintage Black",
-    },
-    {
-      id: 5,
-      image: "/textures/landingpage/image-13.jpg",
-      title: "The Heavyweight",
-      price: "",
-      color: "Heathered Brown",
-      imageAlt: "The Heavyweight in Heathered Brown",
-    },
-  ];
+  // Default products to show per slide
+  const itemsPerSlide = 4;
+  const totalSlides = Math.ceil(products.length / itemsPerSlide);
 
-  const totalSlides = 4;
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        // GET 10 products for the carousel
+        const response = await listingApi.getProducts({ limit: 12 });
+        if (response.success && response.data?.products) {
+          setProducts(response.data.products);
+        }
+      } catch (error) {
+        console.error("Failed to load carousel products", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
 
   const handlePrevious = () => {
-    setCurrentSlide((prev) => (prev > 0 ? prev - 1 : totalSlides - 1));
+    setCurrentSlide((prev) => (prev > 0 ? prev - 1 : Math.max(0, totalSlides - 1)));
   };
 
   const handleNext = () => {
@@ -60,6 +42,21 @@ export const ProductHighlightsSection = () => {
   const handleDotClick = (index) => {
     setCurrentSlide(index);
   };
+
+  useEffect(() => {
+    if (totalSlides <= 1) return;
+    const intervalId = setInterval(() => {
+      setCurrentSlide((prev) => (prev < totalSlides - 1 ? prev + 1 : 0));
+    }, 5000); // Auto-slide every 5 seconds
+
+    return () => clearInterval(intervalId);
+  }, [totalSlides]);
+
+  // Get current visible products
+  const visibleProducts = products.slice(
+    currentSlide * itemsPerSlide,
+    currentSlide * itemsPerSlide + itemsPerSlide
+  );
 
   return (
     <section
@@ -79,67 +76,88 @@ export const ProductHighlightsSection = () => {
         </p>
       </header>
 
-      <div className="flex items-start justify-center gap-3 relative self-stretch w-full flex-[0_0_auto]">
-        <button
-          onClick={handlePrevious}
-          className="inline-flex items-center justify-center gap-2.5 relative self-stretch flex-[0_0_auto] bg-transparent border-0 cursor-pointer p-0"
-          aria-label="Previous products"
-          type="button"
-        >
-          <CaretLeft className="!relative !w-10 !h-10" />
-        </button>
-
-        {products.map((product, index) => (
-          <article
-            key={product.id}
-            className={`flex flex-col items-center gap-1.5 relative ${
-              index === 4 ? "w-[120px]" : "flex-1 grow"
-            }`}
+      <div className="flex items-center justify-center gap-3 relative self-stretch w-full flex-[0_0_auto] px-[20px] lg:px-[40px] max-w-[1400px] mx-auto min-h-[500px]">
+        {products.length > itemsPerSlide && (
+          <button
+            onClick={handlePrevious}
+            className="inline-flex flex-shrink-0 items-center justify-center gap-2.5 bg-transparent border-0 cursor-pointer p-2 hover:bg-gray-100 rounded-full transition-colors z-10"
+            aria-label="Previous products"
+            type="button"
           >
-            <img
-              className="relative self-stretch w-full h-[420px] object-cover"
-              alt={product.imageAlt}
-              src={product.image}
-            />
+            <CaretLeft className="w-8 h-8 md:w-10 md:h-10 text-gray-800" />
+          </button>
+        )}
 
-            <div className="flex flex-col items-start gap-[3px] relative self-stretch w-full flex-[0_0_auto]">
-              <div
-                className={`flex items-start gap-3 relative self-stretch w-full flex-[0_0_auto] ${
-                  index === 4 ? "justify-around" : ""
-                }`}
-              >
-                <h3 className="relative flex-1 mt-[-1.00px] font-text-200 font-[number:var(--text-200-font-weight)] text-x-500 text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] [font-style:var(--text-200-font-style)]">
-                  {product.title}
-                </h3>
-
-                {product.price && (
-                  <span className="text-x-500 text-right relative w-fit mt-[-1.00px] font-text-200 font-[number:var(--text-200-font-weight)] text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] whitespace-nowrap [font-style:var(--text-200-font-style)]">
-                    {product.price}
-                  </span>
-                )}
+        <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {loading ? (
+            Array(4).fill(0).map((_, idx) => (
+              <div key={idx} className="flex flex-col gap-2">
+                <Skeleton className="w-full aspect-[3/4]" />
+                <Skeleton className="w-full h-4 mt-2" />
+                <Skeleton className="w-1/2 h-4" />
               </div>
+            ))
+          ) : visibleProducts.length > 0 ? (
+            visibleProducts.map((product) => (
+              <article
+                key={product._id}
+                className="flex flex-col items-center gap-3 relative group"
+              >
+                <Link to={`/product/${product.slug || product._id}`} className="w-full block relative overflow-hidden aspect-[3/4] bg-gray-100">
+                  <img
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    alt={product.name}
+                    src={product.media?.[0]?.url || "/textures/productdetailpage/image.jpg"}
+                  />
+                  {product.isNewArrival && (
+                    <span className="absolute top-2 left-2 bg-black text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest leading-none z-10">
+                      New
+                    </span>
+                  )}
+                </Link>
 
-              <p className="relative self-stretch h-4 font-text-200 font-[number:var(--text-200-font-weight)] text-x-300 text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] whitespace-nowrap [font-style:var(--text-200-font-style)]">
-                {product.color}
-              </p>
-            </div>
-          </article>
-        ))}
+                <div className="flex flex-col items-start gap-1 w-full mt-1">
+                  <div className="flex justify-between items-start gap-3 w-full">
+                    <Link to={`/product/${product.slug || product._id}`} className="hover:underline flex-1">
+                      <h3 className="font-text-200 font-bold text-gray-900 text-[14px] md:text-[15px] leading-tight line-clamp-1">
+                        {product.name}
+                      </h3>
+                    </Link>
+                    <span className="text-gray-900 font-bold font-text-200 text-[14px] md:text-[15px] whitespace-nowrap">
+                      {product.base_price?.toLocaleString("vi-VN")}₫
+                    </span>
+                  </div>
 
-        <button
-          onClick={handleNext}
-          className="inline-flex items-center justify-center gap-2.5 relative self-stretch flex-[0_0_auto] bg-transparent border-0 cursor-pointer p-0"
-          aria-label="Next products"
-          type="button"
-        >
-          <CaretRight className="!relative !w-10 !h-10" />
-        </button>
+                  {product.primary_category_id?.name && (
+                    <p className="font-text-200 text-gray-500 text-[13px] line-clamp-1">
+                      {product.primary_category_id.name}
+                    </p>
+                  )}
+                </div>
+              </article>
+            ))
+          ) : (
+            <p className="col-span-full text-center text-gray-500 py-10">No products available.</p>
+          )}
+        </div>
+
+        {products.length > itemsPerSlide && (
+          <button
+            onClick={handleNext}
+            className="inline-flex flex-shrink-0 items-center justify-center gap-2.5 bg-transparent border-0 cursor-pointer p-2 hover:bg-gray-100 rounded-full transition-colors z-10"
+            aria-label="Next products"
+            type="button"
+          >
+            <CaretRight className="w-8 h-8 md:w-10 md:h-10 text-gray-800" />
+          </button>
+        )}
       </div>
 
-      <nav
-        className="flex items-center justify-center px-0 py-5 self-stretch w-full gap-3 relative flex-[0_0_auto]"
-        aria-label="Product carousel pagination"
-      >
+      {totalSlides > 1 && (
+        <nav
+          className="flex items-center justify-center px-0 py-5 self-stretch w-full gap-3 relative flex-[0_0_auto]"
+          aria-label="Product carousel pagination"
+        >
         {Array.from({ length: totalSlides }).map((_, index) => (
           <button
             key={index}
@@ -152,7 +170,8 @@ export const ProductHighlightsSection = () => {
             type="button"
           />
         ))}
-      </nav>
+        </nav>
+      )}
     </section>
   );
 };

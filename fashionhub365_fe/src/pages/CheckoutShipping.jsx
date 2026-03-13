@@ -476,17 +476,17 @@ export const CheckoutShipping = () => {
 
     const validate = () => {
         const e = {};
-        if (!form.fullName.trim()) e.fullName = "Vui lòng nhập họ tên";
-        if (!form.phone.trim()) e.phone = "Vui lòng nhập số điện thoại";
+        if (!form.fullName.trim()) e.fullName = "Please enter your full name";
+        if (!form.phone.trim()) e.phone = "Please enter phone number";
         else if (!/^(0|\+84)[0-9]{8,10}$/.test(form.phone.trim()))
-            e.phone = "Số điện thoại không hợp lệ";
-        if (!form.email.trim()) e.email = "Vui lòng nhập email";
+            e.phone = "Invalid phone number";
+        if (!form.email.trim()) e.email = "Please enter your email";
         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-            e.email = "Email không hợp lệ";
-        if (!form.province) e.province = "Vui lòng chọn tỉnh/thành phố";
-        if (!form.district) e.district = "Vui lòng chọn quận/huyện";
-        if (!form.ward) e.ward = "Vui lòng chọn phường/xã";
-        if (!form.addressLine.trim()) e.addressLine = "Vui lòng nhập địa chỉ cụ thể";
+            e.email = "Invalid email";
+        if (!form.province) e.province = "Please select province/city";
+        if (!form.district) e.district = "Please select district";
+        if (!form.ward) e.ward = "Please select ward";
+        if (!form.addressLine.trim()) e.addressLine = "Please enter specific address";
         return e;
     };
 
@@ -524,25 +524,25 @@ export const CheckoutShipping = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
                     {/* ───── Form ───── */}
                     <div className="bg-white border border-gray-200 p-8 h-fit">
-                        <h2 className="text-xl font-semibold text-gray-900 mb-6">Thông tin giao hàng</h2>
+                        <h2 className="text-xl font-semibold text-gray-900 mb-6">Shipping Information</h2>
 
                         {user && (
                             <div className="mb-6">
                                 <div className="mb-3 flex items-center justify-between">
-                                    <p className="text-sm font-semibold text-gray-800">Địa chỉ đã lưu</p>
+                                    <p className="text-sm font-semibold text-gray-800">Saved Addresses</p>
                                     <button
                                         type="button"
                                         onClick={() => navigate("/profile")}
                                         className="text-xs font-semibold text-gray-700 underline"
                                     >
-                                        Quản lý địa chỉ
+                                        Manage Addresses
                                     </button>
                                 </div>
 
                                 {savedAddressesLoading ? (
-                                    <div className="py-2 text-xs text-gray-500">Đang tải địa chỉ...</div>
+                                    <div className="py-2 text-xs text-gray-500">Loading addresses...</div>
                                 ) : savedAddresses.length === 0 ? (
-                                    <div className="py-2 text-xs text-gray-500">Chưa có địa chỉ đã lưu. Bạn có thể nhập thủ công bên dưới.</div>
+                                    <div className="py-2 text-xs text-gray-500">No saved addresses. You can enter manually below.</div>
                                 ) : (
                                     <div className="space-y-2">
                                         {savedAddresses.map((address) => (
@@ -557,7 +557,7 @@ export const CheckoutShipping = () => {
                                                 <div className="flex items-center gap-2">
                                                     <p className="text-sm font-semibold text-gray-900">{address.full_name}</p>
                                                     {address.is_default && (
-                                                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">MẶC ĐỊNH</span>
+                                                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">DEFAULT</span>
                                                     )}
                                                 </div>
                                                 <p className="text-xs text-gray-500">{address.phone}</p>
@@ -574,14 +574,14 @@ export const CheckoutShipping = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div className="md:col-span-2">
                                 <Field
-                                    id="fullName" label="Họ và tên" required
-                                    placeholder="Nguyễn Văn A"
+                                    id="fullName" label="Full Name" required
+                                    placeholder="Nguyen Van A"
                                     value={form.fullName} onChange={e => set("fullName", e.target.value)}
                                     error={errors.fullName}
                                 />
                             </div>
                             <Field
-                                id="phone" label="Số điện thoại" required type="tel"
+                                id="phone" label="Phone Number" required type="tel"
                                 placeholder="0912 345 678"
                                 value={form.phone} onChange={e => set("phone", e.target.value)}
                                 error={errors.phone}
@@ -593,12 +593,11 @@ export const CheckoutShipping = () => {
                                 error={errors.email}
                             />
 
-                            {/* ── Tỉnh / Thành phố ── */}
                             <SearchableSelect
                                 id="province"
-                                label="Tỉnh / Thành phố"
+                                label="Province / City"
                                 required
-                                placeholder="-- Chọn Tỉnh / Thành phố --"
+                                placeholder="-- Select Province / City --"
                                 options={provinces}
                                 value={form.province}
                                 onChange={handleProvinceChange}
@@ -606,12 +605,11 @@ export const CheckoutShipping = () => {
                                 error={errors.province}
                             />
 
-                            {/* ── Quận / Huyện ── */}
                             <SearchableSelect
                                 id="district"
-                                label="Quận / Huyện"
+                                label="District"
                                 required
-                                placeholder={form.province ? "-- Chọn Quận / Huyện --" : "-- Chọn Tỉnh trước --"}
+                                placeholder={form.province ? "-- Select District --" : "-- Select Province First --"}
                                 options={districts}
                                 value={form.district}
                                 onChange={handleDistrictChange}
@@ -620,12 +618,11 @@ export const CheckoutShipping = () => {
                                 error={errors.district}
                             />
 
-                            {/* ── Phường / Xã ── */}
                             <SearchableSelect
                                 id="ward"
-                                label="Phường / Xã"
+                                label="Ward"
                                 required
-                                placeholder={form.district ? "-- Chọn Phường / Xã --" : "-- Chọn Quận trước --"}
+                                placeholder={form.district ? "-- Select Ward --" : "-- Select District First --"}
                                 options={wards}
                                 value={form.ward}
                                 onChange={handleWardChange}
@@ -636,18 +633,18 @@ export const CheckoutShipping = () => {
 
                             <div className="md:col-span-2">
                                 <Field
-                                    id="addressLine" label="Địa chỉ cụ thể (số nhà, tên đường)" required
-                                    placeholder="123 Đường Lê Lợi"
+                                    id="addressLine" label="Specific Address" required
+                                    placeholder="123 Le Loi Street"
                                     value={form.addressLine} onChange={e => set("addressLine", e.target.value)}
                                     error={errors.addressLine}
                                 />
                             </div>
                             <div className="md:col-span-2 flex flex-col gap-1.5">
-                                <label htmlFor="note" className="text-sm font-medium text-gray-700">Ghi chú đơn hàng</label>
+                                <label htmlFor="note" className="text-sm font-medium text-gray-700">Order Notes</label>
                                 <textarea
                                     id="note"
                                     rows={3}
-                                    placeholder="Ghi chú cho người giao hàng (không bắt buộc)..."
+                                    placeholder="Notes for the courier (optional)..."
                                     value={form.note}
                                     onChange={e => set("note", e.target.value)}
                                     className="w-full px-4 py-3 border border-gray-300 text-sm focus:border-x-600 focus:ring-1 focus:ring-x-600/20 outline-none resize-none"
@@ -659,7 +656,7 @@ export const CheckoutShipping = () => {
                             onClick={handleContinue}
                             className="mt-8 w-full bg-black text-white py-4 font-semibold tracking-wider uppercase hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
                         >
-                            Tiếp tục – Xem lại đơn hàng
+                            Continue – Review Order
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                             </svg>
@@ -669,7 +666,7 @@ export const CheckoutShipping = () => {
                     {/* ───── Order Summary sidebar ───── */}
                     <div className="flex flex-col gap-4">
                         <div className="bg-white border border-gray-200 p-6">
-                            <h3 className="font-semibold text-gray-900 mb-4">Đơn hàng ({totalItems} sản phẩm)</h3>
+                            <h3 className="font-semibold text-gray-900 mb-4">Order ({totalItems} items)</h3>
 
                             <div className="flex flex-col gap-4 max-h-72 overflow-y-auto pr-1">
                                 {items.map((item) => (
@@ -695,15 +692,15 @@ export const CheckoutShipping = () => {
 
                             <div className="border-t border-gray-100 mt-4 pt-4 flex flex-col gap-2">
                                 <div className="flex justify-between text-sm text-gray-600">
-                                    <span>Tạm tính</span>
+                                    <span>Subtotal</span>
                                     <span>{totalAmount.toLocaleString("vi-VN")}₫</span>
                                 </div>
                                 <div className="flex justify-between text-sm text-gray-600">
-                                    <span>Phí vận chuyển</span>
-                                    <span>{shippingFee === 0 ? <span className="text-green-600 font-medium">Miễn phí</span> : `${shippingFee.toLocaleString("vi-VN")}₫`}</span>
+                                    <span>Shipping Fee</span>
+                                    <span>{shippingFee === 0 ? <span className="text-green-600 font-medium">Free</span> : `${shippingFee.toLocaleString("vi-VN")}₫`}</span>
                                 </div>
                                 <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-100">
-                                    <span>Tổng cộng</span>
+                                    <span>Total</span>
                                     <span>{(totalAmount + shippingFee).toLocaleString("vi-VN")}₫</span>
                                 </div>
                             </div>
@@ -712,9 +709,9 @@ export const CheckoutShipping = () => {
                         {/* Trust badges */}
                         <div className="bg-white border border-gray-200 p-4">
                             {[
-                                { icon: "🔒", text: "Thanh toán an toàn & bảo mật" },
-                                { icon: "↩️", text: "Đổi trả trong vòng 30 ngày" },
-                                { icon: "📦", text: "Giao hàng nhanh 2-5 ngày" },
+                                { icon: "🔒", text: "Safe & Secure Payment" },
+                                { icon: "↩️", text: "30-Day Returns" },
+                                { icon: "📦", text: "Fast Delivery 2-5 Days" },
                             ].map((b) => (
                                 <div key={b.text} className="flex items-center gap-2 py-1.5">
                                     <span className="text-base">{b.icon}</span>

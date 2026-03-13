@@ -31,6 +31,10 @@ const roleSchema = new mongoose.Schema({
     is_system: {
         type: Boolean,
         default: false // System roles cannot be deleted
+    },
+    deleted_at: {
+        type: Date,
+        default: null
     }
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }

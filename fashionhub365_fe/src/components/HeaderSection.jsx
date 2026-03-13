@@ -2,13 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { ArrowRight, MagnifyingGlass, ShoppingCartSimple, User } from "./Icons";
-import { IconComponentNode } from "./IconComponentNode";
 import { SearchOverlay } from "./SearchOverlay";
 import { useCart } from "../contexts/CartContext";
 import { CartSidebar } from "./CartPage/CartSidebar";
+import { getUserRoleSlugs } from "../utils/roleUtils";
 
 export const HeaderSection = () => {
-  const [activeMenu, setActiveMenu] = useState(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { setIsCartOpen, cartData } = useCart();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -51,51 +50,9 @@ export const HeaderSection = () => {
     { label: "Everworld Stories", active: false, href: "/blog" },
   ];
 
-  const subNavItems = [
-    { label: "Holiday Gifting", color: "text-x-500", href: "/listing?search=holiday" },
-    { label: "New Arrivals", color: "text-x-500", href: "/listing?sort=newest" },
-    { label: "Best-Sellers", color: "text-x-500", href: "/listing?sort=best_sellers" },
-    { label: "Clothing", color: "text-x-500", href: "/listing" },
-    { label: "Tops & Sweaters", color: "text-x-500", href: "/listing?search=sweater" },
-    { label: "Pants & Jeans", color: "text-x-500", href: "/listing?category=jeans" },
-    { label: "Outerwear", color: "text-x-500", href: "/listing?category=outerwear" },
-    { label: "Shoes & Bags", color: "text-x-500", href: "/listing?category=boots" },
-    { label: "Sale", color: "text-red", href: "/listing?sort=price_asc" },
-  ];
-
-  // Data for the mega menu (specific to "Men" or generally for the example)
-  const highlightsData = [
-    { label: "Shop All New Arrivals", href: "/listing?sort=newest" },
-    { label: "The Gift Guide", href: "/listing?search=gift" },
-    { label: "New Bottoms", href: "/listing?category=jeans" },
-    { label: "New Tops", href: "/listing?search=tops" },
-    { label: "Under $100", href: "/listing?sort=price_asc" },
-  ];
-
-  const featuredShopsData = [
-    { label: "The Holiday Outfit Edit", href: "/listing?search=holiday" },
-    { label: "Giftable Sweaters", href: "/listing?search=sweater" },
-    { label: "Uniform & Capsule", href: "/listing" },
-    { label: "The Performance Chino Shop", href: "/listing?category=jeans" },
-    { label: "Top Rated Men's Clothing", href: "/listing?sort=best_sellers" },
-  ];
-
-  const featuredCardsData = [
-    {
-      title: "Top Rated\nPicks",
-      image: "/textures/landingpage/frame-5.jpg",
-      href: "/listing?sort=top_rated",
-    },
-    {
-      title: "Giftable\nSweaters",
-      image: "/textures/landingpage/frame-5.jpg",
-      href: "/listing?search=sweater",
-    },
-  ];
-
   return (
     <>
-      <header className="flex flex-col items-center relative self-stretch w-full flex-[0_0_auto] bg-white z-50">
+      <header className="flex flex-col items-center sticky top-0 left-0 self-stretch w-full flex-[0_0_auto] bg-white z-[60]">
         <div className="flex items-center justify-around gap-1 px-[30px] py-[7px] relative self-stretch w-full flex-[0_0_auto] bg-x-600">
           <div className="flex items-center justify-center gap-1 relative flex-1 grow">
             <p className="relative w-fit mt-[-1.00px] font-text-200-demi font-[number:var(--text-200-demi-font-weight)] text-white text-[length:var(--text-200-demi-font-size)] text-center tracking-[var(--text-200-demi-letter-spacing)] leading-[var(--text-200-demi-line-height)] whitespace-nowrap [font-style:var(--text-200-demi-font-style)]">
@@ -183,28 +140,60 @@ export const HeaderSection = () => {
                       My Profile
                     </Link>
 
-                    {/* Conditional links based on roles */}
-                    {(user?.role === 'seller' || user?.role === 'admin') && (
-                      <>
-                        <Link
-                          to="/seller/dashboard"
-                          className="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 transition-colors"
-                          onClick={() => setIsUserMenuOpen(false)}
-                        >
-                          <svg className="mr-3 h-4 w-4 text-gray-400 group-hover:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                          Seller Dashboard
-                        </Link>
+                    {/* Role-based links using getUserRoleSlugs Helper */}
+                    {(() => {
+                      const roles = getUserRoleSlugs(user);
+                      const isSeller = roles.includes('seller');
+                      const isAdmin = roles.includes('admin');
 
-                        <Link
-                          to="/seller/products"
-                          className="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 transition-colors"
-                          onClick={() => setIsUserMenuOpen(false)}
-                        >
-                          <svg className="mr-3 h-4 w-4 text-gray-400 group-hover:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                          Manage Products
-                        </Link>
-                      </>
-                    )}
+                      if (isSeller || isAdmin) {
+                        return (
+                          <>
+                            <Link
+                              to="/seller/dashboard"
+                              className="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 transition-colors"
+                              onClick={() => setIsUserMenuOpen(false)}
+                            >
+                              <svg className="mr-3 h-4 w-4 text-gray-400 group-hover:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                              Seller Dashboard
+                            </Link>
+
+                            <Link
+                              to="/seller/products"
+                              className="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 transition-colors"
+                              onClick={() => setIsUserMenuOpen(false)}
+                            >
+                              <svg className="mr-3 h-4 w-4 text-gray-400 group-hover:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                              Manage Products
+                            </Link>
+
+                            {isAdmin && (
+                              <Link
+                                to="/admin/categories"
+                                className="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 transition-colors"
+                                onClick={() => setIsUserMenuOpen(false)}
+                              >
+                                <svg className="mr-3 h-4 w-4 text-gray-400 group-hover:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                Admin Panel
+                              </Link>
+                            )}
+                          </>
+                        );
+                      } else {
+                        return (
+                          <Link
+                            to="/seller/register"
+                            className="group flex items-center px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 transition-colors font-semibold"
+                            onClick={() => setIsUserMenuOpen(false)}
+                          >
+                            <svg className="mr-3 h-4 w-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            </svg>
+                            Become a Seller
+                          </Link>
+                        );
+                      }
+                    })()}
 
                     <Link
                       to="/profile"
@@ -216,16 +205,6 @@ export const HeaderSection = () => {
                       Following
                     </Link>
 
-                    {user?.role === 'admin' && (
-                      <Link
-                        to="/admin/categories"
-                        className="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 transition-colors"
-                        onClick={() => setIsUserMenuOpen(false)}
-                      >
-                        <svg className="mr-3 h-4 w-4 text-gray-400 group-hover:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                        Admin Panel
-                      </Link>
-                    )}
 
                     <button
                       className="group flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-pink-600 transition-colors text-left"
@@ -288,108 +267,6 @@ export const HeaderSection = () => {
         </nav>
 
         {isSearchOpen && <SearchOverlay onClose={() => setIsSearchOpen(false)} />}
-        <nav
-          className={`flex items-center justify-center relative self-stretch w-full flex-[0_0_auto] ${isSearchOpen ? "hidden" : ""}`}
-          aria-label="Category navigation"
-        >
-          <ul className="flex items-center justify-center">
-            {subNavItems.map((item, index) => (
-              <li
-                key={index}
-                className="gap-3 px-3 py-5 inline-flex flex-col items-start relative flex-[0_0_auto] cursor-pointer"
-                onMouseEnter={() => setActiveMenu(item.label)}
-                onMouseLeave={() => setActiveMenu(null)}
-              >
-                <Link
-                  to={item.href || "/listing"}
-                  className={`${item.color} relative w-fit mt-[-1.00px] font-text-200 font-[number:var(--text-200-font-weight)] text-[length:var(--text-200-font-size)] text-center tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] whitespace-nowrap [font-style:var(--text-200-font-style)] no-underline hover:underline`}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        {/* Mega Menu Overlay */}
-        <div
-          className={`absolute top-full left-0 w-full bg-white shadow-lg transition-all duration-300 overflow-hidden ${activeMenu ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}`}
-          onMouseEnter={() => setActiveMenu(activeMenu)}
-          onMouseLeave={() => setActiveMenu(null)}
-        >
-          <section className="flex items-start justify-center gap-6 pt-[54px] pb-[90px] px-[140px] relative w-full border-t border-x-200">
-            <nav
-              className="flex flex-col items-start gap-4 relative flex-1 grow"
-              aria-labelledby="highlights-heading"
-            >
-              <h2
-                id="highlights-heading"
-                className="relative self-stretch mt-[-1.00px] font-text-100-demi font-[number:var(--text-100-demi-font-weight)] text-x-300 text-[length:var(--text-100-demi-font-size)] tracking-[var(--text-100-demi-letter-spacing)] leading-[var(--text-100-demi-line-height)] [font-style:var(--text-100-demi-font-style)]"
-              >
-                HIGHLIGHTS
-              </h2>
-
-              <ul className="contents">
-                {highlightsData.map((item, index) => (
-                  <li key={index} className="contents">
-                    <Link
-                      to={item.href}
-                      className="relative self-stretch font-text-300 font-[number:var(--text-300-font-weight)] text-x-500 text-[length:var(--text-300-font-size)] tracking-[var(--text-300-letter-spacing)] leading-[var(--text-300-line-height)] [font-style:var(--text-300-font-style)] hover:underline focus:outline-none focus:underline no-underline"
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-
-            <nav
-              className="flex flex-col items-start gap-4 relative flex-1 grow"
-              aria-labelledby="featured-shops-heading"
-            >
-              <h2
-                id="featured-shops-heading"
-                className="relative self-stretch mt-[-1.00px] font-text-100-demi font-[number:var(--text-100-demi-font-weight)] text-x-300 text-[length:var(--text-100-demi-font-size)] tracking-[var(--text-100-demi-letter-spacing)] leading-[var(--text-100-demi-line-height)] [font-style:var(--text-100-demi-font-style)]"
-              >
-                FEATURED SHOPS
-              </h2>
-
-              <ul className="contents">
-                {featuredShopsData.map((item, index) => (
-                  <li key={index} className="contents">
-                    <Link
-                      to={item.href}
-                      className="relative self-stretch font-text-300 font-[number:var(--text-300-font-weight)] text-x-500 text-[length:var(--text-300-font-size)] tracking-[var(--text-300-letter-spacing)] leading-[var(--text-300-line-height)] [font-style:var(--text-300-font-style)] hover:underline focus:outline-none focus:underline no-underline"
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-
-            {featuredCardsData.map((card, index) => (
-              <Link
-                key={index}
-                to={card.href || "/listing"}
-                className="flex h-[300px] left-5 items-end gap-3 px-4 py-3 relative flex-1 grow bg-cover bg-[50%_50%] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-x-500 transition-opacity no-underline"
-                style={{ backgroundImage: `url(${card.image})` }}
-                aria-label={card.title.replace("\n", " ")}
-              >
-                <span className="absolute bottom-4 left-4 text-white leading-tight text-[22px] font-semibold">
-                  {card.title.split("\n").map((line, lineIndex) => (
-                    <span key={lineIndex}>
-                      {line}
-                      {lineIndex < card.title.split("\n").length - 1 && <br />}
-                    </span>
-                  ))}
-                </span>
-
-                <IconComponentNode className="absolute bottom-4 right-4 w-6 h-6 text-white -rotate-90" />
-              </Link>
-            ))}
-          </section>
-        </div>
 
 
       </header>

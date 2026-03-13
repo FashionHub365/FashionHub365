@@ -271,7 +271,7 @@ export const CheckoutReview = () => {
                     </Link>
                     <span className="text-sm text-gray-500 hidden md:block">Checkout</span>
                     <button onClick={() => navigate("/checkout")} className="text-sm text-gray-500 hover:text-gray-800 transition-colors">
-                        ← Sửa thông tin giao hàng
+                        ← Edit Shipping Information
                     </button>
                 </div>
             </div>
@@ -285,38 +285,38 @@ export const CheckoutReview = () => {
                         {/* Shipping info summary */}
                         <div className="bg-white border border-gray-200 p-6">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="font-semibold text-gray-900">Địa chỉ giao hàng</h3>
+                                <h3 className="font-semibold text-gray-900">Shipping Address</h3>
                                 <button onClick={() => navigate("/checkout")} className="text-xs text-gray-500 hover:text-black underline underline-offset-2">
-                                    Sửa
+                                    Edit
                                 </button>
                             </div>
                             <div className="bg-gray-50 rounded-sm p-4 text-sm text-gray-700 leading-relaxed">
                                 <p className="font-semibold text-gray-900">{shipping.full_name} – {shipping.phone}</p>
                                 <p className="mt-0.5">{shipping.email}</p>
                                 <p className="mt-1">{shipping.address_line}, {shipping.ward}, {shipping.district}, {shipping.province}</p>
-                                {shipping.note && <p className="mt-1 italic text-gray-500">Ghi chú: {shipping.note}</p>}
+                                {shipping.note && <p className="mt-1 italic text-gray-500">Note: {shipping.note}</p>}
                             </div>
                         </div>
 
                         {/* Payment Method */}
                         <div className="bg-white border border-gray-200 p-6">
-                            <h3 className="font-semibold text-gray-900 mb-4">Phương thức thanh toán</h3>
+                            <h3 className="font-semibold text-gray-900 mb-4">Payment Method</h3>
                             <div className="flex flex-col gap-3">
                                 <PaymentCard
                                     id="cod"
                                     selected={paymentMethod === "cod"}
                                     onSelect={setPaymentMethod}
                                     icon="💵"
-                                    title="Thanh toán khi nhận hàng (COD)"
-                                    description="Trả tiền mặt cho nhân viên giao hàng khi nhận được đơn"
+                                    title="Cash on Delivery (COD)"
+                                    description="Pay cash to the delivery person upon receiving the order"
                                 />
                                 <PaymentCard
                                     id="bank_transfer"
                                     selected={paymentMethod === "bank_transfer"}
                                     onSelect={setPaymentMethod}
                                     icon="🏦"
-                                    title="Chuyển khoản ngân hàng"
-                                    description="Chuyển khoản trực tiếp vào tài khoản của chúng tôi"
+                                    title="Bank Transfer"
+                                    description="Transfer directly to our bank account"
                                 />
                                 <PaymentCard
                                     id="vnpay"
@@ -324,17 +324,17 @@ export const CheckoutReview = () => {
                                     onSelect={setPaymentMethod}
                                     icon="📱"
                                     title="VNPay"
-                                    description="Thanh toan qua cong thanh toan VNPay"
+                                    description="Pay via VNPay gateway"
                                 />
                             </div>
 
                             {paymentMethod === "bank_transfer" && (
                                 <div className="mt-4 bg-blue-50 border border-blue-200 p-4 text-sm text-blue-800 rounded-sm">
-                                    <p className="font-semibold mb-1">Thông tin chuyển khoản</p>
-                                    <p>Ngân hàng: <strong>Vietcombank</strong></p>
-                                    <p>Số tài khoản: <strong>1234 5678 9012</strong></p>
-                                    <p>Chủ tài khoản: <strong>FASHIONHUB365 JSC</strong></p>
-                                    <p className="mt-1 text-blue-600 text-xs">Nội dung chuyển khoản: Tên của bạn + số điện thoại</p>
+                                    <p className="font-semibold mb-1">Bank Transfer Information</p>
+                                    <p>Bank: <strong>Vietcombank</strong></p>
+                                    <p>Account Number: <strong>1234 5678 9012</strong></p>
+                                    <p>Account Name: <strong>FASHIONHUB365 JSC</strong></p>
+                                    <p className="mt-1 text-blue-600 text-xs">Transfer content: Your name + phone number</p>
                                 </div>
                             )}
                         </div>
@@ -363,11 +363,11 @@ export const CheckoutReview = () => {
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                     </svg>
-                                    Đang xử lý đơn hàng...
+                                    Processing order...
                                 </>
                             ) : (
                                 <>
-                                    🛍️ Đặt hàng – {grandTotal.toLocaleString("vi-VN")}₫
+                                    🛍️ Place Order – {grandTotal.toLocaleString("vi-VN")}₫
                                 </>
                             )}
                         </button>
@@ -376,7 +376,7 @@ export const CheckoutReview = () => {
                     {/* ───── Right: Order summary ───── */}
                     <div className="flex flex-col gap-4">
                         <div className="bg-white border border-gray-200 p-6">
-                            <h3 className="font-semibold text-gray-900 mb-4">Đơn hàng của bạn</h3>
+                            <h3 className="font-semibold text-gray-900 mb-4">Your Order</h3>
 
                             <div className="max-h-80 overflow-y-auto">
                                 {items.map((item) => <OrderItemRow key={item.itemId} item={item} />)}
@@ -384,20 +384,20 @@ export const CheckoutReview = () => {
 
                             <div className="mt-4 pt-4 border-t border-gray-200 flex flex-col gap-2.5">
                                 <div className="flex justify-between text-sm text-gray-600">
-                                    <span>Tạm tính ({totalItems} sản phẩm)</span>
+                                    <span>Subtotal ({totalItems} items)</span>
                                     <span>{totalAmount.toLocaleString("vi-VN")}₫</span>
                                 </div>
                                 <div className="flex justify-between text-sm text-gray-600">
-                                    <span>Phí vận chuyển</span>
+                                    <span>Shipping Fee</span>
                                     <span>
                                         {shippingFee === 0
-                                            ? <span className="text-green-600 font-semibold">Miễn phí</span>
+                                            ? <span className="text-green-600 font-semibold">Free</span>
                                             : `${shippingFee.toLocaleString("vi-VN")}₫`
                                         }
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center pt-3 border-t border-gray-200">
-                                    <span className="font-bold text-gray-900">Tổng thanh toán</span>
+                                    <span className="font-bold text-gray-900">Total Payment</span>
                                     <span className="font-bold text-xl text-gray-900">{grandTotal.toLocaleString("vi-VN")}₫</span>
                                 </div>
                             </div>
@@ -409,12 +409,12 @@ export const CheckoutReview = () => {
                                 <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                 </svg>
-                                <span className="text-xs font-semibold text-gray-700">Cam kết bảo mật</span>
+                                <span className="text-xs font-semibold text-gray-700">Security Commitment</span>
                             </div>
                             {[
-                                "Thông tin được mã hoá SSL 256-bit",
-                                "Không lưu thông tin thanh toán",
-                                "Bảo vệ bởi chính sách hoàn tiền 100%",
+                                "256-bit SSL encrypted information",
+                                "Payment information is not stored",
+                                "Protected by 100% refund policy",
                             ].map((t) => (
                                 <div key={t} className="flex items-start gap-2 py-1">
                                     <span className="text-green-500 mt-0.5">✓</span>
@@ -430,4 +430,3 @@ export const CheckoutReview = () => {
 };
 
 export default CheckoutReview;
-

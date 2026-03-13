@@ -33,7 +33,7 @@ const updateStore = catchAsync(async (req, res) => {
         data: { store },
 
 
-            });
+    });
 });
 
 const followStore = catchAsync(async (req, res) => {
@@ -81,8 +81,19 @@ const getFollowingStores = catchAsync(async (req, res) => {
     const result = await storeService.getFollowingStores(userId, page, limit);
     res.status(httpStatus.OK).send({
         success: true,
-        data: result.items,
-        pagination: result.pagination,
+        data: {
+            stores: result.items,
+            pagination: result.pagination
+        },
+    });
+});
+
+const getMyStore = catchAsync(async (req, res) => {
+    const userId = req.user.id || req.user._id;
+    const store = await storeService.getMyStore(userId);
+    res.status(httpStatus.OK).send({
+        success: true,
+        data: { store },
     });
 });
 
@@ -91,11 +102,12 @@ module.exports = {
     getStoreDetail,
     createStore,
     updateStore,
-     followStore,
+    followStore,
     unfollowStore,
     getFollowingStatus,
     getStoreFollowerCount,
     getFollowingStores,
+    getMyStore,
 };
 
 

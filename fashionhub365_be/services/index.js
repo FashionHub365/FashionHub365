@@ -1,7 +1,6 @@
 const authService = require('./auth.service');
 const emailService = require('./email.service');
 const fileUploadService = require('./fileUpload.service');
-const otpService = require('./otp.service');
 const paymentService = require('./payment.service');
 const tokenService = require('./token.service');
 const userService = require('./user.service');
@@ -19,7 +18,6 @@ module.exports = {
     authService,
     emailService,
     fileUploadService,
-    otpService,
     paymentService,
     tokenService,
     userService,

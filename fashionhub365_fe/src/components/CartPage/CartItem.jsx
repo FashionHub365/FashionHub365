@@ -62,7 +62,7 @@ export const CartItem = ({ item }) => {
               <span className="text-red-500 text-xs mt-0.5 font-medium">Out of stock</span>
             )}
             {item.stock !== undefined && (
-              <span className="text-xs text-x-400 mt-0.5 font-medium">Kho: {item.stock}</span>
+              <span className="text-xs text-x-400 mt-0.5 font-medium">Stock: {item.stock}</span>
             )}
           </div>
 

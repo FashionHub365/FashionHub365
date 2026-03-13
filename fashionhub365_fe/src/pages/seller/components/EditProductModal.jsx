@@ -1,27 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { getCategories, uploadImage } from '../../../services/productService';
+import listingApi from '../../../apis/listingApi';
 
-const COLOR_OPTIONS = [
-    { name: "Black", hex: "#000000" },
-    { name: "White", hex: "#ffffff" },
-    { name: "Grey", hex: "#737373" },
-    { name: "Navy", hex: "#1a237e" },
-    { name: "Beige", hex: "#f5f5dc" },
-    { name: "Brown", hex: "#5d4037" },
-    { name: "Olive", hex: "#556b2f" },
-    { name: "Denim", hex: "#1565c0" },
-];
+const COLOR_MAP = {
+  black: "#1a1a1a",
+  white: "#ffffff",
+  blue: "#21558d",
+  brown: "#925c37",
+  green: "#585b45",
+  grey: "#e1e1e3",
+  gray: "#e1e1e3",
+  orange: "#d38632",
+  pink: "#efcec9",
+  red: "#bd2830",
+  tan: "#b3a695",
+  navy: "#1b2a4a",
+  beige: "#f5e6c8",
+  yellow: "#f5c842",
+  purple: "#6b2fa0",
+  "đen": "#1a1a1a",
+  "trắng": "#ffffff",
+  "xám": "#e1e1e3",
+  "be": "#f5e6c8",
+  "collegiate green": "#1b4f23",
+  "black/white": "linear-gradient(135deg, #1a1a1a 50%, #ffffff 50%)",
+  "white/green": "linear-gradient(135deg, #ffffff 50%, #585b45 50%)",
+};
 
-const CLOTHING_SIZES = ["XXS", "XS", "S", "M", "L", "XL", "XXL"];
-const WAIST_SIZES = ["28", "29", "30", "31", "32", "33", "34", "36", "38", "40"];
+function getColorHex(colorName) {
+  if (!colorName) return "#cccccc";
+  return COLOR_MAP[colorName.toLowerCase()] || "#cccccc";
+}
 
 const STATUS_LABELS = {
     'active': { label: 'Đang bán', color: 'bg-green-500' },
-    'inactive': { label: 'Tạm ẩn', color: 'bg-gray-400' },
+    'inactive': { label: 'Tạm ẩn/Nháp', color: 'bg-gray-400' },
     'out_of_stock': { label: 'Hết hàng', color: 'bg-red-500' }
 };
 
-const EditProductModal = ({ product, onClose, onSave }) => {
+const EditProductModal = ({ product, onClose, onSave, storeStatus }) => {
     const [form, setForm] = useState({
         name: product.name || '',
         short_description: product.short_description || '',
@@ -35,32 +52,58 @@ const EditProductModal = ({ product, onClose, onSave }) => {
 
     const [selectedColors, setSelectedColors] = useState([]);
     const [selectedSizes, setSelectedSizes] = useState([]);
+    const [sizeType, setSizeType] = useState('clothing');
     const [categories, setCategories] = useState([]);
+    const [colorOptions, setColorOptions] = useState([]);
+    const [clothingSizes, setClothingSizes] = useState([]);
+    const [waistSizes, setWaistSizes] = useState([]);
     const [uploading, setUploading] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
     useEffect(() => {
-        const fetchCategories = async () => {
+        const fetchData = async () => {
             try {
-                const res = await getCategories();
-                setCategories(res.data || res || []);
+                const [catRes, optRes] = await Promise.all([
+                    getCategories(),
+                    listingApi.getFilterOptions()
+                ]);
+                
+                setCategories(catRes.data || catRes || []);
+                
+                if (optRes.success) {
+                    setColorOptions(optRes.data.colors.map(name => ({ name, hex: getColorHex(name) })));
+                    
+                    const sizes = optRes.data.sizes || [];
+                    setWaistSizes(sizes.filter(s => !isNaN(parseInt(s))));
+                    setClothingSizes(sizes.filter(s => isNaN(parseInt(s))));
+                }
             } catch (err) {
-                console.error('Error fetching categories:', err);
+                console.error('Error fetching data:', err);
             }
         };
-        fetchCategories();
+        fetchData();
 
         // Initialize selected colors and sizes from existing variants
         if (product.variants?.length > 0) {
             const colors = new Set();
             const sizes = new Set();
+            let detectedType = 'clothing';
+
             product.variants.forEach(v => {
                 if (v.attributes?.color) colors.add(v.attributes.color);
-                if (v.attributes?.size) sizes.add(v.attributes.size);
+                if (v.attributes?.size) {
+                    const sizeVal = v.attributes.size;
+                    sizes.add(sizeVal);
+                    // If any size is purely numeric, it's likely a shoe/waist size
+                    if (!isNaN(parseInt(sizeVal)) && /^\d+$/.test(sizeVal)) {
+                        detectedType = 'shoe';
+                    }
+                }
             });
             setSelectedColors(Array.from(colors));
             setSelectedSizes(Array.from(sizes));
+            setSizeType(detectedType);
         }
     }, [product]);
 
@@ -115,6 +158,11 @@ const EditProductModal = ({ product, onClose, onSave }) => {
         setSelectedSizes(prev => 
             prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
         );
+    };
+
+    const handleSizeTypeChange = (type) => {
+        setSizeType(type);
+        setSelectedSizes([]); // Reset selections when type changes
     };
 
     const handleVariantChange = (index, field, value) => {
@@ -195,7 +243,7 @@ const EditProductModal = ({ product, onClose, onSave }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
             <div className="bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
                 {/* Header */}
                 <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-white flex-none">
@@ -275,10 +323,18 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                                         <div className="relative">
                                             <select
                                                 name="status" value={form.status} onChange={handleChange}
-                                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:border-black transition-all outline-none text-sm cursor-pointer appearance-none shadow-sm font-bold"
+                                                className={`w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:border-black transition-all outline-none text-sm cursor-pointer appearance-none shadow-sm font-bold ${
+                                                    storeStatus !== 'active' && form.status === 'active' ? 'text-amber-600' : ''
+                                                }`}
                                             >
                                                 {Object.entries(STATUS_LABELS).map(([val, { label }]) => (
-                                                    <option key={val} value={val}>{label}</option>
+                                                    <option 
+                                                        key={val} 
+                                                        value={val}
+                                                        disabled={val === 'active' && storeStatus !== 'active'}
+                                                    >
+                                                        {label} {val === 'active' && storeStatus !== 'active' ? '(Chờ duyệt Store)' : ''}
+                                                    </option>
                                                 ))}
                                             </select>
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
@@ -303,14 +359,16 @@ const EditProductModal = ({ product, onClose, onSave }) => {
                                 <div className="space-y-5 flex flex-col items-center">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center border-b border-gray-50 pb-2 px-10">Màu sắc *</label>
                                     <div className="flex flex-wrap justify-center gap-3 max-w-lg">
-                                        {COLOR_OPTIONS.map(color => (
+                                        {colorOptions.length === 0 ? (
+                                            <p className="text-[10px] text-gray-400">Đang tải màu sắc...</p>
+                                        ) : colorOptions.map(color => (
                                             <button
                                                 key={color.name} type="button" onClick={() => toggleColor(color.name)}
                                                 className={`group flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg border transition-all ${
                                                     selectedColors.includes(color.name) ? 'border-black bg-black text-white shadow-md' : 'border-gray-100 bg-gray-50 hover:border-gray-300'
                                                 }`}
                                             >
-                                                <div className="w-3 h-3 rounded-full border border-black/5" style={{ backgroundColor: color.hex }}></div>
+                                                <div className="w-3 h-3 rounded-full border border-black/5" style={{ background: color.hex }}></div>
                                                 <span className="text-[11px] font-bold">{color.name}</span>
                                             </button>
                                         ))}
@@ -319,37 +377,66 @@ const EditProductModal = ({ product, onClose, onSave }) => {
 
                                 {/* Sizes - Centered Layout */}
                                 <div className="space-y-10 flex flex-col items-center">
-                                    <div className="space-y-5 flex flex-col items-center w-full">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center border-b border-gray-50 pb-2 px-10">Kích thước quần áo *</label>
-                                        <div className="flex flex-wrap justify-center gap-2.5">
-                                            {CLOTHING_SIZES.map(size => (
-                                                <button
-                                                    key={size} type="button" onClick={() => toggleSize(size)}
-                                                    className={`w-11 h-11 flex items-center justify-center text-[11px] font-bold rounded-lg border transition-all ${
-                                                        selectedSizes.includes(size) ? 'bg-black border-black text-white shadow-md scale-105' : 'bg-white border-gray-200 text-gray-600 hover:border-black'
-                                                    }`}
-                                                >
-                                                    {size}
-                                                </button>
-                                            ))}
-                                        </div>
+                                    <div className="flex gap-6 p-1 bg-gray-100 rounded-2xl w-fit mx-auto">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSizeTypeChange('clothing')}
+                                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                                                sizeType === 'clothing' ? 'bg-white shadow-sm text-black' : 'text-gray-400 hover:text-gray-600'
+                                            }`}
+                                        >
+                                            <input type="radio" checked={sizeType === 'clothing'} readOnly className="hidden" />
+                                            Kích thước Quần áo
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSizeTypeChange('shoe')}
+                                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                                                sizeType === 'shoe' ? 'bg-white shadow-sm text-black' : 'text-gray-400 hover:text-gray-600'
+                                            }`}
+                                        >
+                                            <input type="radio" checked={sizeType === 'shoe'} readOnly className="hidden" />
+                                            Kích thước Giày
+                                        </button>
                                     </div>
 
-                                    <div className="space-y-5 flex flex-col items-center w-full">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center border-b border-gray-50 pb-2 px-10">Kích thước eo (Waist) *</label>
-                                        <div className="flex flex-wrap justify-center gap-2.5 max-w-md">
-                                            {WAIST_SIZES.map(size => (
-                                                <button
-                                                    key={size} type="button" onClick={() => toggleSize(size)}
-                                                    className={`w-11 h-11 flex items-center justify-center text-[11px] font-bold rounded-lg border transition-all ${
-                                                        selectedSizes.includes(size) ? 'bg-black border-black text-white shadow-md scale-105' : 'bg-white border-gray-200 text-gray-600 hover:border-black'
-                                                    }`}
-                                                >
-                                                    {size}
-                                                </button>
-                                            ))}
+                                    {sizeType === 'clothing' ? (
+                                        <div className="space-y-5 flex flex-col items-center w-full animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center border-b border-gray-50 pb-2 px-10">Chọn size Quần áo *</label>
+                                            <div className="flex flex-wrap justify-center gap-2.5">
+                                                {clothingSizes.length === 0 ? (
+                                                    <p className="text-[10px] text-gray-400">Đang tải kích cỡ...</p>
+                                                ) : clothingSizes.map(size => (
+                                                    <button
+                                                        key={size} type="button" onClick={() => toggleSize(size)}
+                                                        className={`w-11 h-11 flex items-center justify-center text-[11px] font-bold rounded-lg border transition-all ${
+                                                            selectedSizes.includes(size) ? 'bg-black border-black text-white shadow-md scale-105' : 'bg-white border-gray-200 text-gray-600 hover:border-black'
+                                                        }`}
+                                                    >
+                                                        {size}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <div className="space-y-5 flex flex-col items-center w-full animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center border-b border-gray-50 pb-2 px-10">Chọn size Giày / Eo *</label>
+                                            <div className="flex flex-wrap justify-center gap-2.5 max-w-md">
+                                                {waistSizes.length === 0 ? (
+                                                    <p className="text-[10px] text-gray-400">Đang tải kích cỡ...</p>
+                                                ) : waistSizes.map(size => (
+                                                    <button
+                                                        key={size} type="button" onClick={() => toggleSize(size)}
+                                                        className={`w-11 h-11 flex items-center justify-center text-[11px] font-bold rounded-lg border transition-all ${
+                                                            selectedSizes.includes(size) ? 'bg-black border-black text-white shadow-md scale-105' : 'bg-white border-gray-200 text-gray-600 hover:border-black'
+                                                        }`}
+                                                    >
+                                                        {size}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {form.variants.length > 0 && (

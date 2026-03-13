@@ -16,6 +16,9 @@ router.get('/products/:id/recommended', listingController.getRecommendedProducts
 // GET /api/v1/listing/categories       - Danh sách categories (không cần auth)
 router.get('/categories', listingController.getCategories);
 
+// GET /api/v1/listing/filter-options   - Danh sách màu và size
+router.get('/filter-options', listingController.getFilterOptions);
+
 // GET /api/v1/listing/stores/:id         - Thông tin chi tiết shop công khai
 router.get('/stores/:id', listingController.getStoreById);
 
@@ -26,6 +29,6 @@ router.post('/products/:id/view', listingController.trackProductView);
 router.get('/products/:id/reviews', listingController.getProductReviews);
 
 // POST /api/v1/listing/products/:id/reviews - Thêm một đánh giá mới (cần đăng nhập)
-router.post('/products/:id/reviews', auth.auth(), listingController.createProductReview);
+router.post('/products/:id/reviews', auth.auth(), auth.authorize(['REVIEW.CREATE']), listingController.createProductReview);
 
 module.exports = router;
