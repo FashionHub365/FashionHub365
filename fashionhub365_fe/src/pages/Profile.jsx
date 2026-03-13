@@ -329,11 +329,11 @@ const FollowingTab = ({ stores, loading, currentPage, totalPages, onPageChange, 
                     <article key={shop._id} className="group overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all hover:shadow-md">
                         <div className="flex items-center gap-4 p-4">
                             <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-full border border-gray-100 bg-gray-50">
-                                <img src={shop.profile?.logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(shop.display_name)}&background=f3f4f6&color=6b7280`} alt={shop.display_name} className="h-full w-full object-cover" />
+                                <img src={shop.profile?.logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(shop.name || shop.display_name)}&background=f3f4f6&color=6b7280`} alt={shop.name || shop.display_name} className="h-full w-full object-cover" />
                             </div>
                             <div className="min-w-0 flex-1">
                                 <h4 className="truncate text-sm font-bold text-gray-900 group-hover:text-gray-700 cursor-pointer" onClick={() => onOpenShop(shop._id)}>
-                                    {shop.display_name}
+                                    {shop.name || shop.display_name}
                                 </h4>
                                 <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
                                     <span className="inline-block h-2 w-2 rounded-full bg-emerald-500"></span>
