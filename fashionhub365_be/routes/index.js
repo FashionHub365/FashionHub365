@@ -16,6 +16,7 @@ const listingRoute = require('./listing.routes');
 const customerOrderRoute = require('./customer.order.routes');
 const wishlistRoute = require('./wishlist.routes');
 const storeRoute = require('./store.route');
+const chatRoute = require('./chat.route');
 
 const router = express.Router();
 
@@ -37,7 +38,7 @@ const defaultRoutes = [
     { path: '/stores', route: storeRoute },
     { path: '/orders', route: customerOrderRoute },
     { path: '/wishlist', route: wishlistRoute },
-    { path: '/stores', route: storeRoute },
+    { path: '/chat', route: chatRoute },
 ];
 
 
