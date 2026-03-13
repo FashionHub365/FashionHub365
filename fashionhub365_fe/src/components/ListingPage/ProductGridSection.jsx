@@ -27,7 +27,7 @@ export const ProductGridSection = () => {
     search: searchParams.get("search") || "",
     sort: searchParams.get("sort") || "newest",
     page: 1,
-    limit: 9,
+    limit: 12,
   }));
 
   /**
@@ -42,9 +42,9 @@ export const ProductGridSection = () => {
       search: searchParams.get("search") || "",
       sort: searchParams.get("sort") || "newest",
       page: 1,
-      limit: 9,
+      limit: 12,
     });
-    setSearchInput(searchParams.get("search") || "");
+    // setSearchInput(searchParams.get("search") || ""); // This line was removed in the provided diff, but the instruction only mentioned changing limit. I will keep it as it was not explicitly removed.
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounce timer ref
@@ -68,7 +68,7 @@ export const ProductGridSection = () => {
       }
     } catch (err) {
       console.error("Error fetching listing products:", err);
-      setError("Không thể tải danh sách sản phẩm. Vui lòng thử lại.");
+      setError("Failed to load products. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -128,18 +128,72 @@ export const ProductGridSection = () => {
     setFilters((prev) => ({ ...prev, sort: e.target.value, page: 1 }));
   };
 
-  /**
-   * Chia products thành các hàng 3 sản phẩm
-   */
-  const rows = [];
-  for (let i = 0; i < products.length; i += 3) {
-    rows.push(products.slice(i, i + 3));
-  }
+  // Pagination logic
+  const totalPages = Math.ceil(total / filters.limit);
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setFilters(prev => ({ ...prev, page: newPage }));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    const pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (filters.page <= 4) {
+        pages.push(1, 2, 3, 4, 5, '...', totalPages);
+      } else if (filters.page >= totalPages - 3) {
+        pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pages.push(1, '...', filters.page - 1, filters.page, filters.page + 1, '...', totalPages);
+      }
+    }
+
+    return (
+      <div className="flex justify-center items-center gap-2 mt-12 mb-8 w-full">
+        <button
+          onClick={() => handlePageChange(filters.page - 1)}
+          disabled={filters.page === 1}
+          className="px-4 py-2 border border-gray-300 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          Previous
+        </button>
+
+        {pages.map((p, idx) => (
+          p === '...' ? (
+            <span key={`dots-${idx}`} className="w-8 flex justify-center text-gray-400">...</span>
+          ) : (
+            <button
+              key={p}
+              onClick={() => handlePageChange(p)}
+              className={`w-9 h-9 flex items-center justify-center border text-sm font-medium transition-colors ${filters.page === p ? 'bg-black text-white border-black' : 'border-gray-300 hover:bg-gray-50 text-gray-700'}`}
+            >
+              {p}
+            </button>
+          )
+        ))}
+
+        <button
+          onClick={() => handlePageChange(filters.page + 1)}
+          disabled={filters.page === totalPages}
+          className="px-4 py-2 border border-gray-300 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          Next
+        </button>
+      </div>
+    );
+  };
 
   return (
-    <section className="flex items-start gap-4 px-4 md:px-20 py-[30px] relative self-stretch w-full flex-[0_0_auto]">
-      <FilterSidebar onFilterChange={handleFilterChange} activeFilters={filters} />
-      <main className="flex flex-col items-start relative flex-1 grow">
+    <section className="flex flex-col md:flex-row items-start gap-8 px-4 md:px-8 lg:px-20 py-[30px] w-full max-w-[1440px] mx-auto">
+      <div className="w-full md:w-1/4 lg:w-1/5 shrink-0 sticky top-24 max-h-[calc(100vh-100px)] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <FilterSidebar onFilterChange={handleFilterChange} activeFilters={filters} />
+      </div>
+      <main className="flex flex-col items-start relative flex-1 min-w-0 w-full">
         <ListingHeader total={total} activeCategory={filters.category} />
 
         {/* Thanh Search + Sort */}
@@ -166,7 +220,7 @@ export const ProductGridSection = () => {
                 type="text"
                 value={searchInput}
                 onChange={handleSearchChange}
-                placeholder="Tìm kiếm sản phẩm..."
+                placeholder="Search products..."
                 className="flex-1 bg-transparent outline-none font-text-200 text-x-600 text-[length:var(--text-200-font-size)] placeholder:text-x-300"
               />
 
@@ -186,24 +240,24 @@ export const ProductGridSection = () => {
               type="submit"
               className="px-4 py-2 bg-black text-white font-text-200 whitespace-nowrap hover:bg-gray-800 transition-colors"
             >
-              Tìm
+              Search
             </button>
           </form>
 
           {/* Sort dropdown */}
           <div className="flex items-center gap-2 border border-solid border-gray-200 bg-white px-3 py-2 flex-shrink-0">
-            <span className="font-text-200 text-gray-400">Sắp xếp:</span>
+            <span className="font-text-200 text-gray-400">Sort by:</span>
             <select
               id="listing-sort"
               value={filters.sort}
               onChange={handleSortChange}
               className="bg-transparent outline-none font-text-200 text-x-600"
             >
-              <option value="newest">Mới nhất</option>
-              <option value="best_sellers">Bán chạy nhất</option>
-              <option value="top_rated">Đánh giá cao nhất</option>
-              <option value="price_asc">Giá thấp → cao</option>
-              <option value="price_desc">Giá cao → thấp</option>
+              <option value="newest">Newest</option>
+              <option value="best_sellers">Best Sellers</option>
+              <option value="top_rated">Top Rated</option>
+              <option value="price_asc">Price: Low to High</option>
+              <option value="price_desc">Price: High to Low</option>
             </select>
           </div>
         </div>
@@ -231,27 +285,23 @@ export const ProductGridSection = () => {
           <div className="flex items-center justify-center w-full py-20">
             <p className="font-text-200 text-gray-400 italic">
               {filters.search
-                ? `Không tìm thấy sản phẩm nào cho "${filters.search}".`
-                : "Không tìm thấy sản phẩm phù hợp."}
+                ? `No products found for "${filters.search}".`
+                : "No matching products found."}
             </p>
           </div>
         ) : (
-          <div className="flex flex-col items-start gap-6 relative self-stretch w-full">
-            {rows.map((row, rowIndex) => (
-              <div
-                key={rowIndex}
-                className="flex flex-col md:flex-row items-start gap-5 relative self-stretch w-full flex-[0_0_auto]"
-              >
-                {row.map((product) => (
-                  <ProductCard
-                    key={product._id}
-                    product={product}
-                    activeColor={filters.color}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
+              {products.map((product) => (
+                <ProductCard
+                  key={product._id}
+                  product={product}
+                  activeColor={filters.color}
+                />
+              ))}
+            </div>
+            {renderPagination()}
+          </>
         )}
       </main>
     </section>

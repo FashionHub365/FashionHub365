@@ -98,7 +98,7 @@ export const ReviewsSection = ({ productId, product }) => {
           size_purchased: reviewForm.size || undefined
         }
       });
-      setSubmitMessage({ type: "success", text: "Đánh giá của bạn đã được gửi thành công!" });
+      setSubmitMessage({ type: "success", text: "Your review has been successfully submitted!" });
       setTimeout(() => {
         setShowModal(false);
         setSubmitMessage(null);
@@ -106,9 +106,9 @@ export const ReviewsSection = ({ productId, product }) => {
         fetchReviews(); // reload reviews
       }, 1500);
     } catch (err) {
-      const msg = err.response?.data?.message || "Lỗi khi gửi đánh giá";
+      const msg = err.response?.data?.message || "Error submitting review";
       if (err.response?.status === 401) {
-        setSubmitMessage({ type: "error", text: "Bạn cần đăng nhập để viết đánh giá." });
+        setSubmitMessage({ type: "error", text: "You need to log in to write a review." });
       } else {
         setSubmitMessage({ type: "error", text: msg });
       }
@@ -120,7 +120,7 @@ export const ReviewsSection = ({ productId, product }) => {
   if (loading) {
     return (
       <section className="flex-col items-center justify-center gap-10 px-[196px] py-20 flex relative self-stretch w-full">
-        <span className="font-text-200 text-x-500 animate-pulse">Đang tải đánh giá...</span>
+        <span className="font-text-200 text-x-500 animate-pulse">Loading reviews...</span>
       </section>
     );
   }
@@ -264,7 +264,7 @@ export const ReviewsSection = ({ productId, product }) => {
       <div className="flex flex-col items-start gap-px relative self-stretch w-full flex-[0_0_auto]">
         {filteredAndSortedReviews.length === 0 ? (
           <div className="py-10 flex w-full justify-center">
-            <span className="font-text-200 text-x-400">Không tìm thấy đánh giá nào phù hợp với bộ lọc.</span>
+            <span className="font-text-200 text-x-400">No reviews found matching your filters.</span>
           </div>
         ) : (
           filteredAndSortedReviews.map((review, reviewIndex) => (

@@ -19,33 +19,33 @@ const EMPTY_ADDRESS_FORM = {
 };
 
 const STATUS_LABELS = {
-    pending_payment: "Chờ thanh toán",
-    created: "Chờ giao hàng",
-    confirmed: "Chờ giao hàng",
-    shipped: "Vận chuyển",
-    delivered: "Hoàn thành",
-    cancelled: "Đã hủy",
-    refunded: "Trả hàng/Hoàn tiền",
+    pending_payment: "Pending Payment",
+    created: "Awaiting Delivery",
+    confirmed: "Awaiting Delivery",
+    shipped: "Shipped",
+    delivered: "Delivered",
+    cancelled: "Cancelled",
+    refunded: "Refunded",
 };
 
 const ORDER_STATUS_TABS = [
-    { id: "all", label: "Tất cả", match: () => true },
-    { id: "pending_payment", label: "Chờ thanh toán", match: (order) => order.status === "pending_payment" },
-    { id: "shipped", label: "Vận chuyển", match: (order) => order.status === "shipped" },
-    { id: "awaiting_delivery", label: "Chờ giao hàng", match: (order) => ["created", "confirmed"].includes(order.status) },
-    { id: "delivered", label: "Hoàn thành", match: (order) => order.status === "delivered" },
-    { id: "cancelled", label: "Đã hủy", match: (order) => order.status === "cancelled" },
-    { id: "refunded", label: "Trả hàng/Hoàn tiền", match: (order) => order.status === "refunded" },
+    { id: "all", label: "All", match: () => true },
+    { id: "pending_payment", label: "Pending Payment", match: (order) => order.status === "pending_payment" },
+    { id: "shipped", label: "Shipped", match: (order) => order.status === "shipped" },
+    { id: "awaiting_delivery", label: "Awaiting Delivery", match: (order) => ["created", "confirmed"].includes(order.status) },
+    { id: "delivered", label: "Delivered", match: (order) => order.status === "delivered" },
+    { id: "cancelled", label: "Cancelled", match: (order) => order.status === "cancelled" },
+    { id: "refunded", label: "Refunded", match: (order) => order.status === "refunded" },
 ];
 
 const ORDER_STATUS_META = {
-    pending_payment: { note: "Đơn hàng chờ thanh toán", textColor: "text-gray-700", finalLabel: "CHỜ THANH TOÁN", finalColor: "text-gray-900" },
-    created: { note: "Đơn hàng đang được chuẩn bị", textColor: "text-gray-700", finalLabel: "CHỜ GIAO HÀNG", finalColor: "text-gray-900" },
-    confirmed: { note: "Đơn hàng đang được chuẩn bị", textColor: "text-gray-700", finalLabel: "CHỜ GIAO HÀNG", finalColor: "text-gray-900" },
-    shipped: { note: "Đơn hàng đang vận chuyển", textColor: "text-gray-700", finalLabel: "VẬN CHUYỂN", finalColor: "text-gray-900" },
-    delivered: { note: "Giao hàng thành công", textColor: "text-gray-700", finalLabel: "HOÀN THÀNH", finalColor: "text-gray-900" },
-    cancelled: { note: "Đơn hàng đã hủy", textColor: "text-gray-700", finalLabel: "ĐÃ HỦY", finalColor: "text-gray-900" },
-    refunded: { note: "Đơn hàng đã hoàn tiền", textColor: "text-gray-700", finalLabel: "TRẢ HÀNG/HOÀN TIỀN", finalColor: "text-gray-900" },
+    pending_payment: { note: "Order pending payment", textColor: "text-gray-700", finalLabel: "PENDING PAYMENT", finalColor: "text-gray-900" },
+    created: { note: "Order is being prepared", textColor: "text-gray-700", finalLabel: "AWAITING DELIVERY", finalColor: "text-gray-900" },
+    confirmed: { note: "Order is being prepared", textColor: "text-gray-700", finalLabel: "AWAITING DELIVERY", finalColor: "text-gray-900" },
+    shipped: { note: "Order is shipping", textColor: "text-gray-700", finalLabel: "SHIPPED", finalColor: "text-gray-900" },
+    delivered: { note: "Delivered successfully", textColor: "text-gray-700", finalLabel: "DELIVERED", finalColor: "text-gray-900" },
+    cancelled: { note: "Order cancelled", textColor: "text-gray-700", finalLabel: "CANCELLED", finalColor: "text-gray-900" },
+    refunded: { note: "Order refunded", textColor: "text-gray-700", finalLabel: "REFUNDED", finalColor: "text-gray-900" },
 };
 
 const formatVnd = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
@@ -150,7 +150,7 @@ const OrdersTab = ({ orders, loading, error, onShop }) => {
 
             {filteredOrders.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center">
-                    <p className="text-sm text-gray-500">Không có đơn hàng ở trạng thái này.</p>
+                    <p className="text-sm text-gray-500">No orders in this status.</p>
                 </div>
             ) : (
                 filteredOrders.map((order) => (
@@ -178,7 +178,7 @@ const OrdersTab = ({ orders, loading, error, onShop }) => {
                                     }}
                                     className="rounded border border-gray-300 px-2.5 py-1 text-xs font-semibold text-gray-700"
                                 >
-                                    Xem Shop
+                                    View Shop
                                 </button>
                             </div>
                             <div className="flex items-center gap-2 text-sm">
@@ -212,9 +212,9 @@ const OrdersTab = ({ orders, loading, error, onShop }) => {
                                                     if (productId) navigate(`/product/${productId}`);
                                                 }}
                                             >
-                                                {item.snapshot?.name || "Sản phẩm"}
+                                                {item.snapshot?.name || "Product"}
                                             </p>
-                                            <p className="mt-1 text-sm text-gray-500">Phân loại hàng: {item.snapshot?.variantName || "Mặc định"}</p>
+                                            <p className="mt-1 text-sm text-gray-500">Variant: {item.snapshot?.variantName || "Default"}</p>
                                             <p className="mt-1 text-sm font-semibold text-gray-700">x{quantity}</p>
                                         </div>
                                         <div className="text-right">
@@ -228,7 +228,7 @@ const OrdersTab = ({ orders, loading, error, onShop }) => {
 
                         <div className="border-t border-gray-200 bg-white px-4 py-4">
                             <div className="flex items-center justify-end gap-2">
-                                <span className="text-sm text-gray-700">Thành tiền:</span>
+                                <span className="text-sm text-gray-700">Total:</span>
                                 <span className="text-xl font-semibold text-gray-900">{formatVnd(order.total_amount || 0)}</span>
                             </div>
                             <div className="mt-4 flex flex-wrap justify-end gap-2">
@@ -241,7 +241,7 @@ const OrdersTab = ({ orders, loading, error, onShop }) => {
                                     }}
                                     className="rounded bg-gray-900 px-5 py-2 text-sm font-semibold text-white hover:bg-gray-800"
                                 >
-                                    Mua Lại
+                                    Buy Again
                                 </button>
                                 <button
                                     type="button"
@@ -252,7 +252,7 @@ const OrdersTab = ({ orders, loading, error, onShop }) => {
                                     }}
                                     className="rounded border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700"
                                 >
-                                    Liên Hệ Người Bán
+                                    Contact Seller
                                 </button>
                             </div>
                         </div>
