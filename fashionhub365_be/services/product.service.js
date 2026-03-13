@@ -185,7 +185,7 @@ const getPublicProducts = async (query) => {
  */
 const getFilterOptions = async () => {
     const products = await Product.find({ status: 'active' }).select('variants.attributes');
-    
+
     const colors = new Set();
     const sizes = new Set();
 
@@ -231,7 +231,17 @@ const getAllCategories = async () => {
  * @returns {Promise<Product>}
  */
 const getPublicProductById = async (productId) => {
-    const product = await Product.findOne({ _id: productId, status: 'active' })
+    console.log(`[ProductService] Fetching product by ID: "${productId}"`);
+
+    let query = { status: 'active' };
+    if (mongoose.Types.ObjectId.isValid(productId)) {
+        query._id = productId;
+    } else {
+        // Fallback: try slug lookup
+        query.slug = productId;
+    }
+
+    const product = await Product.findOne(query)
         .populate('primary_category_id', 'name slug')
         .populate('brand_id', 'name')
         .populate({

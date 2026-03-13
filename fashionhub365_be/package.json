@@ -11,11 +11,25 @@
     "test:api": "node --test test/api.e2e.test.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "nodemonConfig": {
+    "ignore": [
+      "*.txt",
+      "*.log",
+      "node_modules",
+      "db_dump*.json"
+    ],
+    "watch": [
+      "**/*.js",
+      "**/*.json"
+    ],
+    "ext": "js,json"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "axios": "^1.13.6",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.9.0",
