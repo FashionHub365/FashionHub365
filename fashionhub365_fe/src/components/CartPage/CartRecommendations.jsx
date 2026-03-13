@@ -160,7 +160,7 @@ export const CartRecommendations = () => {
             <span className="text-green-600 text-base">🚚</span>
             <div>
               <p className="text-xs font-bold text-green-800 leading-tight">
-                Thêm {gap.toLocaleString("vi-VN")}₫ để miễn phí ship!
+                Add {gap.toLocaleString("vi-VN")}₫ for free shipping!
               </p>
               <div className="mt-1 w-full bg-green-200 rounded-full h-1.5" style={{ width: "100%" }}>
                 <div

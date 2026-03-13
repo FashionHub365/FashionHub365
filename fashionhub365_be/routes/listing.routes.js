@@ -16,6 +16,9 @@ router.get('/products/:id/recommended', listingController.getRecommendedProducts
 // GET /api/v1/listing/categories       - Danh sách categories (không cần auth)
 router.get('/categories', listingController.getCategories);
 
+// GET /api/v1/listing/filter-options   - Danh sách màu và size
+router.get('/filter-options', listingController.getFilterOptions);
+
 // GET /api/v1/listing/stores/:id         - Thông tin chi tiết shop công khai
 router.get('/stores/:id', listingController.getStoreById);
 

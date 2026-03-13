@@ -33,7 +33,7 @@ export const ListingHeader = ({ total = 0, activeCategory = "" }) => {
           : "Men's Clothing & Apparel"}
       </h1>
       <div className="relative self-stretch font-text-400 font-[number:var(--text-400-font-weight)] text-x-600 text-[length:var(--text-400-font-size)] tracking-[var(--text-400-letter-spacing)] leading-[var(--text-400-line-height)] [font-style:var(--text-400-font-style)]">
-        {total} sản phẩm
+        {total} products
       </div>
     </header>
   );

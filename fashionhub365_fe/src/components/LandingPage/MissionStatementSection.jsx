@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CaretLeft, CaretRight, Star } from "../Icons";
 
 const testimonials = [
@@ -15,28 +15,28 @@ const testimonials = [
     id: 2,
     rating: 5,
     quote:
-      "Love this shirt! Fits perfectly and the fabric is thick without being stiff.",
-    author: "JonSnSF",
-    product: "The Heavyweight Overshirt",
-    image: "/textures/landingpage/image-14.jpg",
+      "The perfect everyday tee. It's soft, drapes beautifully, and washes brilliantly.",
+    author: "SarahM",
+    product: "The Organic Cotton Box-Cut Tee",
+    image: "/textures/landingpage/image-1.jpg",
   },
   {
     id: 3,
     rating: 5,
     quote:
-      "Love this shirt! Fits perfectly and the fabric is thick without being stiff.",
-    author: "JonSnSF",
-    product: "The Heavyweight Overshirt",
-    image: "/textures/landingpage/image-14.jpg",
+      "These jeans are exactly what I've been looking for. So comfortable right out of the box.",
+    author: "Alex_D",
+    product: "The Slim 4-Way Stretch Organic Jean",
+    image: "/textures/landingpage/image-7.jpg",
   },
   {
     id: 4,
     rating: 5,
     quote:
-      "Love this shirt! Fits perfectly and the fabric is thick without being stiff.",
-    author: "JonSnSF",
-    product: "The Heavyweight Overshirt",
-    image: "/textures/landingpage/image-14.jpg",
+      "Incredible quality for the price. This sweater is warm without being too bulky.",
+    author: "Michael T.",
+    product: "The Premium Weight Crew",
+    image: "/textures/landingpage/image-12.jpg",
   },
 ];
 
@@ -55,92 +55,86 @@ export const MissionStatementSection = () => {
     );
   };
 
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setCurrentIndex((prevIndex) =>
+        prevIndex === testimonials.length - 1 ? 0 : prevIndex + 1,
+      );
+    }, 6000); // Auto-slide every 6 seconds
+
+    return () => clearInterval(intervalId);
+  }, []);
+
   const currentTestimonial = testimonials[currentIndex];
 
   return (
     <section className="flex-col items-center gap-[30px] flex relative self-stretch w-full flex-[0_0_auto]">
-      <div className="flex items-center gap-[74px] px-[35px] py-0 relative self-stretch w-full flex-[0_0_auto]">
+      <div className="flex flex-col lg:flex-row items-center justify-between w-full max-w-[1200px] mx-auto min-h-[500px] bg-[#fafafa]">
+        {/* Navigation Left */}
         <button
           onClick={handlePrevious}
           aria-label="Previous testimonial"
-          className="focus:outline-none focus:ring-2 focus:ring-x-600"
+          className="hidden lg:flex flex-shrink-0 w-12 h-12 items-center justify-center hover:bg-gray-200 rounded-full transition-colors mx-4"
         >
-          <CaretLeft className="!relative !w-6 !h-6" />
+          <CaretLeft className="w-8 h-8 text-gray-800" />
         </button>
 
-        <div className="flex flex-col items-start gap-10 px-[62px] py-0 relative flex-1 grow">
-          <h2 className="relative self-stretch mt-[-1.00px] font-text-400 font-[number:var(--text-400-font-weight)] text-x-600 text-[length:var(--text-400-font-size)] tracking-[var(--text-400-letter-spacing)] leading-[var(--text-400-line-height)] [font-style:var(--text-400-font-style)]">
+        {/* Text Content */}
+        <div className="flex flex-col items-center justify-center gap-6 px-10 py-12 flex-1 w-full text-center">
+          <h2 className="font-text-200 text-gray-900 text-[16px] tracking-wide uppercase mb-2">
             People Are Talking
           </h2>
 
-          <div className="flex flex-col items-start gap-[15px] relative self-stretch w-full flex-[0_0_auto]">
-            <div
-              className="inline-flex items-center gap-0.5 relative flex-[0_0_auto]"
-              role="img"
-              aria-label={`${currentTestimonial.rating} out of 5 stars`}
-            >
-              {Array.from({ length: currentTestimonial.rating }).map(
-                (_, index) => (
-                  <Star key={index} className="!relative !w-3.5 !h-3.5" />
-                ),
-              )}
-            </div>
-
-            <blockquote className="relative self-stretch font-display-100 font-[number:var(--display-100-font-weight)] text-x-600 text-[length:var(--display-100-font-size)] tracking-[var(--display-100-letter-spacing)] leading-[var(--display-100-line-height)] [font-style:var(--display-100-font-style)]">
-              &quot;{currentTestimonial.quote}&quot;
-            </blockquote>
+          <div className="flex items-center gap-1 text-black">
+            {Array.from({ length: currentTestimonial.rating }).map((_, index) => (
+              <Star key={index} className="w-4 h-4 fill-current" />
+            ))}
           </div>
 
-          <p className="relative self-stretch [font-family:'Maison_Neue-Regular',Helvetica] font-normal text-x-600 text-sm tracking-[1.40px] leading-[14px]">
-            <span className="tracking-[var(--text-300-letter-spacing)] leading-[var(--text-300-line-height)] font-text-300 [font-style:var(--text-300-font-style)] font-[number:var(--text-300-font-weight)] text-[length:var(--text-300-font-size)]">
-              -- {currentTestimonial.author},{" "}
-            </span>
+          <blockquote className="font-display-200 text-gray-900 text-[22px] md:text-[26px] leading-relaxed max-w-[450px]">
+            &quot;{currentTestimonial.quote}&quot;
+          </blockquote>
 
-            <a
-              href="#"
-              className="tracking-[var(--text-300-underline-letter-spacing)] leading-[var(--text-300-underline-line-height)] underline font-text-300-underline [font-style:var(--text-300-underline-font-style)] font-[number:var(--text-300-underline-font-weight)] text-[length:var(--text-300-underline-font-size)]"
-            >
+          <p className="font-text-200 text-gray-600 text-[13px] tracking-wide mt-2">
+            -- {currentTestimonial.author},{" "}
+            <button type="button" className="underline hover:text-black transition-colors bg-transparent border-0 cursor-pointer p-0 font-text-200">
               {currentTestimonial.product}
-            </a>
+            </button>
           </p>
         </div>
 
-        <img
-          className="relative flex-1 grow h-[695px] object-cover"
-          alt={`${currentTestimonial.author} wearing ${currentTestimonial.product}`}
-          src={currentTestimonial.image}
-        />
+        {/* Image Content */}
+        <div className="flex-1 w-full lg:max-w-[50%] h-[500px] md:h-[600px] relative overflow-hidden bg-gray-100">
+          <img
+            key={currentTestimonial.id}
+            className="absolute inset-0 w-full h-full object-cover animate-fade-in"
+            alt={`${currentTestimonial.author} wearing ${currentTestimonial.product}`}
+            src={currentTestimonial.image}
+          />
+        </div>
 
+        {/* Navigation Right */}
         <button
           onClick={handleNext}
           aria-label="Next testimonial"
-          className="focus:outline-none focus:ring-2 focus:ring-x-600"
+          className="hidden lg:flex flex-shrink-0 w-12 h-12 items-center justify-center hover:bg-gray-200 rounded-full transition-colors mx-4"
         >
-          <CaretRight className="!relative !w-6 !h-6" />
+          <CaretRight className="w-8 h-8 text-gray-800" />
         </button>
       </div>
 
-      <div className="flex flex-col items-center gap-[73px] px-[77px] py-0 relative self-stretch w-full flex-[0_0_auto]">
-        <div
-          className="inline-flex items-start gap-3 relative flex-[0_0_auto]"
-          role="tablist"
-          aria-label="Testimonial navigation"
-        >
-          {testimonials.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentIndex(index)}
-              className={`${
-                index === currentIndex ? "bg-x-500" : "bg-x-200"
-              } relative w-[7px] h-[7px] rounded-[3.5px] focus:outline-none focus:ring-2 focus:ring-x-600`}
-              role="tab"
-              aria-selected={index === currentIndex}
-              aria-label={`Go to testimonial ${index + 1}`}
-            />
-          ))}
-        </div>
-
-        <hr className="h-px bg-x-600 relative self-stretch w-full border-0" />
+      {/* Pagination dots */}
+      <div className="flex items-center justify-center gap-3 mt-8">
+        {testimonials.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => setCurrentIndex(index)}
+            className={`w-2 h-2 rounded-full transition-all duration-300 ${
+              index === currentIndex ? "bg-black scale-125" : "bg-gray-300 hover:bg-gray-400"
+            }`}
+            aria-label={`Go to testimonial ${index + 1}`}
+          />
+        ))}
       </div>
     </section>
   );

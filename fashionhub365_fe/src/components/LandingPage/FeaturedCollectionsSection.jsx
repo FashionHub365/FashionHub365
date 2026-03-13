@@ -4,48 +4,46 @@ export const FeaturedCollectionsSection = () => {
   const collections = [
     {
       id: 1,
-      title: "New Arrivals",
-      buttonText: "SHOP THE LATEST",
-      backgroundImage: "/textures/landingpage/frame-1.jpg",
-      link: "/listing?sort=newest",
-    },
-    {
-      id: 2,
-      title: "Best-Sellers",
-      buttonText: "SHOP YOUR FAVORITES",
-      backgroundImage: "/textures/landingpage/frame-2.jpg",
+      topTitle: "Our Holiday Gift Picks",
+      bottomText: "The best presents for everyone on your list.",
+      image: "/textures/landingpage/frame-1.jpg",
       link: "/listing?sort=best_sellers",
     },
     {
-      id: 3,
-      title: "Top Rated",
-      buttonText: "SHOP TOP PICKS",
-      backgroundImage: "/textures/landingpage/frame-5.jpg",
-      link: "/listing?sort=top_rated",
+      id: 2,
+      topTitle: "Cleaner Fashion",
+      bottomText: "See the sustainability efforts behind each of our products.",
+      image: "/textures/landingpage/frame-2.jpg",
+      link: "/listing?category=conscious",
     },
   ];
 
   return (
-    <section className="items-start gap-3 px-[42px] py-0 flex relative self-stretch w-full flex-[0_0_auto]">
+    <section className="flex flex-col md:flex-row items-start justify-center gap-8 px-6 md:px-12 py-16 w-full max-w-[1400px] mx-auto bg-white">
       {collections.map((collection) => (
         <article
           key={collection.id}
-          className="flex flex-col h-[534px] items-center justify-center gap-[23px] relative flex-1 grow bg-cover bg-[50%_50%]"
-          style={{ backgroundImage: `url(${collection.backgroundImage})` }}
+          className="flex flex-col items-center gap-4 flex-1 w-full"
         >
-          <h2 className="relative self-stretch font-display-400 font-[number:var(--display-400-font-weight)] text-white text-[length:var(--display-400-font-size)] text-center tracking-[var(--display-400-letter-spacing)] leading-[var(--display-400-line-height)] [font-style:var(--display-400-font-style)]">
-            {collection.title}
+          <h2 className="font-text-200 text-[20px] md:text-[24px] text-gray-900 tracking-wide text-center">
+            {collection.topTitle}
           </h2>
 
           <Link
             to={collection.link}
-            className="all-[unset] box-border flex w-60 items-center justify-center gap-2.5 px-0 py-3 relative flex-[0_0_auto] bg-white cursor-pointer hover:opacity-90 transition-opacity no-underline"
-            aria-label={`${collection.buttonText} for ${collection.title}`}
+            className="w-full relative aspect-square md:aspect-[4/5] overflow-hidden group block"
+            aria-label={collection.topTitle}
           >
-            <span className="relative w-fit mt-[-1.00px] font-text-300 font-[number:var(--text-300-font-weight)] text-x-500 text-[length:var(--text-300-font-size)] text-center tracking-[var(--text-300-letter-spacing)] leading-[var(--text-300-line-height)] whitespace-nowrap [font-style:var(--text-300-font-style)]">
-              {collection.buttonText}
-            </span>
+            <img 
+              src={collection.image} 
+              alt={collection.topTitle} 
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+            />
           </Link>
+
+          <p className="font-text-200 text-gray-700 text-[14px] tracking-wide text-center mt-2 max-w-[90%] mx-auto">
+            {collection.bottomText}
+          </p>
         </article>
       ))}
     </section>
