@@ -157,7 +157,7 @@ const createStore = async (ownerUserId, payload) => {
         description: payload.description || '',
         email: payload.email || '',
         phone: payload.phone || '',
-        status: payload.status || 'active',
+        status: payload.status || 'pending',
         is_draft: payload.is_draft !== undefined ? !!payload.is_draft : true,
         information: payload.information || {},
         identification: payload.identification || {},
@@ -299,6 +299,15 @@ const getFollowingStores = async (userId, page = 1, limit = 6) => {
     };
 };
 
+/**
+ * Lấy cửa hàng của người dùng hiện tại
+ * @param {string} userId
+ * @returns {Promise<Store>}
+ */
+const getMyStore = async (userId) => {
+    return Store.findOne({ owner_user_id: userId, status: { $ne: 'closed' } });
+};
+
 module.exports = {
     getPublicStoreById,
     listStores,
@@ -310,5 +319,6 @@ module.exports = {
     getFollowingStatus,
     getStoreFollowerCount,
     getFollowingStores,
+    getMyStore,
 };
 

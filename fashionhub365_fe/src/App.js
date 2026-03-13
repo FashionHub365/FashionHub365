@@ -25,6 +25,7 @@ import SellerOrders from "./pages/seller/sellerOrders/SellerOrders";
 import SellerProducts from "./pages/seller/SellerProducts";
 import SellerDashboard from "./pages/seller/sellerDashboard/SellerDashboard";
 import SellerLayout from "./pages/seller/components/SellerLayout";
+import SellerRegistration from "./pages/seller/SellerRegistration";
 
 import { CheckoutShipping } from "./pages/CheckoutShipping";
 import { CheckoutReview } from "./pages/CheckoutReview";
@@ -64,6 +65,10 @@ function App() {
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/checkout" element={<CheckoutShipping />} />
                   <Route path="/checkout/review" element={<CheckoutReview />} />
+                </Route>
+
+                <Route element={<RoleRoute allowedRoles={['user']} />}>
+                  <Route path="/seller/register" element={<SellerRegistration />} />
                 </Route>
 
                 {/* Seller Routes (Admin can also access) */}

@@ -88,6 +88,15 @@ const getFollowingStores = catchAsync(async (req, res) => {
     });
 });
 
+const getMyStore = catchAsync(async (req, res) => {
+    const userId = req.user.id || req.user._id;
+    const store = await storeService.getMyStore(userId);
+    res.status(httpStatus.OK).send({
+        success: true,
+        data: { store },
+    });
+});
+
 module.exports = {
     listStores,
     getStoreDetail,
@@ -98,6 +107,7 @@ module.exports = {
     getFollowingStatus,
     getStoreFollowerCount,
     getFollowingStores,
+    getMyStore,
 };
 
 
