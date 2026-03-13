@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { StyleSheet, Text, View,  TouchableOpacity, ScrollView, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { router } from 'expo-router';
 import { IconSymbol } from '../../components/ui/icon-symbol';

@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, SafeAreaView, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, Text, View, ScrollView,  TouchableOpacity, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import NewArrivalsSection from '../../components/Home/NewArrivalsSection';
 import HeroBannerSection from '../../components/Home/HeroBannerSection';
 import { IconSymbol } from '../../components/ui/icon-symbol';

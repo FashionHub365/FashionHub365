@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View, SafeAreaView, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View,  FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCart } from '../../contexts/CartContext';
 import CartItem from '../../components/Cart/CartItem';
 import { router } from 'expo-router';

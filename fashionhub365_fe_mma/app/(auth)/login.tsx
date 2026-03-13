@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, Button, SafeAreaView, Alert } from 'react-native';
+import { StyleSheet, Text, View, TextInput, Button,  Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Link } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 

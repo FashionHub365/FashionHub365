@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, Button, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TextInput, Button,  Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, Link } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { IconSymbol } from '../../components/ui/icon-symbol';

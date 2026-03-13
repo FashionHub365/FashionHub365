@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 
 const menuItems = [
@@ -76,7 +76,8 @@ const navClass = ({ isActive }) =>
 
 const AdminShell = () => {
   const location = useLocation();
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [openMenus, setOpenMenus] = useState({ users_group: true });
@@ -111,14 +112,16 @@ const AdminShell = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <div>
-                <h1 className="text-base font-bold text-slate-900 leading-tight">AdminPro</h1>
-                <p className="text-[10px] text-slate-500 font-medium">Management System</p>
-              </div>
+              <Link to="/">
+                <div>
+                  <h1 className="text-base font-bold text-slate-900 leading-tight">AdminPro</h1>
+                  <p className="text-[10px] text-slate-500 font-medium">Management System</p>
+                </div>
+              </Link>
             </div>
           </div>
 
-          <nav className="p-3 space-y-1 overflow-y-auto flex-1 mt-2">
+          <nav className="p-3 space-y-1 overflow-y-auto text-left flex-1 mt-2">
             {menuItems.map((item) => {
               if (item.children) {
                 const isOpen = openMenus[item.id];
@@ -281,14 +284,27 @@ const AdminShell = () => {
 
                 {accountOpen && (
                   <div className="absolute right-0 mt-2 w-52 rounded-xl border border-slate-200 bg-white shadow-lg p-1.5">
-                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 rounded-lg hover:bg-slate-100 transition-colors">
+                    <button 
+                      onClick={() => { setAccountOpen(false); navigate('/profile'); }}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+                    >
                       My Profile
                     </button>
-                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 rounded-lg hover:bg-slate-100 transition-colors">
+                    <button 
+                      onClick={() => { setAccountOpen(false); navigate('/admin/system'); }}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+                    >
                       Account Settings
                     </button>
                     <div className="my-1 border-t border-slate-100" />
-                    <button className="w-full text-left px-3 py-2 text-sm text-rose-600 font-medium rounded-lg hover:bg-rose-50 transition-colors">
+                    <button 
+                      onClick={() => {
+                        if (logout) logout();
+                        setAccountOpen(false);
+                        navigate('/');
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm text-rose-600 font-medium rounded-lg hover:bg-rose-50 transition-colors"
+                    >
                       Logout
                     </button>
                   </div>

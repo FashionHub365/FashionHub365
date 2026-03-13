@@ -45,7 +45,7 @@ const extractDirectPermissionId = (override) => {
   return permissionId ? String(permissionId) : "";
 };
 
-const PermissionList = ({ title, values, tone = "slate" }) => {
+const PermissionList = ({ title, values, tone = "slate", permissionCodeToName }) => {
   const colorClass = tone === "rose"
     ? "bg-rose-50 text-rose-700"
     : tone === "emerald"
@@ -60,14 +60,18 @@ const PermissionList = ({ title, values, tone = "slate" }) => {
         <p className="text-sm text-slate-500">No permissions.</p>
       ) : (
         <div className="max-h-[180px] overflow-y-auto flex flex-wrap gap-1.5">
-          {values.map((code) => (
-            <span
-              key={`${title}-${code}`}
-              className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${colorClass}`}
-            >
-              {code}
-            </span>
-          ))}
+          {values.map((code) => {
+            const displayName = permissionCodeToName?.get(code) || code;
+            return (
+              <span
+                key={`${title}-${code}`}
+                title={code}
+                className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${colorClass}`}
+              >
+                {displayName}
+              </span>
+            );
+          })}
         </div>
       )}
     </div>
@@ -107,6 +111,14 @@ const AdminUserPermissionsPage = () => {
   const [directDenyPermissions, setDirectDenyPermissions] = useState([]);
   const [rolePermissions, setRolePermissions] = useState([]);
   const [effectivePermissions, setEffectivePermissions] = useState([]);
+
+  const permissionCodeToName = useMemo(() => {
+    const map = new Map();
+    permissionCatalog.forEach((p) => {
+      if (p.code) map.set(p.code, p.name || p.code);
+    });
+    return map;
+  }, [permissionCatalog]);
 
   const currentEffectiveRoles = useMemo(() => getUserRoleSlugs(currentUser), [currentUser]);
   const currentRawRoles = useMemo(() => extractRawRoleSlugs(currentUser), [currentUser]);
@@ -338,7 +350,7 @@ const AdminUserPermissionsPage = () => {
     <section className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">User Permissions</h1>
+          <h1 className="text-lg text-left font-semibold text-slate-900">User Permissions</h1>
           <p className="text-sm text-slate-500 mt-1">
             Manage user-specific permission overrides (ALLOW / DENY).
           </p>
@@ -412,9 +424,8 @@ const AdminUserPermissionsPage = () => {
                     type="button"
                     key={item._id}
                     onClick={() => onSelectUser(item._id)}
-                    className={`w-full text-left px-3 py-3 border-b border-slate-100 transition-colors ${
-                      active ? "bg-indigo-50" : "hover:bg-slate-50"
-                    }`}
+                    className={`w-full text-left px-3 py-3 border-b border-slate-100 transition-colors ${active ? "bg-indigo-50" : "hover:bg-slate-50"
+                      }`}
                   >
                     <p className="text-sm font-semibold text-slate-900 truncate">{getDisplayName(item)}</p>
                     <p className="text-xs text-slate-500 truncate mt-0.5">{item.email || "-"}</p>
@@ -542,15 +553,16 @@ const AdminUserPermissionsPage = () => {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <span
-                                className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                  effect === "DENY"
+                                className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${effect === "DENY"
                                     ? "bg-rose-100 text-rose-700"
                                     : "bg-emerald-100 text-emerald-700"
-                                }`}
+                                  }`}
                               >
                                 {effect}
                               </span>
-                              <span className="text-xs font-semibold text-slate-800 break-all">{code}</span>
+                              <span className="text-xs font-semibold text-slate-800 break-all" title={code}>
+                                {permissionCodeToName.get(code) || code}
+                              </span>
                             </div>
                             {override?.note ? (
                               <p className="text-xs text-slate-500 mt-1">{override.note}</p>
@@ -572,12 +584,12 @@ const AdminUserPermissionsPage = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <PermissionList title="Role Permissions" values={rolePermissions} />
-                <PermissionList title="Direct Allow" values={directAllowPermissions} tone="emerald" />
-                <PermissionList title="Direct Deny" values={directDenyPermissions} tone="rose" />
+                <PermissionList title="Role Permissions" values={rolePermissions} permissionCodeToName={permissionCodeToName} />
+                <PermissionList title="Direct Allow" values={directAllowPermissions} tone="emerald" permissionCodeToName={permissionCodeToName} />
+                <PermissionList title="Direct Deny" values={directDenyPermissions} tone="rose" permissionCodeToName={permissionCodeToName} />
               </div>
 
-              <PermissionList title="Effective Permissions" values={effectivePermissions} />
+              <PermissionList title="Effective Permissions" values={effectivePermissions} permissionCodeToName={permissionCodeToName} />
             </div>
           )}
         </div>
