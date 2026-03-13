@@ -21,13 +21,6 @@ const login = {
     }),
 };
 
-const verifyOtp = {
-    body: Joi.object().keys({
-        email: Joi.string().required().email(),
-        otpCode: Joi.string().required().length(6),
-        rememberMe: Joi.boolean().default(false),
-    }),
-};
 
 const tokenValid = {
     body: Joi.object().keys({
@@ -92,7 +85,6 @@ const googleLogin = {
 module.exports = {
     register,
     login,
-    verifyOtp,
     tokenValid,
     logout,
     refreshTokens,

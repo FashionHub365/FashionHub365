@@ -1,7 +1,7 @@
 const httpStatus = require('http-status');
 const crypto = require('crypto');
 const catchAsync = require('../utils/catchAsync');
-const { authService, userService, tokenService, emailService, otpService } = require('../services');
+const { authService, userService, tokenService, emailService } = require('../services');
 const { Role, SecurityEvent, User, EmailVerificationToken, PasswordResetToken, Session } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { getBearerToken, invalidateAccessToken, isAccessTokenValid } = require('../utils/token.util');
@@ -106,73 +106,16 @@ const register = catchAsync(async (req, res) => {
 const login = catchAsync(async (req, res) => {
     const { identifier, password, rememberMe } = req.body;
     const user = await authService.loginUserWithEmailAndPassword(identifier, password, req.ip, req.headers['user-agent']);
-    const { requiresOtp } = await authService.shouldRequireOtpForLogin(user, req.ip, req.headers['user-agent']);
-
-    if (!requiresOtp) {
-        const tokens = await tokenService.generateAuthTokens(
-            user,
-            { agent: req.headers['user-agent'] },
-            req.ip,
-            { rememberMe: !!rememberMe }
-        );
-
-        setRefreshTokenCookie(res, tokens.refresh.token, tokens.refresh.expires);
-
-        return res.send({
-            success: true,
-            data: {
-                requiresOtp: false,
-                user: sanitizeUser(user),
-                tokens: {
-                    access: tokens.access,
-                    refresh: {
-                        expires: tokens.refresh.expires,
-                    },
-                },
-            },
-        });
-    }
-
-    const otpCode = await otpService.createLoginOtp(user.email);
-    await otpService.saveRememberMe(user.email, rememberMe);
-
-    await emailService.sendLoginOtpEmail(user.email, otpCode);
-
-    res.send({
-        success: true,
-        data: {
-            requiresOtp: true,
-            email: user.email,
-            message: 'OTP sent successfully. Please verify OTP to complete login.',
-            ...(process.env.NODE_ENV === 'development' && { otpCode }),
-        },
-    });
-});
-
-const verifyOtp = catchAsync(async (req, res) => {
-    let { email, otpCode, rememberMe } = req.body;
-    email = email.toLowerCase();
-
-    if (!(await otpService.verifyLoginOtp(email, otpCode))) {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid or expired OTP');
-    }
-
-    const user = await userService.getUserByEmail(email);
-    if (!user) {
-        throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
-    }
-
-    const resolvedRememberMe = await otpService.consumeRememberMe(email, rememberMe);
     const tokens = await tokenService.generateAuthTokens(
         user,
         { agent: req.headers['user-agent'] },
         req.ip,
-        { rememberMe: resolvedRememberMe }
+        { rememberMe: !!rememberMe }
     );
 
     setRefreshTokenCookie(res, tokens.refresh.token, tokens.refresh.expires);
 
-    res.send({
+    return res.send({
         success: true,
         data: {
             user: sanitizeUser(user),
@@ -185,6 +128,7 @@ const verifyOtp = catchAsync(async (req, res) => {
         },
     });
 });
+
 
 const googleLogin = catchAsync(async (req, res) => {
     const { code } = req.body;
@@ -505,7 +449,6 @@ const verifyEmail = catchAsync(async (req, res) => {
 module.exports = {
     register,
     login,
-    verifyOtp,
     logout,
     refreshTokens,
     getMe,

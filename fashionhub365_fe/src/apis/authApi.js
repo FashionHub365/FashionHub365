@@ -7,9 +7,6 @@ const authApi = {
     login: (data) => {
         return axiosClient.post('/auth/login', data);
     },
-    verifyOtp: (data) => {
-        return axiosClient.post('/auth/verify-otp', data);
-    },
     googleLogin: (code) => {
         return axiosClient.post('/auth/google', { code });
     },

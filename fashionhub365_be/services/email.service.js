@@ -46,13 +46,6 @@ If you did not create an account, then ignore this email.`;
     await sendEmail(to, subject, text);
 };
 
-const sendLoginOtpEmail = async (to, otpCode) => {
-    const subject = 'Your login verification code';
-    const text = `Your FashionHub365 login verification code is: ${otpCode}
-This code expires in 5 minutes. If you did not try to sign in, ignore this email.`;
-    await sendEmail(to, subject, text);
-};
-
 const sendWelcomeEmail = async (to) => {
     const subject = 'Welcome to FashionHub365';
     const text = `Your email has been verified successfully.
@@ -72,7 +65,6 @@ module.exports = {
     sendEmail,
     sendResetPasswordEmail,
     sendVerificationEmail,
-    sendLoginOtpEmail,
     sendWelcomeEmail,
     sendPasswordChangedConfirmationEmail,
 };
