@@ -52,23 +52,23 @@ export const HeaderSection = () => {
   return (
     <>
       <header className="flex flex-col items-center sticky top-0 left-0 self-stretch w-full flex-[0_0_auto] bg-white z-[60]">
-        <div className="flex items-center justify-around gap-1 px-[30px] py-[7px] relative self-stretch w-full flex-[0_0_auto] bg-x-600">
-          <div className="flex items-center justify-center gap-1 relative flex-1 grow">
-            <p className="relative w-fit mt-[-1.00px] font-text-200-demi font-[number:var(--text-200-demi-font-weight)] text-white text-[length:var(--text-200-demi-font-size)] text-center tracking-[var(--text-200-demi-letter-spacing)] leading-[var(--text-200-demi-line-height)] whitespace-nowrap [font-style:var(--text-200-demi-font-style)]">
+        <div className="flex items-center justify-around gap-1 px-4 md:px-[30px] py-[7px] relative self-stretch w-full flex-[0_0_auto] bg-x-600 overflow-hidden">
+          <div className="flex items-center justify-center gap-1 relative flex-1 grow text-xs md:text-sm">
+            <p className="relative w-fit mt-[-1.00px] font-text-200-demi font-[number:var(--text-200-demi-font-weight)] text-white text-[length:var(--text-200-demi-font-size)] text-center tracking-[var(--text-200-demi-letter-spacing)] leading-[var(--text-200-demi-line-height)] whitespace-normal md:whitespace-nowrap [font-style:var(--text-200-demi-font-style)]">
               Get early access on launches and offers.
             </p>
 
             <Link
               to="/register"
-              className="relative w-fit mt-[-1.00px] font-text-200-underline font-[number:var(--text-200-underline-font-weight)] text-white text-[length:var(--text-200-underline-font-size)] text-center tracking-[var(--text-200-underline-letter-spacing)] leading-[var(--text-200-underline-line-height)] underline whitespace-nowrap [font-style:var(--text-200-underline-font-style)]"
+              className="relative w-fit mt-[-1.00px] font-text-200-underline font-[number:var(--text-200-underline-font-weight)] text-white text-[length:var(--text-200-underline-font-size)] text-center tracking-[var(--text-200-underline-letter-spacing)] leading-[var(--text-200-underline-line-height)] underline whitespace-nowrap [font-style:var(--text-200-underline-font-style)] shrink-0"
             >
               Sign Up For Texts
             </Link>
 
-            <ArrowRight className="!relative !w-3.5 !h-3.5" />
+            <ArrowRight className="!relative !w-3.5 !h-3.5 shrink-0 hidden md:block" />
           </div>
 
-          <div className="inline-flex items-center gap-3 absolute top-[calc(50.00%_-_8px)] right-[30px]">
+          <div className="hidden md:inline-flex items-center gap-3 absolute top-[calc(50.00%_-_8px)] right-[30px]">
             <img
               className="relative w-[21px] h-[15px]"
               alt="Viet Nam Flag"
@@ -82,10 +82,10 @@ export const HeaderSection = () => {
         </div>
 
         <nav
-          className="flex items-center justify-between px-[68px] py-0 relative self-stretch w-full flex-[0_0_auto] ml-[-1.00px] mr-[-1.00px] border-b [border-bottom-style:solid] border-x-200"
+          className="flex flex-wrap md:flex-nowrap items-center justify-between px-4 md:px-[68px] py-3 md:py-0 relative self-stretch w-full flex-[0_0_auto] ml-[-1.00px] mr-[-1.00px] border-b [border-bottom-style:solid] border-x-200 gap-2 md:gap-0"
           aria-label="Main navigation"
         >
-          <ul className="inline-flex items-start relative flex-[0_0_auto] h-full">
+          <ul className="flex flex-row md:inline-flex items-center overflow-x-auto w-full md:w-auto order-last md:order-none justify-center md:justify-start hide-scrollbar">
             {mainNavItems.map((item, index) => (
               <li
                 key={index}
@@ -103,7 +103,7 @@ export const HeaderSection = () => {
             ))}
           </ul>
 
-          <div className="inline-flex items-center justify-end relative flex-[0_0_auto]">
+          <div className="inline-flex items-center justify-end relative flex-[0_0_auto] order-2 md:order-none">
             <button
               className="inline-flex items-center justify-center gap-2.5 p-3 relative flex-[0_0_auto]"
               aria-label="Search"
@@ -226,7 +226,7 @@ export const HeaderSection = () => {
               <div className="relative">
                 <ShoppingCartSimple className="!relative !w-4 !h-4" />
                 {cartData.totalItems > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                  <span className="absolute -top-2 -right-2 bg-[#ef4444] text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                     {cartData.totalItems > 9 ? '9+' : cartData.totalItems}
                   </span>
                 )}
@@ -234,7 +234,7 @@ export const HeaderSection = () => {
             </button>
           </div>
 
-          <Link to="/" className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 block cursor-pointer z-10">
+          <Link to="/" className="md:absolute md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-32 md:w-48 block cursor-pointer z-10 order-1 md:order-none">
             <img
               className="w-full h-full object-contain"
               alt="FashionHub Logo"
