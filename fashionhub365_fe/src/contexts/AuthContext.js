@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }) => {
                     localStorage.setItem('user', JSON.stringify(user));
                     setUser(user);
                     setIsAuthenticated(true);
-                    return { success: true, requiresOtp: false };
+                    return { success: true, requiresOtp: false, user };
                 }
 
                 return {
@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('user', JSON.stringify(user));
                 setUser(user);
                 setIsAuthenticated(true);
-                return { success: true };
+                return { success: true, user };
             }
         } catch (error) {
             return {
@@ -92,7 +92,7 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('user', JSON.stringify(user));
                 setUser(user);
                 setIsAuthenticated(true);
-                return { success: true };
+                return { success: true, user };
             }
         } catch (error) {
             return {

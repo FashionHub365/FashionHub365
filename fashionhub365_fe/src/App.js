@@ -23,7 +23,6 @@ import { Layout } from "./components/Layout";
 import "./App.css";
 import SellerOrders from "./pages/seller/sellerOrders/SellerOrders";
 import SellerProducts from "./pages/seller/SellerProducts";
-import AdminCategories from "./pages/admin/AdminCategories";
 import SellerDashboard from "./pages/seller/sellerDashboard/SellerDashboard";
 import SellerLayout from "./pages/seller/components/SellerLayout";
 
@@ -31,6 +30,7 @@ import { CheckoutShipping } from "./pages/CheckoutShipping";
 import { CheckoutReview } from "./pages/CheckoutReview";
 import RoleRoute from "./components/RoleRoute";
 import Forbidden from "./pages/Forbidden";
+import AdminRoutes from "./modules/admin/routes/AdminRoutes";
 
 function App() {
   return (
@@ -77,7 +77,7 @@ function App() {
 
                 {/* Admin Routes */}
                 <Route element={<RoleRoute allowedRoles={['admin']} />}>
-                  <Route path="/admin/categories" element={<AdminCategories />} />
+                  <Route path="/admin/*" element={<AdminRoutes />} />
                 </Route>
 
                 {/* 404 Not Found */}

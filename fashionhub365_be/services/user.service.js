@@ -70,7 +70,7 @@ const assignGlobalRole = async (userId, roleIds, adminId) => {
     const user = await User.findById(userId);
     if (!user) throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
 
-    const roles = await Role.find({ _id: { $in: roleIds }, scope: 'GLOBAL' });
+    const roles = await Role.find({ _id: { $in: roleIds }, scope: 'GLOBAL', deleted_at: null });
     if (roles.length !== roleIds.length) {
         throw new ApiError(httpStatus.BAD_REQUEST, 'One or more roles are invalid or not GLOBAL scope');
     }
@@ -92,7 +92,7 @@ const assignGlobalRole = async (userId, roleIds, adminId) => {
 };
 
 const assignStoreRole = async (userId, storeId, roleIds, adminId) => {
-    const roles = await Role.find({ _id: { $in: roleIds }, scope: 'STORE' });
+    const roles = await Role.find({ _id: { $in: roleIds }, scope: 'STORE', deleted_at: null });
     if (roles.length !== roleIds.length) {
         throw new ApiError(httpStatus.BAD_REQUEST, 'One or more roles are invalid or not STORE scope');
     }

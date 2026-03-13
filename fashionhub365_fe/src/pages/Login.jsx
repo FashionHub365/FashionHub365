@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useGoogleLogin } from '@react-oauth/google';
+import { getDefaultRouteByRole } from '../utils/roleUtils';
 
 export const Login = () => {
     const [identifier, setIdentifier] = useState('');
@@ -26,7 +27,7 @@ export const Login = () => {
             const result = await googleLogin(codeResponse.code);
             setIsGoogleLoading(false);
             if (result.success) {
-                navigate('/');
+                navigate(getDefaultRouteByRole(result.user));
             } else {
                 setErrors({ global: result.message });
             }
@@ -63,7 +64,7 @@ export const Login = () => {
                 setIsOtpStep(true);
                 setInfo(result.message || `OTP has been sent to ${result.email || identifier}.`);
             } else {
-                navigate('/');
+                navigate(getDefaultRouteByRole(result.user));
             }
         } else {
             const msg = result.message || '';
@@ -93,7 +94,7 @@ export const Login = () => {
         setIsLoading(false);
 
         if (result.success) {
-            navigate('/');
+            navigate(getDefaultRouteByRole(result.user));
         } else {
             setErrors({ global: result.message });
         }
