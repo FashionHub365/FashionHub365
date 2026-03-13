@@ -128,29 +128,6 @@ const loginUserWithEmailAndPassword = async (identifier, password, ipAddress, us
     return user;
 };
 
-const shouldRequireOtpForLogin = async (user, ipAddress, userAgent) => {
-    const roleSlugs = (user.global_role_ids || []).map((role) => role.slug);
-    if (roleSlugs.some((slug) => ADMIN_ROLE_SLUGS.includes(slug))) {
-        return { requiresOtp: true, reason: 'admin_role' };
-    }
-
-    const normalizedDeviceInfo = tokenService.normalizeDeviceInfo({ agent: userAgent });
-    const knownDeviceValues = [
-        JSON.stringify(normalizedDeviceInfo),
-        JSON.stringify(userAgent),
-    ];
-
-    const knownSession = await Session.findOne({
-        user_id: user._id,
-        ip_address: ipAddress,
-        device_info: { $in: knownDeviceValues },
-    }).lean();
-
-    return {
-        requiresOtp: !knownSession,
-        reason: knownSession ? 'known_device' : 'unknown_device',
-    };
-};
 
 const refreshAuth = async (refreshToken, ipAddress, userAgent) => {
     const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
@@ -295,7 +272,6 @@ const loginWithGoogle = async (googlePayload, ipAddress, userAgent) => {
 
 module.exports = {
     loginUserWithEmailAndPassword,
-    shouldRequireOtpForLogin,
     refreshAuth,
     logout,
     loginWithGoogle,

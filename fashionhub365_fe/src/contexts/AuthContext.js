@@ -38,36 +38,7 @@ export const AuthProvider = ({ children }) => {
     const login = async (identifier, password, rememberMe = true) => {
         try {
             const response = await authApi.login({ identifier, password, rememberMe });
-            if (response.success) {
-                if (response.data.requiresOtp === false && response.data.user && response.data.tokens) {
-                    const { user, tokens } = response.data;
-                    localStorage.setItem('tokens', JSON.stringify(tokens));
-                    localStorage.setItem('user', JSON.stringify(user));
-                    setUser(user);
-                    setIsAuthenticated(true);
-                    return { success: true, requiresOtp: false };
-                }
-
-                return {
-                    success: true,
-                    requiresOtp: true,
-                    email: response.data.email,
-                    message: response.data.message,
-                    otpCode: response.data.otpCode,
-                };
-            }
-        } catch (error) {
-            return {
-                success: false,
-                message: error.response?.data?.error?.message || error.response?.data?.message || 'Login failed'
-            };
-        }
-    };
-
-    const verifyOtpLogin = async (email, otpCode, rememberMe = true) => {
-        try {
-            const response = await authApi.verifyOtp({ email, otpCode, rememberMe });
-            if (response.success) {
+            if (response.success && response.data.user && response.data.tokens) {
                 const { user, tokens } = response.data;
                 localStorage.setItem('tokens', JSON.stringify(tokens));
                 localStorage.setItem('user', JSON.stringify(user));
@@ -78,7 +49,7 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             return {
                 success: false,
-                message: error.response?.data?.error?.message || error.response?.data?.message || 'OTP verification failed'
+                message: error.response?.data?.error?.message || error.response?.data?.message || 'Login failed'
             };
         }
     };
@@ -151,7 +122,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated, loading, login, verifyOtpLogin, googleLogin, register, forgotPassword, resetPassword, logout }}>
+        <AuthContext.Provider value={{ user, isAuthenticated, loading, login, googleLogin, register, forgotPassword, resetPassword, logout }}>
             {children}
         </AuthContext.Provider>
     );
