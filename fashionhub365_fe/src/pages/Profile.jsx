@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import addressApi from "../apis/addressApi";
 import checkoutApi from "../apis/checkoutApi";
+import storeApi from "../apis/store.api";
 import wishlistApi from "../apis/wishlistApi";
 import { Trash } from "../components/Icons";
 import { useAuth } from "../contexts/AuthContext";
@@ -98,6 +99,13 @@ const TabIcon = ({ id }) => {
             </svg>
         );
     }
+    if (id === "following") {
+        return (
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+        );
+    }
     return (
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -137,9 +145,8 @@ const OrdersTab = ({ orders, loading, error, onShop }) => {
                             key={tab.id}
                             type="button"
                             onClick={() => setActiveStatusTab(tab.id)}
-                            className={`relative whitespace-nowrap px-5 py-3 text-base transition-colors ${
-                                activeStatusTab === tab.id ? "text-gray-900" : "text-gray-800 hover:text-gray-900"
-                            }`}
+                            className={`relative whitespace-nowrap px-5 py-3 text-base transition-colors ${activeStatusTab === tab.id ? "text-gray-900" : "text-gray-800 hover:text-gray-900"
+                                }`}
                         >
                             {tab.label}
                             <span className={`absolute bottom-0 left-0 h-0.5 w-full ${activeStatusTab === tab.id ? "bg-gray-900" : "bg-transparent"}`} />
@@ -303,6 +310,65 @@ const WishlistTab = ({ wishlist, loading, currentPage, totalPages, onPageChange,
                         {currentPage}/{totalPages}
                     </span>
                     <button type="button" onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))} className="rounded border px-3 py-1 text-sm">
+                        Next
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const FollowingTab = ({ stores, loading, currentPage, totalPages, onPageChange, onUnfollow, onOpenShop }) => {
+    if (loading) return <div className="py-16 text-center text-sm text-gray-500">Loading followed shops...</div>;
+    if (!stores.length) return <div className="rounded-2xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">You are not following any shops yet.</div>;
+
+    return (
+        <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+                {stores.map((shop) => (
+                    <article key={shop._id} className="group overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all hover:shadow-md">
+                        <div className="flex items-center gap-4 p-4">
+                            <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-full border border-gray-100 bg-gray-50">
+                                <img src={shop.profile?.logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(shop.display_name)}&background=f3f4f6&color=6b7280`} alt={shop.display_name} className="h-full w-full object-cover" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <h4 className="truncate text-sm font-bold text-gray-900 group-hover:text-gray-700 cursor-pointer" onClick={() => onOpenShop(shop._id)}>
+                                    {shop.display_name}
+                                </h4>
+                                <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                                    <span className="inline-block h-2 w-2 rounded-full bg-emerald-500"></span>
+                                    Active Shop
+                                </p>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => onOpenShop(shop._id)}
+                                    className="rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-gray-800"
+                                >
+                                    Visit
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => onUnfollow(shop._id)}
+                                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                >
+                                    Unfollow
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+                ))}
+            </div>
+            {totalPages > 1 && (
+                <div className="mt-6 flex items-center justify-center gap-2">
+                    <button type="button" onClick={() => onPageChange(Math.max(currentPage - 1, 1))} disabled={currentPage === 1} className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:opacity-50">
+                        Prev
+                    </button>
+                    <span className="text-xs font-medium text-gray-600">
+                        Page {currentPage} of {totalPages}
+                    </span>
+                    <button type="button" onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))} disabled={currentPage === totalPages} className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:opacity-50">
                         Next
                     </button>
                 </div>
@@ -509,6 +575,20 @@ export const Profile = () => {
         }
     };
 
+    const fetchFollowing = async (page) => {
+        setLoadingFollowing(true);
+        try {
+            const res = await storeApi.getFollowingStores(page, followingLimit);
+            if (res.success) {
+                setFollowing(res.data.stores || []);
+                setTotalFollowingPages(res.data.pagination?.totalPages || 1);
+                setTotalFollowingItems(res.data.pagination?.totalItems || 0);
+            }
+        } finally {
+            setLoadingFollowing(false);
+        }
+    };
+
     const fetchAddresses = async () => {
         setAddressesLoading(true);
         setAddressesError("");
@@ -528,8 +608,9 @@ export const Profile = () => {
     useEffect(() => {
         if (activeTab === "orders" || activeTab === "profile") fetchOrders();
         if (activeTab === "wishlist" && user) fetchWishlist(currentPage);
+        if (activeTab === "following" && user) fetchFollowing(followingPage);
         if ((activeTab === "addresses" || activeTab === "profile") && user) fetchAddresses();
-    }, [activeTab, user, currentPage]);
+    }, [activeTab, user, currentPage, followingPage]);
 
     const saveAddress = async (payload, uuid) => {
         setAddressesSubmitting(true);
@@ -576,6 +657,17 @@ export const Profile = () => {
         fetchWishlist(currentPage);
     };
 
+    const unfollowStore = async (storeId) => {
+        const ok = window.confirm("Unfollow this shop?");
+        if (!ok) return;
+        try {
+            const res = await storeApi.unfollowStore(storeId);
+            if (res.success) fetchFollowing(followingPage);
+        } catch (e) {
+            console.error("Failed to unfollow shop", e);
+        }
+    };
+
     const summary = useMemo(
         () => ({
             totalOrders: orders.length,
@@ -609,6 +701,7 @@ export const Profile = () => {
         { id: "orders", label: "Orders" },
         { id: "addresses", label: "Addresses" },
         { id: "wishlist", label: "Wishlist" },
+        { id: "following", label: "Following" },
         { id: "settings", label: "Settings" },
     ];
 
@@ -655,9 +748,8 @@ export const Profile = () => {
                                     key={tab.id}
                                     type="button"
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-all ${
-                                        activeTab === tab.id ? "bg-gray-900 text-white" : "text-gray-700 hover:bg-gray-100"
-                                    }`}
+                                    className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-all ${activeTab === tab.id ? "bg-gray-900 text-white" : "text-gray-700 hover:bg-gray-100"
+                                        }`}
                                 >
                                     <span className={`rounded-lg p-1 ${activeTab === tab.id ? "bg-white/15 text-white" : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"}`}>
                                         <TabIcon id={tab.id} />
@@ -804,6 +896,18 @@ export const Profile = () => {
                                 onPageChange={setCurrentPage}
                                 onRemove={removeWishlist}
                                 onOpenProduct={(id) => navigate(`/product/${id}`)}
+                            />
+                        )}
+
+                        {activeTab === "following" && (
+                            <FollowingTab
+                                stores={following}
+                                loading={loadingFollowing}
+                                currentPage={followingPage}
+                                totalPages={totalFollowingPages}
+                                onPageChange={setFollowingPage}
+                                onUnfollow={unfollowStore}
+                                onOpenShop={(id) => navigate(`/stores/${id}`)}
                             />
                         )}
 

@@ -33,7 +33,7 @@ const updateStore = catchAsync(async (req, res) => {
         data: { store },
 
 
-            });
+    });
 });
 
 const followStore = catchAsync(async (req, res) => {
@@ -81,8 +81,10 @@ const getFollowingStores = catchAsync(async (req, res) => {
     const result = await storeService.getFollowingStores(userId, page, limit);
     res.status(httpStatus.OK).send({
         success: true,
-        data: result.items,
-        pagination: result.pagination,
+        data: {
+            stores: result.items,
+            pagination: result.pagination
+        },
     });
 });
 
@@ -91,7 +93,7 @@ module.exports = {
     getStoreDetail,
     createStore,
     updateStore,
-     followStore,
+    followStore,
     unfollowStore,
     getFollowingStatus,
     getStoreFollowerCount,

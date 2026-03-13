@@ -11,6 +11,9 @@ router
     .get(validate(storeValidation.listStores), storeController.listStores)
     .post(auth.auth(), validate(storeValidation.createStore), storeController.createStore);
 
+// Protected routes
+router.get('/following', auth.auth(), storeController.getFollowingStores);
+
 router
     .route('/:storeId')
     .get(validate(storeValidation.getStoreDetail), storeController.getStoreDetail)
@@ -20,7 +23,6 @@ router
 router.get('/:storeId/follower-count', storeController.getStoreFollowerCount);
 
 // Protected routes
-router.get('/following', auth.auth(), storeController.getFollowingStores);
 router.post('/:storeId/follow', auth.auth(), storeController.followStore);
 router.post('/:storeId/unfollow', auth.auth(), storeController.unfollowStore);
 router.get('/:storeId/following-status', auth.auth(), storeController.getFollowingStatus);
