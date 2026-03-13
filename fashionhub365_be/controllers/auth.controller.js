@@ -115,6 +115,44 @@ const login = catchAsync(async (req, res) => {
 
     setRefreshTokenCookie(res, tokens.refresh.token, tokens.refresh.expires);
 
+    res.send({
+        success: true,
+        data: {
+            requiresOtp: false,
+            user: sanitizeUser(user),
+            tokens: {
+                access: tokens.access,
+                refresh: {
+                    expires: tokens.refresh.expires,
+                },
+            },
+        },
+    });
+});
+
+const verifyOtp = catchAsync(async (req, res) => {
+    let { email, otpCode, rememberMe } = req.body;
+    email = email.toLowerCase();
+
+    if (!(await otpService.verifyLoginOtp(email, otpCode))) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid or expired OTP');
+    }
+
+    const user = await userService.getUserByEmail(email);
+    if (!user) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+    }
+
+    const resolvedRememberMe = await otpService.consumeRememberMe(email, rememberMe);
+    const tokens = await tokenService.generateAuthTokens(
+        user,
+        { agent: req.headers['user-agent'] },
+        req.ip,
+        { rememberMe: !!rememberMe }
+    );
+
+    setRefreshTokenCookie(res, tokens.refresh.token, tokens.refresh.expires);
+
     return res.send({
         success: true,
         data: {

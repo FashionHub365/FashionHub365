@@ -1,10 +1,11 @@
 require('dotenv').config();
 const connectDB = require('../config/db');
 const models = require('../models');
+const { seedPermissions, seedRoles } = require('./seedRBAC');
 
 const {
     User, Role, Permission, Brand, Category, Tag, Collection,
-    Store, Product, SystemSetting, PaymentMethod
+    Store, StoreMember, Product, SystemSetting, PaymentMethod
 } = models;
 
 // Flag to clean database before seeding
@@ -315,61 +316,62 @@ const seedData = {
 // Main seed function
 const seedDatabase = async () => {
     try {
-        console.log('🌱 Starting database seeding...\n');
+        console.log('ðŸŒ± Starting database seeding...\n');
 
         // Clean database if flag is set
         if (shouldClean) {
-            console.log('🧹 Cleaning existing data...');
+            console.log('ðŸ§¹ Cleaning existing data...');
             await Promise.all([
                 Role.deleteMany({}),
+                Permission.deleteMany({}),
                 User.deleteMany({}),
                 Brand.deleteMany({}),
                 Category.deleteMany({}),
                 Tag.deleteMany({}),
                 Collection.deleteMany({}),
                 Store.deleteMany({}),
+                StoreMember.deleteMany({}),
                 Product.deleteMany({}),
                 SystemSetting.deleteMany({}),
                 PaymentMethod.deleteMany({})
             ]);
-            console.log('✅ Database cleaned\n');
+            console.log('âœ… Database cleaned\n');
         }
 
-        // 1. Seed Roles (idempotent — upsert by slug)
-        console.log('📝 Seeding Roles...');
-        const roles = [];
-        for (const roleData of seedData.roles) {
-            const role = await Role.findOneAndUpdate(
-                { slug: roleData.slug },
-                { $set: roleData },
-                { upsert: true, new: true }
-            );
-            roles.push(role);
-        }
-        console.log(`✅ Upserted ${roles.length} roles`);
+        // 1. Seed RBAC (permissions + roles)
+        console.log('Seeding RBAC...');
+        const permissions = await seedPermissions();
+        const seededRoleMap = await seedRoles(permissions);
+        const roles = Object.values(seededRoleMap);
+        console.log(`Upserted ${permissions.length} permissions and ${roles.length} roles`);
 
         // 2. Seed Users with role references
-        console.log('📝 Seeding Users...');
+        console.log('ðŸ“ Seeding Users...');
         const adminRole = roles.find(r => r.slug === 'admin');
+        const sellerRole = roles.find(r => r.slug === 'seller');
         const storeOwnerRole = roles.find(r => r.slug === 'store-owner');
-        const customerRole = roles.find(r => r.slug === 'customer');
+        const customerRole = roles.find(r => r.slug === 'user') || roles.find(r => r.slug === 'customer');
+
+        if (!adminRole || !sellerRole || !storeOwnerRole || !customerRole) {
+            throw new Error('Missing required RBAC roles (admin, seller, store-owner, user/customer).');
+        }
 
         seedData.users[0].global_role_ids = [adminRole._id];
-        seedData.users[1].global_role_ids = [storeOwnerRole._id];
-        seedData.users[2].global_role_ids = [storeOwnerRole._id];
+        seedData.users[1].global_role_ids = [sellerRole._id];
+        seedData.users[2].global_role_ids = [sellerRole._id];
         seedData.users[3].global_role_ids = [customerRole._id];
         seedData.users[4].global_role_ids = [customerRole._id];
 
         const users = await User.insertMany(seedData.users);
-        console.log(`✅ Created ${users.length} users`);
+        console.log(`âœ… Created ${users.length} users`);
 
         // 3. Seed Brands
-        console.log('📝 Seeding Brands...');
+        console.log('ðŸ“ Seeding Brands...');
         const brands = await Brand.insertMany(seedData.brands);
-        console.log(`✅ Created ${brands.length} brands`);
+        console.log(`âœ… Created ${brands.length} brands`);
 
         // 4. Seed Categories (with parent references)
-        console.log('📝 Seeding Categories...');
+        console.log('ðŸ“ Seeding Categories...');
         const categoryMap = new Map();
 
         // First, create root categories
@@ -388,20 +390,20 @@ const seedDatabase = async () => {
             categoryMap.set(cat.name, cat);
         }
 
-        console.log(`✅ Created ${categoryMap.size} categories`);
+        console.log(`âœ… Created ${categoryMap.size} categories`);
 
         // 5. Seed Tags
-        console.log('📝 Seeding Tags...');
+        console.log('ðŸ“ Seeding Tags...');
         const tags = await Tag.insertMany(seedData.tags);
-        console.log(`✅ Created ${tags.length} tags`);
+        console.log(`âœ… Created ${tags.length} tags`);
 
         // 6. Seed Collections
-        console.log('📝 Seeding Collections...');
+        console.log('ðŸ“ Seeding Collections...');
         const collections = await Collection.insertMany(seedData.collections);
-        console.log(`✅ Created ${collections.length} collections`);
+        console.log(`âœ… Created ${collections.length} collections`);
 
         // 7. Seed Stores
-        console.log('📝 Seeding Stores...');
+        console.log('ðŸ“ Seeding Stores...');
         const seller1 = users.find(u => u.username === 'seller1');
         const seller2 = users.find(u => u.username === 'seller2');
 
@@ -409,10 +411,19 @@ const seedDatabase = async () => {
         seedData.stores[1].owner_user_id = seller2._id;
 
         const stores = await Store.insertMany(seedData.stores);
-        console.log(`✅ Created ${stores.length} stores`);
+        console.log(`âœ… Created ${stores.length} stores`);
+
+        const storeOwnerMembers = stores.map((store) => ({
+            store_id: store._id,
+            user_id: store.owner_user_id,
+            role_ids: [storeOwnerRole._id],
+            status: 'ACTIVE',
+        }));
+        await StoreMember.insertMany(storeOwnerMembers);
+        console.log(`âœ… Created ${storeOwnerMembers.length} store owner memberships`);
 
         // 8. Seed Products
-        console.log('📝 Seeding Products...');
+        console.log('ðŸ“ Seeding Products...');
         const nikeBrand = brands.find(b => b.name === 'Nike');
         const tshirtCategory = categoryMap.get('T-Shirts');
         const jeansCategory = categoryMap.get('Jeans');
@@ -452,10 +463,10 @@ const seedDatabase = async () => {
         seedData.products[4].category_ids = [jacketsCategory._id];
 
         const products = await Product.insertMany(seedData.products);
-        console.log(`✅ Created ${products.length} products`);
+        console.log(`âœ… Created ${products.length} products`);
 
         // 9. Seed System Settings
-        console.log('📝 Seeding System Settings...');
+        console.log('ðŸ“ Seeding System Settings...');
         const settings = await SystemSetting.insertMany(seedData.systemSettings);
         const paymentMethods = [];
         for (const methodData of seedData.paymentMethods) {
@@ -467,10 +478,10 @@ const seedDatabase = async () => {
             paymentMethods.push(method);
         }
         console.log(`Seeded payment methods: ${paymentMethods.length}`);
-        console.log(`✅ Created ${settings.length} system settings`);
+        console.log(`âœ… Created ${settings.length} system settings`);
 
-        console.log('\n🎉 Database seeding completed successfully!\n');
-        console.log('📊 Summary:');
+        console.log('\nðŸŽ‰ Database seeding completed successfully!\n');
+        console.log('ðŸ“Š Summary:');
         console.log(`   - Roles: ${roles.length}`);
         console.log(`   - Users: ${users.length}`);
         console.log(`   - Brands: ${brands.length}`);
@@ -481,10 +492,10 @@ const seedDatabase = async () => {
         console.log(`   - Products: ${products.length}`);
         console.log(`   - System Settings: ${settings.length}`);
         console.log(`   - Payment Methods: ${paymentMethods.length}`);
-        console.log('\n✨ Ready to use!\n');
+        console.log('\nâœ¨ Ready to use!\n');
 
     } catch (error) {
-        console.error('❌ Error seeding database:', error);
+        console.error('âŒ Error seeding database:', error);
         throw error;
     }
 };
@@ -502,3 +513,4 @@ const run = async () => {
 };
 
 run();
+

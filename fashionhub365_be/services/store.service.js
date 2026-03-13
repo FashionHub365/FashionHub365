@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
 const httpStatus = require('http-status');
-const { Store, StoreFollower } = require('../models');
+const { Store, StoreFollower, StoreMember, Role } = require('../models');
 const ApiError = require('../utils/ApiError');
+const { runWithTransaction } = require('../utils/transaction');
 
 const PUBLIC_STORE_SELECT = 'uuid name slug description email phone rating_summary information created_at updated_at';
 
@@ -100,6 +101,47 @@ const getPublicStoreById = async (storeId) => {
     return store;
 };
 
+const getStoreOwnerRole = async (session = null) => {
+    const query = Role.findOne({ slug: 'store-owner', scope: 'STORE', deleted_at: null }).select('_id');
+    if (session) {
+        query.session(session);
+    }
+    const role = await query;
+    if (!role) {
+        throw new ApiError(
+            httpStatus.INTERNAL_SERVER_ERROR,
+            'Store owner role is not configured. Please run RBAC seed first.'
+        );
+    }
+    return role;
+};
+
+const ensureStoreOwnerMembership = async (ownerUserId, storeId, session = null) => {
+    const storeOwnerRole = await getStoreOwnerRole(session);
+    const query = StoreMember.findOne({ store_id: storeId, user_id: ownerUserId });
+    if (session) {
+        query.session(session);
+    }
+    let member = await query;
+
+    if (!member) {
+        member = new StoreMember({
+            store_id: storeId,
+            user_id: ownerUserId,
+            role_ids: [storeOwnerRole._id],
+            status: 'ACTIVE',
+        });
+        await member.save(session ? { session } : {});
+        return;
+    }
+
+    const roleIds = new Set((member.role_ids || []).map((id) => id.toString()));
+    roleIds.add(storeOwnerRole._id.toString());
+    member.role_ids = Array.from(roleIds);
+    member.status = 'ACTIVE';
+    await member.save(session ? { session } : {});
+};
+
 const createStore = async (ownerUserId, payload) => {
     const existed = await Store.findOne({ owner_user_id: ownerUserId, status: { $ne: 'closed' } }).select('_id');
     if (existed) {
@@ -115,7 +157,7 @@ const createStore = async (ownerUserId, payload) => {
         description: payload.description || '',
         email: payload.email || '',
         phone: payload.phone || '',
-        status: payload.status || 'active',
+        status: payload.status || 'pending',
         is_draft: payload.is_draft !== undefined ? !!payload.is_draft : true,
         information: payload.information || {},
         identification: payload.identification || {},
@@ -124,7 +166,12 @@ const createStore = async (ownerUserId, payload) => {
         documents: Array.isArray(payload.documents) ? payload.documents : [],
     };
 
-    return Store.create(storeData);
+    return runWithTransaction(async (session) => {
+        const store = new Store(storeData);
+        await store.save(session ? { session } : {});
+        await ensureStoreOwnerMembership(ownerUserId, store._id, session);
+        return store;
+    });
 };
 
 const updateStore = async (storeId, currentUserId, payload) => {
@@ -252,6 +299,15 @@ const getFollowingStores = async (userId, page = 1, limit = 6) => {
     };
 };
 
+/**
+ * Lấy cửa hàng của người dùng hiện tại
+ * @param {string} userId
+ * @returns {Promise<Store>}
+ */
+const getMyStore = async (userId) => {
+    return Store.findOne({ owner_user_id: userId, status: { $ne: 'closed' } });
+};
+
 module.exports = {
     getPublicStoreById,
     listStores,
@@ -263,5 +319,6 @@ module.exports = {
     getFollowingStatus,
     getStoreFollowerCount,
     getFollowingStores,
+    getMyStore,
 };
 

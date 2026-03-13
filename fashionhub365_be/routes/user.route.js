@@ -14,13 +14,13 @@ router
 
 router
     .route('/profile')
-    .get(auth.auth(), userController.getProfile)
-    .put(auth.auth(), upload.single('avatar'), userController.updateProfile);
+    .get(auth.auth(), auth.authorize(['PROFILE.VIEW']), userController.getProfile)
+    .put(auth.auth(), auth.authorize(['PROFILE.UPDATE']), upload.single('avatar'), userController.updateProfile);
 
 router
     .route('/me')
-    .patch(auth.auth(), validate(userValidation.updateMe), userController.updateMe)
-    .delete(auth.auth(), validate(userValidation.deleteMe), userController.deleteMe);
+    .patch(auth.auth(), auth.authorize(['PROFILE.UPDATE']), validate(userValidation.updateMe), userController.updateMe)
+    .delete(auth.auth(), auth.authorize(['PROFILE.DELETE_SELF']), validate(userValidation.deleteMe), userController.deleteMe);
 
 router
     .route('/:userId')

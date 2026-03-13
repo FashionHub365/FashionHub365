@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { Star, Heart, CaretLeft, CaretRight } from "../Icons";
 import axiosClient from "../../apis/axiosClient";
 import wishlistApi from "../../apis/wishlistApi";
-import storeApi from "../../apis/store.api";
 import { useAuth } from "../../contexts/AuthContext";
 import Skeleton from "../common/Skeleton";
 import { useCart } from "../../contexts/CartContext";
@@ -21,9 +20,6 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const { addToCart, loading: cartLoading } = useCart();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
-  const [isFollowingShop, setIsFollowingShop] = useState(false);
-  const [followLoading, setFollowLoading] = useState(false);
 
   // ── FETCH WISHLIST STATUS ─────────────────────────────────────────────
   useEffect(() => {
@@ -66,45 +62,6 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
     } finally {
       setWishlistLoading(false);
       setTimeout(() => setCartMessage(null), 3000);
-    }
-  };
-
-  // ── FETCH FOLLOW STATUS ───────────────────────────────────────────
-  useEffect(() => {
-    const fetchFollowStatus = async () => {
-      const storeId = product?.store_id?._id || product?.store_id;
-      if (!user || !storeId) return;
-      try {
-        const res = await storeApi.getFollowingStatus(storeId);
-        if (res.success) setIsFollowingShop(res.data.isFollowing);
-      } catch (err) {
-        console.error("Error fetching follow status:", err);
-      }
-    };
-    fetchFollowStatus();
-  }, [user, product?.store_id]);
-
-  const handleFollowShopToggle = async () => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-    const storeId = product?.store_id?._id || product?.store_id;
-    if (!storeId || followLoading) return;
-
-    setFollowLoading(true);
-    try {
-      if (isFollowingShop) {
-        const res = await storeApi.unfollowStore(storeId);
-        if (res.success) setIsFollowingShop(false);
-      } else {
-        const res = await storeApi.followStore(storeId);
-        if (res.success) setIsFollowingShop(true);
-      }
-    } catch (err) {
-      console.error("Error toggling follow shop:", err);
-    } finally {
-      setFollowLoading(false);
     }
   };
 
@@ -417,53 +374,7 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
             )}
           </div>
 
-          {/* Thông tin Cửa hàng (Seller) */}
-          {product?.store_id && (
-            <div className="flex flex-col gap-3 mt-3 w-full">
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg w-full border border-gray-100">
-                <div className="w-10 h-10 rounded-full bg-[#ee4d2d]/10 flex items-center justify-center text-[#ee4d2d] shadow-sm">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M2.97 1.35A1 1 0 0 1 3.73 1h8.54a1 1 0 0 1 .76.35l2.609 3.044A1.5 1.5 0 0 1 16 5.37v.255a2.375 2.375 0 0 1-4.25 1.458A2.371 2.371 0 0 1 9.875 8 2.37 2.37 0 0 1 8 7.083 2.37 2.37 0 0 1 6.125 8a2.37 2.37 0 0 1-1.875-.917A2.375 2.375 0 0 1 0 5.625V5.37a1.5 1.5 0 0 1 .361-.976l2.61-3.044zm1.78 4.275a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 1 0 2.458-.725L12.394 1.5H3.606L1.242 4.9a1.375 1.375 0 0 0 2.458.725.5.5 0 0 1 1 0zM5 8a.5.5 0 0 1 .5.5V11h5V8.5a.5.5 0 0 1 1 0V12a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5V8.5A.5.5 0 0 1 5 8zm1.5 2h3v1h-3v-1z" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Seller</p>
-                  <Link
-                    to={`/store/${product.store_id._id || product.store_id}`}
-                    className="text-sm font-bold text-gray-900 hover:text-[#ee4d2d] transition-colors uppercase truncate block"
-                  >
-                    {product.store_id.owner_user_id?.profile?.full_name || product.store_id.name || "Partner Store"}
-                  </Link>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleFollowShopToggle}
-                    disabled={followLoading}
-                    className={`text-[11px] font-bold px-3 py-1.5 rounded-sm transition-all uppercase border
-                      ${isFollowingShop
-                        ? "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200"
-                        : "text-[#ee4d2d] border-[#ee4d2d] hover:bg-[#ee4d2d]/5"}`}
-                  >
-                    {isFollowingShop ? "Following" : "+ Follow"}
-                  </button>
-                  <Link
-                    to={`/store/${product.store_id._id || product.store_id}`}
-                    className="text-[11px] font-bold text-gray-600 border border-gray-300 px-3 py-1.5 rounded-sm hover:bg-gray-50 transition-all uppercase"
-                  >
-                    View Shop
-                  </Link>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {description && (
-            <div className="mt-4 mb-2 pb-2 border-b border-gray-100 w-full">
-              <p className="text-[15px] text-gray-700 leading-relaxed max-w-[95%]">
-                {description}
-              </p>
-            </div>
-          )}
+          <p className="text-sm text-gray-600 pt-2">{description}</p>
         </header>
 
         {/* Chọn màu */}
