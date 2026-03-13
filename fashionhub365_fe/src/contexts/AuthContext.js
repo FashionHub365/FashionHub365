@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             return {
                 success: false,
-                message: error.response?.data?.error?.message || error.response?.data?.message || 'OTP verification failed'
+                message: error.response?.data?.error?.message || error.response?.data?.message || 'Login failed'
             };
         }
     };
@@ -151,7 +151,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated, loading, login, verifyOtpLogin, googleLogin, register, forgotPassword, resetPassword, logout }}>
+        <AuthContext.Provider value={{ user, isAuthenticated, loading, login, googleLogin, register, forgotPassword, resetPassword, logout }}>
             {children}
         </AuthContext.Provider>
     );

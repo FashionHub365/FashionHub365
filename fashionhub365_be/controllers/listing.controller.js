@@ -28,6 +28,18 @@ const getCategories = catchAsync(async (req, res) => {
 });
 
 /**
+ * GET /api/v1/listing/filter-options
+ * Lấy danh sách Color & Size options
+ */
+const getFilterOptions = catchAsync(async (req, res) => {
+    const options = await productService.getFilterOptions();
+    res.status(httpStatus.OK).send({
+        success: true,
+        data: options,
+    });
+});
+
+/**
  * GET /api/v1/listing/products/:id
  * Lấy chi tiết 1 sản phẩm công khai (dùng cho trang Product Detail)
  */
@@ -115,6 +127,7 @@ const createProductReview = catchAsync(async (req, res) => {
 module.exports = {
     getProducts,
     getCategories,
+    getFilterOptions,
     getProductById,
     getRecommendedProducts,
     getStoreById,

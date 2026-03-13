@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Heart } from "../Icons";
 import wishlistApi from "../../apis/wishlistApi";
 import { useAuth } from "../../contexts/AuthContext";
+import { useCart } from "../../contexts/CartContext";
 
 /**
  * ProductCard - Hiển thị thông tin 1 sản phẩm
@@ -16,8 +17,10 @@ import { useAuth } from "../../contexts/AuthContext";
 export const ProductCard = ({ product, activeColor = "" }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { addToCart } = useCart();
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   // Sắp xếp media theo sortOrder để ứng đúng thứ tự màu
   const sortedMedia = product.media
     ? [...product.media].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
@@ -81,6 +84,26 @@ export const ProductCard = ({ product, activeColor = "" }) => {
     checkWishlist();
   }, [user, product?._id]);
 
+  const handleQuickAdd = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isAdding) return;
+    setIsAdding(true);
+
+    const variant = product.variants?.find(v => v.attributes?.color?.toLowerCase() === colorVariants[selectedColorIndex]?.name?.toLowerCase()) || product.variants?.[0];
+    
+    if (!variant) {
+      navigate(`/product/${product._id}`);
+      return;
+    }
+
+    const result = await addToCart(product._id, variant._id, 1);
+    setIsAdding(false);
+    if (!result.success && result.message === "Unauthorized") {
+        navigate('/login');
+    }
+  };
+
   const handleToggleWishlist = async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -134,17 +157,17 @@ export const ProductCard = ({ product, activeColor = "" }) => {
   // ── Store & Stats ──────────────────────────────────────────────────
   const storeName =
     typeof product.store_id === "object"
-      ? (product.store_id?.owner_user_id?.profile?.full_name || product.store_id?.name || "Gian hàng đối tác")
+      ? (product.store_id?.owner_user_id?.profile?.full_name || product.store_id?.name || "Partner Store")
       : null;
 
   const rating = product.rating || { average: 0, count: 0 };
   const soldCount = product.sold_count || 0;
 
   return (
-    <article className="flex flex-col items-start gap-2.5 relative flex-1 grow">
-      <Link to={`/product/${product._id}`} className="block relative self-stretch w-full">
+    <article className="flex flex-col items-start gap-2.5 relative w-full h-full group">
+      <Link to={`/product/${product._id}`} className="block relative self-stretch w-full aspect-[3/4] overflow-hidden">
         <img
-          className="relative self-stretch w-full h-[392px] object-cover"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           alt={product.name}
           src={currentImage}
         />
@@ -191,14 +214,28 @@ export const ProductCard = ({ product, activeColor = "" }) => {
         <button
           onClick={handleToggleWishlist}
           disabled={wishlistLoading}
-          className={`absolute top-2 right-2 p-2 rounded-full bg-white shadow-md transition-all hover:scale-110 z-10 ${isInWishlist ? 'text-red-500' : 'text-gray-400'}`}
+          className={`absolute top-2 right-2 p-2 rounded-full bg-white/90 backdrop-blur-sm shadow-md transition-all hover:scale-110 z-10 ${isInWishlist ? 'text-red-500' : 'text-gray-400'}`}
           aria-label="Toggle wishlist"
         >
           <Heart className="!relative !w-5 !h-5" filled={isInWishlist} />
         </button>
+
+        {/* Quick Add Button */}
+        <button 
+           onClick={handleQuickAdd}
+           disabled={isAdding}
+           className="absolute bottom-0 left-0 w-full bg-black/90 backdrop-blur-sm text-white font-bold text-[11px] uppercase py-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300 text-center hover:bg-black flex items-center justify-center gap-2 z-10"
+        >
+           {isAdding ? (
+               <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+               </svg>
+           ) : "Add to Cart"}
+        </button>
       </Link>
 
-      <div className="flex flex-col items-start gap-[3px] relative self-stretch w-full flex-[0_0_auto]">
+      <div className="flex flex-col items-start gap-[3px] relative self-stretch w-full flex-[0_0_auto] px-1 pb-1">
         {storeName && (
           <span className="text-[11px] font-semibold text-x-300 uppercase tracking-widest px-0">
             {storeName}
@@ -256,7 +293,7 @@ export const ProductCard = ({ product, activeColor = "" }) => {
                 ? "ring-1 ring-offset-2 ring-x-600"
                 : ""
                 }`}
-              style={{ backgroundColor: color.hex }}
+              style={{ background: color.hex }}
               onClick={() => setSelectedColorIndex(index)}
               aria-label={`Select color ${color.name}`}
             />
@@ -320,6 +357,13 @@ const COLOR_MAP = {
   beige: "#f5e6c8",
   yellow: "#f5c842",
   purple: "#6b2fa0",
+  "đen": "#1a1a1a",
+  "trắng": "#ffffff",
+  "xám": "#e1e1e3",
+  "be": "#f5e6c8",
+  "collegiate green": "#1b4f23",
+  "black/white": "linear-gradient(135deg, #1a1a1a 50%, #ffffff 50%)",
+  "white/green": "linear-gradient(135deg, #ffffff 50%, #585b45 50%)",
 };
 
 function getColorHex(colorName) {

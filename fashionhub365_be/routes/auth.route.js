@@ -10,7 +10,6 @@ const router = express.Router();
 // Rate limiter applied to sensitive routes
 router.post('/register', authLimiter, validate(authValidation.register), authController.register);
 router.post('/login', authLimiter, validate(authValidation.login), authController.login);
-router.post('/verify-otp', authLimiter, validate(authValidation.verifyOtp), authController.verifyOtp);
 router.post('/google', googleAuthLimiter, validate(authValidation.googleLogin), authController.googleLogin);
 // Gap 1: logout now requires auth
 router.post('/logout', auth(), authorize(['AUTH.LOGOUT']), validate(authValidation.logout), authController.logout);

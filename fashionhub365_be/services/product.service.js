@@ -20,10 +20,10 @@ const getPublicProducts = async (query) => {
         storeId,
         sort = 'newest',
         page = 1,
-        limit = 9,
+        limit = 20,
     } = query;
     const parsedPage = Math.max(parseInt(page, 10) || 1, 1);
-    const parsedLimit = Math.max(parseInt(limit, 10) || 9, 1);
+    const parsedLimit = Math.max(parseInt(limit, 10) || 20, 1);
 
     // 1. Build filter
     const filter = { status: 'active' };
@@ -176,6 +176,41 @@ const getPublicProducts = async (query) => {
         page: parsedPage,
         limit: parsedLimit,
         totalPages: Math.ceil(total / parsedLimit),
+    };
+};
+
+/**
+ * Lấy danh sách Color và Size có sẵn từ tất cả các product/variant đang active
+ * @returns {Promise<Object>}
+ */
+const getFilterOptions = async () => {
+    const products = await Product.find({ status: 'active' }).select('variants.attributes');
+    
+    const colors = new Set();
+    const sizes = new Set();
+
+    products.forEach(p => {
+        if (p.variants && p.variants.length > 0) {
+            p.variants.forEach(v => {
+                if (v.attributes) {
+                    if (v.attributes.color) colors.add(v.attributes.color);
+                    if (v.attributes.size) sizes.add(v.attributes.size);
+                }
+            });
+        }
+    });
+
+    return {
+        colors: Array.from(colors).sort(),
+        sizes: Array.from(sizes).sort((a, b) => {
+            // Sort logic: numbers first, then strings
+            const numA = parseInt(a);
+            const numB = parseInt(b);
+            if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+            if (!isNaN(numA)) return -1;
+            if (!isNaN(numB)) return 1;
+            return a.localeCompare(b);
+        })
     };
 };
 
@@ -562,6 +597,7 @@ const createProductReview = async (productId, userId, reviewData) => {
 module.exports = {
     getPublicProducts,
     getAllCategories,
+    getFilterOptions,
     getPublicProductById,
     getRecommendedProducts,
     createProductForSeller,

@@ -38,6 +38,13 @@ const listingApi = {
     },
 
     /**
+     * Lấy các tùy chọn filter (color, size) từ backend
+     */
+    getFilterOptions: () => {
+        return axiosClient.get('/listing/filter-options');
+    },
+
+    /**
      * Tăng view_count khi user xem Product Detail
      * Fire-and-forget: gọi nhưng không cần đợi kết quả
      * @param {string} productId

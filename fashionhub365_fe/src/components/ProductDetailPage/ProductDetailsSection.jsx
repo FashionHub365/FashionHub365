@@ -51,14 +51,14 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
       if (isInWishlist) {
         await wishlistApi.removeFromWishlist(product._id);
         setIsInWishlist(false);
-        setCartMessage({ type: "success", text: "Đã xóa khỏi danh sách yêu thích." });
+        setCartMessage({ type: "success", text: "Removed from wishlist." });
       } else {
         await wishlistApi.addToWishlist(product._id);
         setIsInWishlist(true);
-        setCartMessage({ type: "success", text: "Đã thêm vào danh sách yêu thích! ❤️" });
+        setCartMessage({ type: "success", text: "Added to wishlist! ❤️" });
       }
     } catch (err) {
-      setCartMessage({ type: "error", text: "Lỗi khi cập nhật danh sách yêu thích." });
+      setCartMessage({ type: "error", text: "Error updating wishlist." });
     } finally {
       setWishlistLoading(false);
       setTimeout(() => setCartMessage(null), 3000);
@@ -143,7 +143,9 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
 
   // ── STATS & BADGES ────────────────────────────────────────────────
   const store = typeof product?.store_id === "object" ? product.store_id : null;
-  const storeName = store?.name;
+  const storeName = store
+    ? (store.owner_user_id?.profile?.full_name || store.name || "Partner Store")
+    : null;
   const storeSlug = store?.slug || store?._id;
   const rating = product?.rating || { average: 0, count: 0 };
   const soldCount = product?.sold_count || 0;
@@ -152,12 +154,12 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
   const handleAddToCart = async () => {
     if (!product) return;
     if (!selectedSize) {
-      setCartMessage({ type: "error", text: "Vui lòng chọn kích thước trước." });
+      setCartMessage({ type: "error", text: "Please select a size first." });
       setTimeout(() => setCartMessage(null), 3000);
       return;
     }
     if (isOutOfStock) {
-      setCartMessage({ type: "error", text: "Sản phẩm đã hết hàng." });
+      setCartMessage({ type: "error", text: "Product is out of stock." });
       return;
     }
 
@@ -165,7 +167,7 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
       (v) => v.attributes?.color === selectedColor && v.attributes?.size === selectedSize
     );
     if (!variant) {
-      setCartMessage({ type: "error", text: "Không tìm thấy biến thể sản phẩm này." });
+      setCartMessage({ type: "error", text: "Could not find this product variant." });
       return;
     }
 
@@ -232,8 +234,8 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
 
   // ── RENDER ACTUAL CONTENT ─────────────────────────────────────────
   return (
-    <section className="items-start gap-10 px-20 py-[30px] flex md:flex-row flex-col relative self-stretch w-full flex-[0_0_auto] justify-center">
-      <div className="flex flex-col items-center gap-4 relative w-full max-w-[550px]">
+    <section className="items-start gap-12 px-20 py-[30px] flex md:flex-row flex-col relative self-stretch w-full flex-[0_0_auto] justify-center max-w-[1400px] mx-auto">
+      <div className="flex flex-col items-center gap-4 relative w-full lg:max-w-[550px] flex-1">
         {/* Main Image */}
         <div className="w-full relative aspect-[3/4] overflow-hidden bg-gray-100 flex items-center justify-center">
           <img
@@ -250,40 +252,41 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
 
         {/* Thumbnail Carousels */}
         {productImages.length > 1 && (
-          <div className="w-full relative flex items-center gap-2 px-10 mt-2 pb-2">
-            <button
-              className="absolute left-0 w-8 h-8 flex items-center justify-center bg-white border border-gray-200 shadow-sm hover:bg-gray-50 z-10"
-              onClick={() => setCurrentImageIndex(prev => prev === 0 ? productImages.length - 1 : prev - 1)}
-              aria-label="Previous image"
-            >
-              <CaretLeft className="w-5 h-5 text-gray-600" />
-            </button>
-
-            <div className="flex gap-2 w-full overflow-x-auto snap-x scroll-smooth [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="w-full relative mt-2 group/carousel">
+            <div className="flex gap-3 w-full overflow-x-auto snap-x scroll-smooth sm:justify-center [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {productImages.map((img, idx) => (
                 <button
                   key={img.id}
                   onClick={() => setCurrentImageIndex(idx)}
-                  className={`shrink-0 w-20 h-28 md:w-24 md:h-32 relative snap-center transition-all ${currentImageIndex === idx ? 'border-2 border-red-600' : 'border border-gray-200 hover:border-gray-400'}`}
+                  className={`shrink-0 w-[70px] sm:w-[80px] aspect-square relative snap-center transition-all ${currentImageIndex === idx ? 'border-2 border-black scale-105 hover:border-black shadow-md' : 'border border-transparent hover:border-gray-300'}`}
                 >
                   <img src={img.src} alt={img.alt} className="w-full h-full object-cover" />
-                  {currentImageIndex !== idx && <div className="absolute inset-0 bg-white/40 transition-colors hover:bg-transparent" />}
+                  {currentImageIndex !== idx && <div className="absolute inset-0 bg-white/30 transition-colors hover:bg-transparent" />}
                 </button>
               ))}
             </div>
 
+            {/* Left/Right Overlaid Arrows */}
             <button
-              className="absolute right-0 w-8 h-8 flex items-center justify-center bg-white border border-gray-200 shadow-sm hover:bg-gray-50 z-10"
+              className="absolute left-0 top-1/2 -translate-y-1/2 h-[50px] w-7 bg-black/40 hover:bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity z-10"
+              onClick={() => setCurrentImageIndex(prev => prev === 0 ? productImages.length - 1 : prev - 1)}
+              aria-label="Previous image"
+            >
+              <CaretLeft className="w-5 h-5" />
+            </button>
+
+            <button
+              className="absolute right-0 top-1/2 -translate-y-1/2 h-[50px] w-7 bg-black/40 hover:bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity z-10"
               onClick={() => setCurrentImageIndex(prev => (prev + 1) % productImages.length)}
               aria-label="Next image"
             >
-              <CaretRight className="w-5 h-5 text-gray-600" />
+              <CaretRight className="w-5 h-5" />
             </button>
           </div>
         )}
       </div>
 
-      <aside className="flex flex-col w-[450px] shrink-0 items-start gap-px relative">
+      <aside className="flex flex-col lg:max-w-[500px] w-full flex-1 shrink-0 items-start gap-px relative">
         <header className="flex flex-col items-start gap-3 pb-5 border-b border-x-100 w-full">
 
           {/* Breadcrumbs & Store */}
@@ -319,19 +322,19 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
 
           {/* Badges */}
           {(product?.isBestSeller || product?.isTrending || product?.isNewArrival) && (
-            <div className="flex flex-wrap items-center gap-2 mt-1 -mb-1">
+            <div className="flex flex-wrap items-center gap-2 mt-2">
               {product?.isBestSeller && (
-                <span className="bg-black text-white text-[10px] font-semibold px-2 py-1 uppercase tracking-widest leading-none">
+                <span className="bg-black text-white text-[10px] font-bold px-2.5 py-1.5 uppercase tracking-widest leading-none">
                   Best Seller
                 </span>
               )}
               {product?.isTrending && (
-                <span className="bg-white text-black border border-x-200 text-[10px] font-semibold px-2 py-1 uppercase tracking-widest leading-none shadow-sm">
+                <span className="bg-black text-white text-[10px] font-bold px-2.5 py-1.5 uppercase tracking-widest leading-none">
                   Trending
                 </span>
               )}
               {product?.isNewArrival && (
-                <span className="bg-white text-emerald-600 border border-emerald-400 text-[10px] font-semibold px-2 py-1 uppercase tracking-widest leading-none shadow-sm">
+                <span className="bg-black text-white text-[10px] font-bold px-2.5 py-1.5 uppercase tracking-widest leading-none">
                   New Arrival
                 </span>
               )}
@@ -339,12 +342,12 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
           )}
 
           {/* Price */}
-          <div className="flex items-end gap-3 mt-1 w-full">
-            <span className="font-display-200 text-[22px] text-x-600 tracking-wide font-medium leading-none">
+          <div className="flex items-end gap-3 mt-3 w-full">
+            <span className="text-[24px] font-bold text-gray-900 tracking-wide leading-none">
               {salePrice.toLocaleString("vi-VN")}₫
             </span>
             {salePrice < originalPrice && (
-              <span className="font-text-200 text-x-300 line-through text-[15px] mb-0.5">
+              <span className="text-[16px] text-gray-400 line-through mb-0.5 font-medium">
                 {originalPrice.toLocaleString("vi-VN")}₫
               </span>
             )}
@@ -388,7 +391,7 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
               <button
                 key={colorOption.name}
                 onClick={() => setSelectedColorIndex(index)}
-                className={`w-8 h-8 rounded-full border-2 ${selectedColorIndex === index ? "border-black" : "border-transparent"}`}
+                className={`w-9 h-9 rounded-full border-2 transition-all ${selectedColorIndex === index ? "border-black scale-110 shadow-md ring-2 ring-black ring-offset-2" : "border-gray-300 hover:border-gray-500 hover:scale-105"}`}
                 style={{ backgroundColor: colorOption.color }}
                 aria-label={colorOption.name}
               />
@@ -416,12 +419,12 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
                   key={s}
                   onClick={() => !isSizeOutOfStock && setSelectedSize(s)}
                   disabled={isSizeOutOfStock}
-                  title={isSizeOutOfStock ? 'Hết hàng' : ''}
-                  className={`w-12 h-12 flex items-center justify-center border font-text-200 relative
-                    ${selectedSize === s ? "bg-black text-white border-black" : ""}
+                  title={isSizeOutOfStock ? 'Out of stock' : ''}
+                  className={`w-12 h-12 flex items-center justify-center font-bold font-text-200 relative transition-all border-2
+                    ${selectedSize === s ? "bg-black text-white border-black scale-105 shadow-md ring-2 ring-black ring-offset-1 z-10" : ""}
                     ${isSizeOutOfStock
-                      ? "border-x-100 text-x-300 cursor-not-allowed bg-gray-50 line-through"
-                      : selectedSize !== s ? "bg-white border-x-200 hover:border-black" : ""
+                      ? "border-gray-200 text-gray-300 cursor-not-allowed bg-gray-50 line-through"
+                      : selectedSize !== s ? "bg-white border-gray-300 hover:border-gray-500 hover:bg-gray-50" : ""
                     }`}
                 >
                   {s}
@@ -443,21 +446,21 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Hết hàng
+                  Out of stock
                 </span>
               ) : currentStock <= 5 ? (
                 <span className="text-orange-500 text-sm font-medium flex items-center gap-1">
                   <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
-                  Chỉ còn {currentStock} sản phẩm!
+                  Only {currentStock} items left!
                 </span>
               ) : (
                 <span className="text-green-600 text-sm flex items-center gap-1">
                   <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  Còn hàng ({currentStock} sản phẩm)
+                  In stock ({currentStock} items)
                 </span>
               )}
             </div>
@@ -467,13 +470,13 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
         {/* Chọn số lượng - luôn hiện khi đã chọn size */}
         {selectedSize && !isOutOfStock && (
           <div className="flex items-center gap-4 py-3 px-0 self-stretch w-full border-t border-x-100">
-            <span className="font-text-200 text-x-500">Số lượng</span>
+            <span className="font-text-200 text-x-500">Quantity</span>
             <div className="flex items-center border border-x-200">
               <button
                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
                 disabled={quantity <= 1}
                 className="w-9 h-9 flex items-center justify-center text-x-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg font-light"
-                aria-label="Giảm số lượng"
+                aria-label="Decrease quantity"
               >
                 −
               </button>
@@ -502,13 +505,13 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
                 onClick={() => setQuantity(q => Math.min(currentStock ?? 99, q + 1))}
                 disabled={currentStock !== null && quantity >= currentStock}
                 className="w-9 h-9 flex items-center justify-center text-x-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg font-light"
-                aria-label="Tăng số lượng"
+                aria-label="Increase quantity"
               >
                 +
               </button>
             </div>
             {currentStock !== null && (
-              <span className="text-xs text-x-300">(tối đa {currentStock})</span>
+              <span className="text-xs text-x-300">(max {currentStock})</span>
             )}
           </div>
         )}
@@ -525,21 +528,21 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
               type="button"
               onClick={handleAddToCart}
               disabled={cartLoading || isOutOfStock}
-              className={`flex-1 flex items-center justify-center gap-2.5 px-0 py-3 transition-colors
+              className={`flex-1 flex items-center justify-center gap-2.5 px-4 py-4 sm:py-5 transition-transform active:scale-[0.98] shadow-sm select-none
                 ${isOutOfStock
-                  ? "bg-gray-300 cursor-not-allowed"
-                  : "bg-x-500 cursor-pointer hover:bg-black"
-                } disabled:opacity-60`}
-              aria-label={isOutOfStock ? "Hết hàng" : "Add to bag"}
+                  ? "bg-gray-400 text-white cursor-not-allowed"
+                  : "bg-black text-white cursor-pointer hover:bg-gray-900 hover:shadow-md"
+                } disabled:opacity-80`}
+              aria-label={isOutOfStock ? "Out of stock" : "Add to bag"}
             >
-              <span className="font-text-300 text-white text-center tracking-[var(--text-300-letter-spacing)]">
-                {cartLoading ? "ĐANG THÊM..." : isOutOfStock ? "HẾ́T HÀNG" : "ADD TO BAG"}
+              <span className="font-bold text-[15px] sm:text-[16px] text-center tracking-[0.1em] uppercase">
+                {cartLoading ? "Adding..." : isOutOfStock ? "Out Of Stock" : "Add To Bag"}
               </span>
             </button>
             <button
               onClick={handleToggleWishlist}
               disabled={wishlistLoading}
-              className="p-3 border border-x-200 hover:border-black transition-colors"
+              className="p-4 sm:p-5 border-2 border-gray-300 hover:border-black transition-colors"
               aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
             >
               <Heart filled={isInWishlist} className={isInWishlist ? "text-red-500 w-5 h-5" : "w-5 h-5"} />

@@ -1,12 +1,36 @@
-import React, { useState, useEffect } from "react";
+  import React, { useState, useEffect } from "react";
 import { CaretUp } from "../Icons";
 import listingApi from "../../apis/listingApi";
 
-// Categories nữ cần loại bỏ (chỉ bán đồ nam)
-const EXCLUDED_CATEGORIES = [
-  "women", "women accessories", "women clothing", "women shoes",
-  "blouses", "dresses", "flats", "heels", "skirts",
-];
+const COLOR_MAP = {
+  black: "#1a1a1a",
+  white: "#ffffff",
+  blue: "#21558d",
+  brown: "#925c37",
+  green: "#585b45",
+  grey: "#e1e1e3",
+  gray: "#e1e1e3",
+  orange: "#d38632",
+  pink: "#efcec9",
+  red: "#bd2830",
+  tan: "#b3a695",
+  navy: "#1b2a4a",
+  beige: "#f5e6c8",
+  yellow: "#f5c842",
+  purple: "#6b2fa0",
+  "đen": "#1a1a1a",
+  "trắng": "#ffffff",
+  "xám": "#e1e1e3",
+  "be": "#f5e6c8",
+  "collegiate green": "#1b4f23",
+  "black/white": "linear-gradient(135deg, #1a1a1a 50%, #ffffff 50%)",
+  "white/green": "linear-gradient(135deg, #ffffff 50%, #585b45 50%)",
+};
+
+function getColorHex(colorName) {
+  if (!colorName) return "#cccccc";
+  return COLOR_MAP[colorName.toLowerCase()] || "#cccccc";
+}
 
 /**
  * FilterSidebar - Thanh lọc sản phẩm
@@ -21,39 +45,35 @@ export const FilterSidebar = ({ onFilterChange, activeFilters = {} }) => {
   const [selectedSize, setSelectedSize] = useState(null);
   const [selectedWaist, setSelectedWaist] = useState(null);
 
-  // Color options (UI tĩnh – đủ màu phổ biến)
-  const colorOptions = [
-    { name: "Black", hex: "#1a1a1a" },
-    { name: "Blue", hex: "#21558d" },
-    { name: "Brown", hex: "#925c37" },
-    { name: "Green", hex: "#585b45" },
-    { name: "Grey", hex: "#e1e1e3" },
-    { name: "Orange", hex: "#d38632" },
-    { name: "Pink", hex: "#efcec9" },
-    { name: "Red", hex: "#bd2830" },
-    { name: "Tan", hex: "#b3a695" },
-  ];
+  const [colors, setColors] = useState([]);
+  const [sizes, setSizes] = useState([]);
 
-  const waistSizes = ["36", "38", "40", "42", "44", "46", "48", "50"];
-  const clothingSizes = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"];
-
-  // Lấy danh sách categories từ API và lọc bỏ categories nữ
+  // Lấy danh sách categories và options từ API
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchOptions = async () => {
       try {
-        const response = await listingApi.getCategories();
-        if (response.success) {
-          const menCategories = response.data.filter(
-            (cat) => !EXCLUDED_CATEGORIES.includes(cat.name.toLowerCase())
-          );
-          setCategories(menCategories);
+        const [catRes, optRes] = await Promise.all([
+          listingApi.getCategories(),
+          listingApi.getFilterOptions()
+        ]);
+        
+        if (catRes.success) {
+          setCategories(catRes.data);
+        }
+        
+        if (optRes.success) {
+          setColors(optRes.data.colors.map(name => ({ name, hex: getColorHex(name) })));
+          setSizes(optRes.data.sizes);
         }
       } catch (err) {
-        console.error("Error fetching categories:", err);
+        console.error("Error fetching filters:", err);
       }
     };
-    fetchCategories();
+    fetchOptions();
   }, []);
+
+  const waistSizes = sizes.filter(s => !isNaN(parseInt(s)));
+  const clothingSizes = sizes.filter(s => isNaN(parseInt(s)));
 
   /**
    * Đồng bộ trạng thái sidebar khi activeFilters thay đổi (từ URL params)
@@ -121,11 +141,11 @@ export const FilterSidebar = ({ onFilterChange, activeFilters = {} }) => {
   };
 
   return (
-    <aside className="flex flex-col w-[196px] items-start gap-px relative">
+    <aside className="flex flex-col w-full items-start gap-px relative">
       {/* Header: tổng sản phẩm được hiển thị ở ListingHeader */}
       <div className="flex items-center justify-center gap-2.5 px-0 py-4 relative self-stretch w-full flex-[0_0_auto] mt-[-1.00px] ml-[-1.00px] mr-[-1.00px] border-b [border-bottom-style:solid] border-x-200">
         <h2 className="relative flex-1 font-text-200 font-[number:var(--text-200-font-weight)] text-x-600 text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] [font-style:var(--text-200-font-style)]">
-          Bộ lọc
+          Filters
         </h2>
       </div>
 
@@ -139,7 +159,7 @@ export const FilterSidebar = ({ onFilterChange, activeFilters = {} }) => {
       <div className="flex flex-col gap-1.5 items-start relative self-stretch w-full">
         {categories.length === 0 ? (
           <p className="font-text-200 text-x-300 text-[length:var(--text-200-font-size)]">
-            Đang tải...
+            Loading...
           </p>
         ) : (
           categories.map((cat) => (
@@ -180,39 +200,47 @@ export const FilterSidebar = ({ onFilterChange, activeFilters = {} }) => {
         <CaretUp className="!relative !w-3 !h-3" />
       </button>
       <div className="gap-4 flex-[0_0_auto] flex flex-col items-start relative self-stretch w-full">
-        {[0, 1, 2].map((rowIndex) => (
-          <div
-            key={rowIndex}
-            className="flex items-start relative self-stretch w-full flex-[0_0_auto]"
-          >
-            {colorOptions.slice(rowIndex * 3, rowIndex * 3 + 3).map((color) => (
-              <button
-                key={color.name}
-                className="flex flex-col items-center gap-2 relative flex-1 grow"
-                onClick={() => handleColorSelect(color.name)}
-                aria-label={`Filter by ${color.name}`}
-              >
-                <div
-                  className={`relative w-6 h-6 rounded-xl border border-solid border-x-600 ${selectedColor === color.name
-                    ? "ring-2 ring-offset-2 ring-x-600"
-                    : ""
-                    }`}
+        {colors.length === 0 ? (
+          <p className="font-text-200 text-x-300 text-[length:var(--text-200-font-size)]">No colors available</p>
+        ) : (
+          Array.from({ length: Math.ceil(colors.length / 3) }).map((_, rowIndex) => (
+            <div
+              key={rowIndex}
+              className="flex items-start relative self-stretch w-full flex-[0_0_auto]"
+            >
+              {colors.slice(rowIndex * 3, rowIndex * 3 + 3).map((color) => (
+                <button
+                  key={color.name}
+                  className="flex flex-col items-center gap-2 relative flex-1 grow"
+                  onClick={() => handleColorSelect(color.name)}
+                  aria-label={`Filter by ${color.name}`}
                 >
                   <div
-                    className="h-full rounded-xl"
-                    style={{ backgroundColor: color.hex }}
-                  />
-                </div>
-                <span
-                  className={`font-text-200 text-x-600 text-[length:var(--text-200-font-size)] text-center tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] relative w-fit font-[number:var(--text-200-font-weight)] whitespace-nowrap [font-style:var(--text-200-font-style)] ${selectedColor === color.name ? "font-bold" : ""
-                    }`}
-                >
-                  {color.name}
-                </span>
-              </button>
-            ))}
-          </div>
-        ))}
+                    className={`relative w-6 h-6 rounded-xl border border-solid border-gray-300 shadow-sm ${selectedColor === color.name
+                      ? "ring-2 ring-offset-2 ring-x-600"
+                      : ""
+                      }`}
+                  >
+                    <div
+                      className="h-full rounded-xl"
+                      style={{ background: color.hex }}
+                    />
+                  </div>
+                  <span
+                    className={`font-text-200 text-x-600 text-[length:var(--text-200-font-size)] text-center tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] relative w-fit font-[number:var(--text-200-font-weight)] whitespace-nowrap [font-style:var(--text-200-font-style)] ${selectedColor === color.name ? "font-bold" : ""
+                      }`}
+                  >
+                    {color.name}
+                  </span>
+                </button>
+              ))}
+              {/* Dummy elements to keep grid aligned if row is less than 3 */}
+              {Array.from({ length: 3 - colors.slice(rowIndex * 3, rowIndex * 3 + 3).length }).map((_, idx) => (
+                <div key={`dummy-${idx}`} className="flex-1 grow"></div>
+              ))}
+            </div>
+          ))
+        )}
       </div>
 
       {/* Size Filter */}
@@ -224,68 +252,72 @@ export const FilterSidebar = ({ onFilterChange, activeFilters = {} }) => {
       </button>
 
       {/* Waist sizes */}
-      <div className="flex flex-col items-start gap-2 pt-0 pb-6 px-0 relative self-stretch w-full flex-[0_0_auto]">
-        <h4 className="relative self-stretch mt-[-1.00px] font-text-200 font-[number:var(--text-200-font-weight)] text-x-400 text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] [font-style:var(--text-200-font-style)]">
-          Waist
-        </h4>
-        {[0, 1].map((rowIndex) => (
-          <div
-            key={rowIndex}
-            className="flex items-start gap-1 relative self-stretch w-full flex-[0_0_auto]"
-          >
-            {waistSizes.slice(rowIndex * 4, rowIndex * 4 + 4).map((size) => (
-              <button
-                key={size}
-                className={`flex items-center justify-center gap-2.5 p-3 relative flex-1 grow ${selectedWaist === size
-                  ? "bg-black text-white"
-                  : "bg-x-100 hover:bg-gray-200"
-                  } transition-colors duration-200`}
-                onClick={() => handleWaistSelect(size)}
-                aria-label={`Select waist size ${size}`}
-              >
-                <span
-                  className={`w-fit whitespace-nowrap relative mt-[-1.00px] font-text-200 font-[number:var(--text-200-font-weight)] text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] [font-style:var(--text-200-font-style)] ${selectedWaist === size ? "text-white" : "text-x-500"
-                    }`}
+      {waistSizes.length > 0 && (
+        <div className="flex flex-col items-start gap-2 pt-0 pb-6 px-0 relative self-stretch w-full flex-[0_0_auto]">
+          <h4 className="relative self-stretch mt-[-1.00px] font-text-200 font-[number:var(--text-200-font-weight)] text-x-400 text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] [font-style:var(--text-200-font-style)]">
+            Waist
+          </h4>
+          {Array.from({ length: Math.ceil(waistSizes.length / 4) }).map((_, rowIndex) => (
+            <div
+              key={rowIndex}
+              className="flex items-start gap-1 relative self-stretch w-full flex-[0_0_auto]"
+            >
+              {waistSizes.slice(rowIndex * 4, rowIndex * 4 + 4).map((size) => (
+                <button
+                  key={size}
+                  className={`flex items-center justify-center gap-2.5 p-3 relative flex-1 grow ${selectedWaist === size
+                    ? "bg-black text-white"
+                    : "bg-x-100 hover:bg-gray-200"
+                    } transition-colors duration-200 max-w-[25%]`}
+                  onClick={() => handleWaistSelect(size)}
+                  aria-label={`Select waist size ${size}`}
                 >
-                  {size}
-                </span>
-              </button>
-            ))}
-          </div>
-        ))}
-      </div>
+                  <span
+                    className={`w-fit whitespace-nowrap relative mt-[-1.00px] font-text-200 font-[number:var(--text-200-font-weight)] text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] [font-style:var(--text-200-font-style)] ${selectedWaist === size ? "text-white" : "text-x-500"
+                      }`}
+                  >
+                    {size}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Clothing sizes */}
-      <div className="flex flex-col items-start gap-2 pt-0 pb-6 px-0 relative self-stretch w-full flex-[0_0_auto]">
-        <h4 className="relative self-stretch mt-[-1.00px] font-text-200 font-[number:var(--text-200-font-weight)] text-x-400 text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] [font-style:var(--text-200-font-style)]">
-          Clothing
-        </h4>
-        {[0, 1].map((rowIndex) => (
-          <div
-            key={rowIndex}
-            className="flex items-start gap-1 relative self-stretch w-full flex-[0_0_auto]"
-          >
-            {clothingSizes.slice(rowIndex * 4, rowIndex * 4 + 4).map((size) => (
-              <button
-                key={size}
-                className={`flex items-center justify-center gap-2.5 p-3 relative flex-1 grow ${selectedSize === size
-                  ? "bg-black text-white"
-                  : "bg-x-100 hover:bg-gray-200"
-                  } transition-colors duration-200`}
-                onClick={() => handleSizeSelect(size)}
-                aria-label={`Select clothing size ${size}`}
-              >
-                <span
-                  className={`w-fit whitespace-nowrap relative mt-[-1.00px] font-text-200 font-[number:var(--text-200-font-weight)] text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] [font-style:var(--text-200-font-style)] ${size === "XXXL" ? "ml-[-2.50px] mr-[-2.50px]" : ""
-                    } ${selectedSize === size ? "text-white" : "text-x-500"}`}
+      {clothingSizes.length > 0 && (
+        <div className="flex flex-col items-start gap-2 pt-0 pb-6 px-0 relative self-stretch w-full flex-[0_0_auto]">
+          <h4 className="relative self-stretch mt-[-1.00px] font-text-200 font-[number:var(--text-200-font-weight)] text-x-400 text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] [font-style:var(--text-200-font-style)]">
+            Clothing
+          </h4>
+          {Array.from({ length: Math.ceil(clothingSizes.length / 4) }).map((_, rowIndex) => (
+            <div
+              key={rowIndex}
+              className="flex items-start gap-1 relative self-stretch w-full flex-[0_0_auto]"
+            >
+              {clothingSizes.slice(rowIndex * 4, rowIndex * 4 + 4).map((size) => (
+                <button
+                  key={size}
+                  className={`flex items-center justify-center gap-2.5 p-3 relative flex-1 grow ${selectedSize === size
+                    ? "bg-black text-white"
+                    : "bg-x-100 hover:bg-gray-200"
+                    } transition-colors duration-200 max-w-[25%]`}
+                  onClick={() => handleSizeSelect(size)}
+                  aria-label={`Select clothing size ${size}`}
                 >
-                  {size}
-                </span>
-              </button>
-            ))}
-          </div>
-        ))}
-      </div>
+                  <span
+                    className={`w-fit whitespace-nowrap relative mt-[-1.00px] font-text-200 font-[number:var(--text-200-font-weight)] text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] [font-style:var(--text-200-font-style)] ${size === "XXXL" ? "ml-[-2.50px] mr-[-2.50px]" : ""
+                      } ${selectedSize === size ? "text-white" : "text-x-500"}`}
+                  >
+                    {size}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </aside>
   );
 };

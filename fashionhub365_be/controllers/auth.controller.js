@@ -1,7 +1,7 @@
 const httpStatus = require('http-status');
 const crypto = require('crypto');
 const catchAsync = require('../utils/catchAsync');
-const { authService, userService, tokenService, emailService, otpService } = require('../services');
+const { authService, userService, tokenService, emailService } = require('../services');
 const { Role, SecurityEvent, User, EmailVerificationToken, PasswordResetToken, Session } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { getBearerToken, invalidateAccessToken, isAccessTokenValid } = require('../utils/token.util');
@@ -148,12 +148,12 @@ const verifyOtp = catchAsync(async (req, res) => {
         user,
         { agent: req.headers['user-agent'] },
         req.ip,
-        { rememberMe: resolvedRememberMe }
+        { rememberMe: !!rememberMe }
     );
 
     setRefreshTokenCookie(res, tokens.refresh.token, tokens.refresh.expires);
 
-    res.send({
+    return res.send({
         success: true,
         data: {
             user: sanitizeUser(user),
@@ -166,6 +166,7 @@ const verifyOtp = catchAsync(async (req, res) => {
         },
     });
 });
+
 
 const googleLogin = catchAsync(async (req, res) => {
     const { code } = req.body;
@@ -486,7 +487,6 @@ const verifyEmail = catchAsync(async (req, res) => {
 module.exports = {
     register,
     login,
-    verifyOtp,
     logout,
     refreshTokens,
     getMe,

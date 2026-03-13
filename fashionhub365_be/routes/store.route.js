@@ -11,6 +11,9 @@ router
     .get(validate(storeValidation.listStores), storeController.listStores)
     .post(auth.auth(), auth.authorize(['STORE.CREATE']), validate(storeValidation.createStore), storeController.createStore);
 
+// Protected routes
+router.get('/following', auth.auth(), storeController.getFollowingStores);
+
 router
     .route('/:storeId')
     .get(validate(storeValidation.getStoreDetail), storeController.getStoreDetail)
