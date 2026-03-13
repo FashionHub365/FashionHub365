@@ -33,7 +33,7 @@ const storeSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['active', 'inactive', 'suspended', 'closed'],
+        enum: ['active', 'inactive', 'suspended', 'closed', 'pending'],
         default: 'active'
     },
     is_draft: {

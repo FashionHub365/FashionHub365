@@ -1,7 +1,15 @@
 const jwt = require('jsonwebtoken');
 const httpStatus = require('http-status');
 const config = require('../config/config');
-const { User, Session, StoreMember, InvalidatedToken } = require('../models');
+const {
+    User,
+    Session,
+    StoreMember,
+    Store,
+    Role,
+    InvalidatedToken,
+    UserPermissionOverride,
+} = require('../models');
 const ApiError = require('../utils/ApiError');
 const { tokenTypes } = require('../constants/tokens');
 const { getBearerToken, hashToken } = require('../utils/token.util');
@@ -70,10 +78,10 @@ const authorize = (requiredPermissions = [], options = {}) => async (req, res, n
         const mode = options.mode || 'OR';
         const storeIdField = options.storeIdFrom || null;
         const storeId = storeIdField
-            ? (req.params?.[storeIdField] || req.body?.[storeIdField] || req.query?.[storeIdField])
-            : (req.params?.storeId || req.body?.storeId || req.query?.storeId);
+            ? (req.params?.[storeIdField] || req.body?.[storeIdField] || req.query?.[storeIdField] || req.storeId)
+            : (req.params?.storeId || req.body?.storeId || req.body?.store_id || req.query?.storeId || req.storeId);
 
-        let userPermissions = new Set();
+        const userPermissions = new Set();
 
         // Global permissions
         await user.populate({
@@ -101,8 +109,33 @@ const authorize = (requiredPermissions = [], options = {}) => async (req, res, n
                         role.permission_ids.forEach(perm => userPermissions.add(perm.code));
                     }
                 });
+            } else {
+                // Backward compatibility: store owners may exist without StoreMember rows in legacy data.
+                const ownedStore = await Store.findOne({ _id: storeId, owner_user_id: user._id }).select('_id');
+                if (ownedStore) {
+                    const storeOwnerRole = await Role.findOne({ slug: 'store-owner', scope: 'STORE', deleted_at: null })
+                        .populate('permission_ids');
+                    if (storeOwnerRole?.permission_ids) {
+                        storeOwnerRole.permission_ids.forEach((perm) => userPermissions.add(perm.code));
+                    }
+                }
             }
         }
+
+        // Direct user-level permission overrides (allow/deny for specific user)
+        const overrides = await UserPermissionOverride.find({ user_id: user._id })
+            .populate('permission_id', 'code')
+            .select('effect permission_id');
+
+        overrides.forEach((override) => {
+            const code = override?.permission_id?.code;
+            if (!code) return;
+            if (override.effect === 'DENY') {
+                userPermissions.delete(code);
+            } else {
+                userPermissions.add(code);
+            }
+        });
 
         // Permission check
         if (requiredPermissions.length > 0) {

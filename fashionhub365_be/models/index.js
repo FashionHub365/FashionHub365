@@ -57,7 +57,7 @@ const EmailVerificationToken = require('./EmailVerificationToken');
 const PasswordResetToken = require('./PasswordResetToken');
 const UserAddress = require('./UserAddress');
 const InvalidatedToken = require('./InvalidatedToken');
-
+const UserPermissionOverride = require('./UserPermissionOverride');
 module.exports = {
     User,
     Role,
@@ -117,5 +117,6 @@ module.exports = {
     EmailVerificationToken,
     PasswordResetToken,
     UserAddress,
-    InvalidatedToken
+    InvalidatedToken,
+    UserPermissionOverride,
 };

@@ -8,6 +8,7 @@ const morgan = require('morgan');
 const config = require('./config/config');
 const connectDB = require('./config/db');
 const initDB = require('./script/initDB');
+const { seedRBAC } = require('./script/seedRBAC');
 const routes = require('./routes');
 const errorHandler = require('./middleware/error');
 const ApiError = require('./utils/ApiError');
@@ -62,10 +63,13 @@ app.use(errorHandler);
 const PORT = config?.port || process.env.PORT || 5000;
 
 connectDB()
-    .then(() => {
+    .then(async () => {
         
         if (typeof initDB === 'function') {
-            initDB();
+            await initDB();
+        }
+        if (typeof seedRBAC === 'function') {
+            await seedRBAC();
         }
         if (env !== 'test') {
             workerService.startWorkers();

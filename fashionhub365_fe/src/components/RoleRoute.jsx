@@ -1,6 +1,7 @@
 import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { hasAnyRole } from "../utils/roleUtils";
 
 /**
  * RoleRoute component protects routes based on user roles.
@@ -28,10 +29,7 @@ const RoleRoute = ({ allowedRoles }) => {
         return <Navigate to="/login" replace />;
     }
 
-    // Determine the user's role: 'admin', 'seller', or 'user' (default)
-    const userRole = user.role || 'user';
-
-    if (!allowedRoles.includes(userRole)) {
+    if (!hasAnyRole(user, allowedRoles)) {
         // Logged in but insufficient permissions -> Redirect to Forbidden
         return <Navigate to="/forbidden" replace />;
     }

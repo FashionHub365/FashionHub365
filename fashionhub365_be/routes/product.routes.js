@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/product.controller');
-const { auth } = require('../middleware/auth');
+const { auth, authorize } = require('../middleware/auth');
 const { storeAuth } = require("../middleware/storeAuth");
 const catchAsync = require('../utils/catchAsync');
 const { productService } = require('../services');
@@ -10,13 +10,13 @@ const { productService } = require('../services');
 router.use(auth());
 
 // UC-09: Đăng bán sản phẩm
-router.post('/', storeAuth(), productController.createProduct);
+router.post('/', storeAuth(), authorize(['STORE.PRODUCT.CREATE']), productController.createProduct);
 
 // UC-16: Quản lý danh sách sản phẩm
-router.get('/seller', storeAuth(), productController.getSellerProducts);
+router.get('/seller', storeAuth(), authorize(['STORE.PRODUCT.VIEW']), productController.getSellerProducts);
 
 // Gợi ý sản phẩm cho giỏ hàng
-router.get('/cart-recommendations', catchAsync(async (req, res) => {
+router.get('/cart-recommendations', authorize(['CART.MANAGE']), catchAsync(async (req, res) => {
     const { cartProductIds, storeIds, categoryIds, cartTotal, limit } = req.query;
 
     const result = await productService.getCartRecommendations({
@@ -31,15 +31,15 @@ router.get('/cart-recommendations', catchAsync(async (req, res) => {
 }));
 
 // Chi tiết sản phẩm, cập nhật, xóa, trạng thái kho (Yêu cầu storeAuth)
-router.get('/:id', storeAuth(), productController.getProductById);
-router.put('/:id', storeAuth(), productController.updateProduct);
-router.delete('/:id', storeAuth(), productController.deleteProduct);
-router.patch('/:id/stock-status', storeAuth(), productController.toggleStockStatus);
+router.get('/:id', storeAuth(), authorize(['STORE.PRODUCT.VIEW']), productController.getProductById);
+router.put('/:id', storeAuth(), authorize(['STORE.PRODUCT.UPDATE']), productController.updateProduct);
+router.delete('/:id', storeAuth(), authorize(['STORE.PRODUCT.DELETE']), productController.deleteProduct);
+router.patch('/:id/stock-status', storeAuth(), authorize(['STORE.PRODUCT.UPDATE']), productController.toggleStockStatus);
 
 // Reviews management for sellers
-router.get('/:id/reviews', storeAuth(), productController.getSellerProductReviews);
-router.post('/:id/reviews/:reviewId/respond', storeAuth(), productController.respondToReview);
-router.patch('/:id/reviews/:reviewId/toggle-visibility', storeAuth(), productController.toggleReviewVisibility);
+router.get('/:id/reviews', storeAuth(), authorize(['STORE.PRODUCT.VIEW']), productController.getSellerProductReviews);
+router.post('/:id/reviews/:reviewId/respond', storeAuth(), authorize(['STORE.PRODUCT.UPDATE']), productController.respondToReview);
+router.patch('/:id/reviews/:reviewId/toggle-visibility', storeAuth(), authorize(['STORE.PRODUCT.UPDATE']), productController.toggleReviewVisibility);
 
 module.exports = router;
 

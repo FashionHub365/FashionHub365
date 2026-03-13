@@ -38,13 +38,42 @@ export const AuthProvider = ({ children }) => {
     const login = async (identifier, password, rememberMe = true) => {
         try {
             const response = await authApi.login({ identifier, password, rememberMe });
-            if (response.success && response.data.user && response.data.tokens) {
+            if (response.success) {
+                if (response.data.requiresOtp === false && response.data.user && response.data.tokens) {
+                    const { user, tokens } = response.data;
+                    localStorage.setItem('tokens', JSON.stringify(tokens));
+                    localStorage.setItem('user', JSON.stringify(user));
+                    setUser(user);
+                    setIsAuthenticated(true);
+                    return { success: true, requiresOtp: false, user };
+                }
+
+                return {
+                    success: true,
+                    requiresOtp: true,
+                    email: response.data.email,
+                    message: response.data.message,
+                    otpCode: response.data.otpCode,
+                };
+            }
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.error?.message || error.response?.data?.message || 'Login failed'
+            };
+        }
+    };
+
+    const verifyOtpLogin = async (email, otpCode, rememberMe = true) => {
+        try {
+            const response = await authApi.verifyOtp({ email, otpCode, rememberMe });
+            if (response.success) {
                 const { user, tokens } = response.data;
                 localStorage.setItem('tokens', JSON.stringify(tokens));
                 localStorage.setItem('user', JSON.stringify(user));
                 setUser(user);
                 setIsAuthenticated(true);
-                return { success: true };
+                return { success: true, user };
             }
         } catch (error) {
             return {
@@ -63,7 +92,7 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('user', JSON.stringify(user));
                 setUser(user);
                 setIsAuthenticated(true);
-                return { success: true };
+                return { success: true, user };
             }
         } catch (error) {
             return {

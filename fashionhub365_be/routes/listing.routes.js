@@ -29,6 +29,6 @@ router.post('/products/:id/view', listingController.trackProductView);
 router.get('/products/:id/reviews', listingController.getProductReviews);
 
 // POST /api/v1/listing/products/:id/reviews - Thêm một đánh giá mới (cần đăng nhập)
-router.post('/products/:id/reviews', auth.auth(), listingController.createProductReview);
+router.post('/products/:id/reviews', auth.auth(), auth.authorize(['REVIEW.CREATE']), listingController.createProductReview);
 
 module.exports = router;
