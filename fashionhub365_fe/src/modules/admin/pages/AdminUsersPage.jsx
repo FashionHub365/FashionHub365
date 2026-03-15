@@ -736,7 +736,7 @@ const AdminUsersPage = () => {
     <section className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">User Management</h1>
+          <h1 className="text-lg text-left font-semibold text-slate-900">User Management</h1>
           <p className="text-sm text-slate-500 mt-1">
             Current roles: {currentEffectiveRoles.join(", ") || "user"}
           </p>
@@ -836,7 +836,7 @@ const AdminUsersPage = () => {
                           alt="Avatar"
                           className="w-9 h-9 rounded-full object-cover shadow-sm border border-slate-200"
                         />
-                        <div>
+                        <div className="text-left">
                           <p className="text-slate-900 font-medium">{getDisplayName(userItem)}</p>
                           <p className="text-xs text-slate-500 mt-0.5">{userItem.email || "-"}</p>
                         </div>
@@ -996,8 +996,8 @@ const AdminUsersPage = () => {
                                 <label
                                   key={role._id}
                                   className={`flex items-start gap-3 border rounded-xl p-3 cursor-pointer transition-all ${checked
-                                      ? "border-indigo-300 bg-indigo-50 ring-1 ring-indigo-300"
-                                      : "border-slate-200 hover:border-indigo-200 hover:bg-slate-50"
+                                    ? "border-indigo-300 bg-indigo-50 ring-1 ring-indigo-300"
+                                    : "border-slate-200 hover:border-indigo-200 hover:bg-slate-50"
                                     }`}
                                 >
                                   <div className="pt-0.5">
@@ -1084,8 +1084,8 @@ const AdminUsersPage = () => {
                                 <label
                                   key={role._id}
                                   className={`flex items-start gap-3 border rounded-xl p-3 cursor-pointer transition-all ${checked
-                                      ? "border-indigo-300 bg-indigo-50 ring-1 ring-indigo-300"
-                                      : "border-slate-200 hover:border-indigo-200 hover:bg-slate-50"
+                                    ? "border-indigo-300 bg-indigo-50 ring-1 ring-indigo-300"
+                                    : "border-slate-200 hover:border-indigo-200 hover:bg-slate-50"
                                     }`}
                                 >
                                   <div className="pt-0.5">
