@@ -18,4 +18,8 @@ router.get('/sessions/:sessionId/messages', chatController.getMessages);
 // Đánh dấu đã đọc
 router.patch('/sessions/:sessionId/read', chatController.markRead);
 
+// AI Chat (Gemini)
+router.post('/gemini', chatController.geminiChat);
+router.get('/history', chatController.getChatHistory);
+
 module.exports = router;

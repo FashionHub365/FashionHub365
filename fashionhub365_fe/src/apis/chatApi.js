@@ -19,6 +19,14 @@ const chatApi = {
     /** Đánh dấu đã đọc */
     markRead: (sessionId) =>
         axiosClient.patch(`/chat/sessions/${sessionId}/read`),
+
+    /** AI Chat (Gemini) */
+    sendMessage: (prompt, history = []) => {
+        return axiosClient.post('/chat/gemini', { prompt, history });
+    },
+    getHistory: () => {
+        return axiosClient.get('/chat/history');
+    }
 };
 
 export default chatApi;

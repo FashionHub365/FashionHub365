@@ -1,6 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { adminOverviewService } from "../services/adminOverviewService";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
 
 const orderColors = ["#4f46e5", "#10b981", "#f59e0b", "#0ea5e9", "#8b5cf6", "#f43f5e"];
 
@@ -99,26 +102,44 @@ const DonutChart = ({ segments }) => {
   ];
 
   const finalTotal = total > 0 ? total : 100;
-
-  let cursor = 0;
-  const gradient = finalSegments
-    .map((item) => {
-      const value = Number(item.value || 0);
-      const percent = (value / finalTotal) * 100;
-      const start = cursor;
-      const end = cursor + percent;
-      cursor = end;
-      return `${item.color} ${start}% ${end}%`;
-    })
-    .join(", ");
-
+  
+  let currentOffset = 0;
+  
+  // Calculate SVG stroke parameters
+  const size = 200;
+  const strokeWidth = 24;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  
   return (
     <div className="flex flex-col items-center justify-center mt-6 h-full">
-      <div
-        className="w-48 h-48 sm:w-56 sm:h-56 rounded-full relative shadow-sm"
-        style={{ background: `conic-gradient(${gradient})` }}
-      >
-        <div className="absolute inset-4 rounded-full bg-white flex flex-col items-center justify-center shadow-inner">
+      <div className="relative w-48 h-48 sm:w-56 sm:h-56">
+        <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full transform -rotate-90">
+          {finalSegments.map((item, idx) => {
+            const value = Number(item.value || 0);
+            const percent = value / finalTotal;
+            const strokeDasharray = `${percent * circumference} ${circumference}`;
+            const strokeDashoffset = -currentOffset * circumference;
+            currentOffset += percent;
+            
+            return (
+              <circle
+                key={idx}
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill="transparent"
+                stroke={item.color}
+                strokeWidth={strokeWidth}
+                strokeDasharray={strokeDasharray}
+                strokeDashoffset={strokeDashoffset}
+                className="transition-all duration-1000 ease-out"
+              />
+            );
+          })}
+        </svg>
+        
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
           <p className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
             {total > 0 ? formatCount(total) : "1.5k"}
           </p>
@@ -164,6 +185,7 @@ const AdminOverviewPage = () => {
   const [error, setError] = useState("");
   const [summary, setSummary] = useState({ totalRevenue: 1284500.00, totalUsers: 42893, totalOrders: 1562 });
   const [trend] = useState({ revenue: 2.5, users: 6.2, orders: -1.1, tickets: -2.4 });
+  const dashboardRef = useRef(null);
 
   const loadDashboard = async () => {
     setLoading(true);
@@ -177,8 +199,34 @@ const AdminOverviewPage = () => {
     loadDashboard();
   }, []);
 
+  const handleExportData = async () => {
+    try {
+      const element = dashboardRef.current;
+      if (!element) return;
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+
+      const imgData = canvas.toDataURL("image/jpeg", 1.0);
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`dashboard_overview_${new Date().toISOString().split('T')[0]}.pdf`);
+
+    } catch (err) {
+      console.error("Export failed:", err);
+      alert("Failed to export PDF screenshot.");
+    }
+  };
+
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
+    <div ref={dashboardRef} className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500 bg-slate-50 p-2 sm:p-4 rounded-3xl">
       {/* Top Header Section */}
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
@@ -192,7 +240,11 @@ const AdminOverviewPage = () => {
             </svg>
             <span>Oct 1, 2023 - Oct 31, 2023</span>
           </button>
-          <button className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-600/20">
+          <button
+            type="button"
+            onClick={handleExportData}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-600/20"
+          >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
@@ -337,8 +389,8 @@ const AdminOverviewPage = () => {
                   <td className="px-6 py-4 text-sm font-bold text-slate-800">${formatMoney(order.total)}</td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase ${order.status === 'SUCCESS' ? 'bg-emerald-100/60 text-emerald-600' :
-                        order.status === 'PENDING' ? 'bg-amber-100/60 text-amber-600' :
-                          'bg-rose-100/60 text-rose-600'
+                      order.status === 'PENDING' ? 'bg-amber-100/60 text-amber-600' :
+                        'bg-rose-100/60 text-rose-600'
                       }`}>
                       {order.status}
                     </span>

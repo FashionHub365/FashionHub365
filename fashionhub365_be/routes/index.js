@@ -38,7 +38,6 @@ const defaultRoutes = [
     { path: '/stores', route: storeRoute },
     { path: '/orders', route: customerOrderRoute },
     { path: '/wishlist', route: wishlistRoute },
-    { path: '/stores', route: storeRoute },
     { path: '/chat', route: chatRoute },
 ];
 

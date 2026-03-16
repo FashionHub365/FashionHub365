@@ -5,6 +5,7 @@ import { FooterSection } from "./FooterSection";
 import { ChatProvider } from "../contexts/ChatContext";
 import { ChatWidget } from "./Chat/ChatWidget";
 import { useAuth } from "../contexts/AuthContext";
+import Chatbot from "./Chatbot/Chatbot";
 
 const LayoutInner = ({ children }) => {
     const location = useLocation();
@@ -22,6 +23,7 @@ const LayoutInner = ({ children }) => {
             {children}
             {!isAdminRoute && <FooterSection />}
             {showChatWidget && <ChatWidget />}
+            {!isAdminRoute && <Chatbot />}
         </div>
     );
 };

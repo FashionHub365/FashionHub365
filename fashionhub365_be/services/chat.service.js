@@ -58,7 +58,7 @@ const getMessages = async (sessionId, limit = 50, before = null) => {
 };
 
 /**
- * Lưu tin nhắn mới
+ * Lưu tin nhắn mới (cho session giữa user và store)
  */
 const saveMessage = async (sessionId, senderUserId, message) => {
     const msg = await ChatMessage.create({
@@ -81,6 +81,54 @@ const markMessagesRead = async (sessionId, readerUserId) => {
     );
 };
 
+/**
+ * AI Chat History Persistence (from main branch)
+ */
+const chatService = {
+    /**
+     * Save a message for AI chat to the database
+     */
+    saveMessageForAI: async ({ userId, role, text }) => {
+        try {
+            const message = await ChatMessage.create({
+                sender_user_id: role === 'user' ? userId : null,
+                role,
+                message: text,
+                sent_at: new Date()
+            });
+            return message;
+        } catch (error) {
+            console.error('[ChatService] Save AI Message Error:', error.message);
+        }
+    },
+
+    /**
+     * Get recent AI history for a user
+     */
+    getHistory: async (userId) => {
+        try {
+            if (!userId) return [];
+            const messages = await ChatMessage.find({
+                $or: [
+                    { sender_user_id: userId },
+                    { role: 'model' }
+                ]
+            })
+                .sort({ sent_at: -1 })
+                .limit(20)
+                .lean();
+
+            return messages.reverse().map(m => ({
+                role: m.role,
+                text: m.message
+            }));
+        } catch (error) {
+            console.error('[ChatService] Get History Error:', error.message);
+            return [];
+        }
+    }
+};
+
 module.exports = {
     getOrCreateSession,
     getSessionsByUser,
@@ -88,4 +136,5 @@ module.exports = {
     getMessages,
     saveMessage,
     markMessagesRead,
+    ...chatService
 };

@@ -11,15 +11,21 @@ const chatMessageSchema = new mongoose.Schema({
     chat_session_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'ChatSession',
-        required: true
+        required: false // Optional for simple bot interactions
     },
     sender_user_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false // Optional for AI responses
+    },
+    role: {
+        type: String,
+        enum: ['user', 'model'],
+        default: 'user'
     },
     message: {
-        type: String
+        type: String,
+        required: true
     },
     attachments: [mongoose.Schema.Types.Mixed],
     sent_at: {
