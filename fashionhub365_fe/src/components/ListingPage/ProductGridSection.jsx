@@ -190,18 +190,18 @@ export const ProductGridSection = () => {
 
   return (
     <section className="flex flex-col md:flex-row items-start gap-8 px-4 md:px-8 lg:px-20 py-[30px] w-full max-w-[1440px] mx-auto">
-      <div className="w-full md:w-1/4 lg:w-1/5 shrink-0 sticky top-24 max-h-[calc(100vh-100px)] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div className="w-full md:w-1/4 lg:w-1/5 shrink-0 relative md:sticky md:top-24 md:max-h-[calc(100vh-100px)] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <FilterSidebar onFilterChange={handleFilterChange} activeFilters={filters} />
       </div>
       <main className="flex flex-col items-start relative flex-1 min-w-0 w-full">
         <ListingHeader total={total} activeCategory={filters.category} />
 
         {/* Thanh Search + Sort */}
-        <div className="flex items-center gap-3 relative self-stretch w-full flex-[0_0_auto] pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 relative self-stretch w-full flex-[0_0_auto] pb-4">
           {/* Search input */}
           <form
             onSubmit={handleSearchSubmit}
-            className="flex items-center flex-1 relative"
+            className="flex items-center flex-1 relative w-full"
           >
             <div className="flex items-center flex-1 border border-solid border-gray-200 bg-white px-3 py-2 gap-2">
               <svg
@@ -245,7 +245,7 @@ export const ProductGridSection = () => {
           </form>
 
           {/* Sort dropdown */}
-          <div className="flex items-center gap-2 border border-solid border-gray-200 bg-white px-3 py-2 flex-shrink-0">
+          <div className="flex justify-between items-center gap-2 border border-solid border-gray-200 bg-white px-3 py-2 flex-shrink-0 w-full sm:w-auto">
             <span className="font-text-200 text-gray-400">Sort by:</span>
             <select
               id="listing-sort"

@@ -1,9 +1,11 @@
 require("dotenv").config();
 
+const http = require('http');
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
+const { Server } = require('socket.io');
 
 const config = require('./config/config');
 const connectDB = require('./config/db');
@@ -14,9 +16,20 @@ const errorHandler = require('./middleware/error');
 const ApiError = require('./utils/ApiError');
 const apiLogger = require('./middleware/apiLogger');
 const { workerService } = require('./services');
+const chatSocket = require('./socket/chatSocket');
 
 
 const app = express();
+const httpServer = http.createServer(app);
+
+// Khởi tạo Socket.IO
+const io = new Server(httpServer, {
+    cors: {
+        origin: '*',
+        methods: ['GET', 'POST'],
+    },
+});
+chatSocket(io);
 
 
 app.use(helmet());
@@ -76,7 +89,7 @@ connectDB()
         }
 
         
-        app.listen(PORT, () => {
+        httpServer.listen(PORT, () => {
             console.log(`Server started on port ${PORT} in ${env} mode`);
         });
     })

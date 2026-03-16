@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 import storeApi from "../../apis/store.api";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useChat } from "../../contexts/ChatContext";
 
 export const StoreHeader = ({ store, totalProducts }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { openChat } = useChat();
 
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
@@ -178,7 +180,13 @@ export const StoreHeader = ({ store, totalProducts }) => {
                 >
                   <span className="text-base leading-none font-normal">{isFollowing ? '✓' : '+'}</span> {isFollowing ? 'Đang Theo Dõi' : 'Theo Dõi'}
                 </button>
-                <button className="flex-1 py-1.5 bg-transparent border border-white/50 text-white rounded text-[10px] font-bold hover:bg-white/10 transition-colors flex items-center justify-center gap-1 uppercase tracking-tight">
+                <button
+                  onClick={() => {
+                    if (!user) { navigate('/login'); return; }
+                    openChat(store._id, { name: storeName, avatar: store?.avatar });
+                  }}
+                  className="flex-1 py-1.5 bg-transparent border border-white/50 text-white rounded text-[10px] font-bold hover:bg-white/10 transition-colors flex items-center justify-center gap-1 uppercase tracking-tight"
+                >
                   <Icons.ChatDots />
                   Chat
                 </button>

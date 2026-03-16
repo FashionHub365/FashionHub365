@@ -1,0 +1,39 @@
+{
+  "sessions": [
+    {
+      "_id": "69b394868295791eaf02c2c2",
+      "user_id": "69a5d0216ee828e5ac8aa4f5",
+      "store_id": "69a6366ff717bb9a046e9f1a",
+      "uuid": "115fbdf0-08d1-4b7d-b507-701e84b8ed07",
+      "created_at": "2026-03-13T04:37:26.249Z",
+      "__v": 0
+    }
+  ],
+  "stores": [
+    {
+      "_id": "69a5a557709d97df28140044",
+      "owner_user_id": "69a5a556709d97df2813ffff",
+      "name": "Fashion Central"
+    },
+    {
+      "_id": "69a5a557709d97df28140045",
+      "owner_user_id": "69a5a556709d97df28140000",
+      "name": "Street Style Hub"
+    },
+    {
+      "_id": "69a6366ff717bb9a046e9f1a",
+      "owner_user_id": "69a62f4ae47d9f55f49a2791",
+      "name": "Hoang Fashion Store"
+    },
+    {
+      "_id": "03b636dda042145d855db293",
+      "owner_user_id": "69a62f4ae47d9f55f49a2791",
+      "name": "Thời Trang Việt"
+    },
+    {
+      "_id": "3e8ca8774021964484bd8bbc",
+      "owner_user_id": "69a62f4ae47d9f55f49a2791",
+      "name": "Sneaker House VN"
+    }
+  ]
+}
