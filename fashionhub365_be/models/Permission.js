@@ -27,14 +27,13 @@ const permissionSchema = new mongoose.Schema({
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
 
-permissionSchema.pre('save', function (next) {
+permissionSchema.pre('save', function () {
     if (this.code) {
         this.code = this.code.trim().toUpperCase();
     }
     if (this.module) {
         this.module = this.module.trim().toUpperCase();
     }
-    next();
 });
 
 module.exports = mongoose.model('Permission', permissionSchema);

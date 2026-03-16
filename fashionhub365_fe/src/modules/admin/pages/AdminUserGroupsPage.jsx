@@ -174,7 +174,7 @@ const AdminUserGroupsPage = () => {
         setGroupForm(emptyGroup);
       }
     } catch (nextError) {
-      setError(nextError.message || "Unable to load role group data.");
+      setError(nextError.message || "Không thể tải dữ liệu nhóm quyền.");
     } finally {
       setLoading(false);
     }
@@ -265,11 +265,11 @@ const AdminUserGroupsPage = () => {
     const name = groupForm.name.trim();
     const slug = groupForm.slug.trim();
     if (!name) {
-      setError("Role group name is required.");
+      setError("Vui lòng nhập tên nhóm quyền.");
       return;
     }
     if (!slug) {
-      setError("Role group slug is required.");
+      setError("Vui lòng nhập mã hệ thống (slug).");
       return;
     }
 
@@ -281,7 +281,7 @@ const AdminUserGroupsPage = () => {
           (item) => !item.deletedAt && item.slug.toLowerCase() === slug.toLowerCase()
         );
         if (exists) {
-          setError("Slug already exists. Please choose another one.");
+          setError("Mã hệ thống đã tồn tại. Vui lòng thử mã khác.");
           return;
         }
 
@@ -297,7 +297,7 @@ const AdminUserGroupsPage = () => {
         );
         const nextGroups = [created, ...groups];
         updateGroups(nextGroups, created.id);
-        setSuccess("Role group created.");
+        setSuccess("Đã tạo nhóm quyền thành công.");
       } else {
         const exists = groups.some(
           (item) =>
@@ -306,7 +306,7 @@ const AdminUserGroupsPage = () => {
             item.slug.toLowerCase() === slug.toLowerCase()
         );
         if (exists) {
-          setError("Slug already exists. Please choose another one.");
+          setError("Mã hệ thống đã tồn tại. Vui lòng thử mã khác.");
           return;
         }
 
@@ -328,7 +328,7 @@ const AdminUserGroupsPage = () => {
           });
         });
         updateGroups(nextGroups, selectedGroupId);
-        setSuccess("Role group updated.");
+        setSuccess("Đã cập nhật thông tin nhóm.");
       }
     } finally {
       setSaving(false);
@@ -353,7 +353,7 @@ const AdminUserGroupsPage = () => {
       );
     });
     updateGroups(nextGroups, "");
-    setSuccess("Role group soft-deleted.");
+    setSuccess("Đã xóa nhóm quyền.");
   };
 
   const onSearchMembers = async () => {
@@ -369,7 +369,7 @@ const AdminUserGroupsPage = () => {
       setSearchUsers(users);
       upsertKnownUsers(users);
     } catch (nextError) {
-      setError(nextError.message || "Unable to find users.");
+      setError(nextError.message || "Không tìm thấy người dùng.");
     } finally {
       setSearching(false);
     }
@@ -377,15 +377,15 @@ const AdminUserGroupsPage = () => {
 
   const applyRolesToMembers = async (mode = "replace") => {
     if (!selectedGroupId) {
-      setError("No role group selected.");
+      setError("Chưa chọn nhóm quyền.");
       return;
     }
     if (!groupForm.memberIds.length) {
-      setError("This group has no members to apply roles to.");
+      setError("Nhóm này chưa có thành viên nào.");
       return;
     }
     if (!groupForm.roleIds.length) {
-      setError("This group has no default roles.");
+      setError("Nhóm này chưa được gán vai trò mặc định.");
       return;
     }
 
@@ -399,8 +399,8 @@ const AdminUserGroupsPage = () => {
         const currentUser = userMap.get(userId);
         const currentRoleIds = Array.isArray(currentUser?.global_role_ids)
           ? currentUser.global_role_ids.map((role) =>
-              typeof role === "string" ? role : role?._id
-            ).filter(Boolean)
+            typeof role === "string" ? role : role?._id
+          ).filter(Boolean)
           : [];
 
         const nextRoleIds =
@@ -423,9 +423,9 @@ const AdminUserGroupsPage = () => {
         });
       });
       updateGroups(nextGroups, selectedGroupId);
-      setSuccess(`Applied roles to ${successCount}/${groupForm.memberIds.length} members successfully.`);
+      setSuccess(`Đã áp dụng thành công quyền cho ${successCount}/${groupForm.memberIds.length} thành viên.`);
     } catch (nextError) {
-      setError(nextError.message || "Bulk role application failed.");
+      setError(nextError.message || "Lỗi khi áp dụng quyền hàng loạt.");
     } finally {
       setApplying(false);
     }
@@ -433,9 +433,10 @@ const AdminUserGroupsPage = () => {
 
   if (loading) {
     return (
-      <section className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900" />
+      <section className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm min-h-[600px] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest">Đang tải dữ liệu...</p>
         </div>
       </section>
     );
@@ -443,35 +444,35 @@ const AdminUserGroupsPage = () => {
 
   if (!canManageUserGroups) {
     return (
-      <section className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-        <h1 className="text-lg font-semibold text-slate-900">Role Groups</h1>
-        <div className="mt-3 bg-amber-50 border border-amber-200 text-amber-700 text-sm rounded-lg px-3 py-2">
-          This account cannot manage role groups.
+      <section className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm min-h-[400px] flex flex-col items-center justify-center">
+        <h1 className="text-2xl font-bold text-slate-800 tracking-tight mb-3">Quản lý Nhóm người dùng</h1>
+        <div className="bg-amber-50 border border-amber-200 text-amber-700 text-sm font-medium rounded-xl px-5 py-4 shadow-sm">
+          Tài khoản này không có quyền quản lý nhóm người dùng.
         </div>
       </section>
     );
   }
 
   return (
-    <section className="grid grid-cols-1 lg:grid-cols-[320px,1fr] gap-5">
-      <aside className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+    <section className="grid grid-cols-1 lg:grid-cols-[340px,1fr] gap-6">
+      <aside className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm overflow-hidden flex flex-col max-h-[calc(100vh-120px)]">
+        <div className="flex items-center justify-between mb-5 shrink-0">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">Role Groups</h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {activeGroups.length} active groups
+            <h2 className="text-base font-bold text-slate-900 tracking-tight uppercase">Danh sách Nhóm</h2>
+            <p className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wide">
+              {activeGroups.length} nhóm hoạt động
             </p>
           </div>
           <button
             type="button"
             onClick={onCreateMode}
-            className="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold uppercase tracking-wide hover:bg-indigo-700 transition-all shadow-sm"
           >
-            + Create
+            + Tạo mới
           </button>
         </div>
 
-        <div className="space-y-2 max-h-[740px] overflow-y-auto pr-1">
+        <div className="space-y-3 overflow-y-auto pr-2 stylish-scrollbar flex-1 min-h-0">
           {activeGroups.map((group) => {
             const isActive = group.id === selectedGroupId;
             return (
@@ -479,20 +480,26 @@ const AdminUserGroupsPage = () => {
                 key={group.id}
                 type="button"
                 onClick={() => onSelectGroup(group)}
-                className={`w-full text-left border rounded-xl px-3 py-2.5 transition-colors ${
-                  isActive
-                    ? "border-indigo-300 bg-indigo-50"
-                    : "border-slate-200 hover:bg-slate-50"
-                }`}
+                className={`w-full text-left border rounded-2xl px-4 py-3.5 transition-all outline-none ${isActive
+                  ? "border-indigo-500 ring-1 ring-indigo-500 bg-indigo-50/60 shadow-sm"
+                  : "border-slate-200 hover:border-indigo-300 hover:bg-slate-50"
+                  }`}
               >
-                <p className="text-sm font-semibold text-slate-900">{group.name}</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">{group.slug}</p>
-                <div className="mt-2 flex items-center gap-2 text-[11px]">
-                  <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                    {group.roleIds?.length || 0} roles
+                <div className="flex items-start justify-between">
+                  <p className={`text-sm font-bold ${isActive ? 'text-indigo-900' : 'text-slate-800'}`}>{group.name}</p>
+                  {group.status === "ACTIVE" ? (
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1 shrink-0" title="Đang hoạt động"></span>
+                  ) : (
+                    <span className="w-2 h-2 rounded-full bg-slate-300 mt-1 shrink-0" title="Không hoạt động"></span>
+                  )}
+                </div>
+                <p className={`text-[11px] mt-1 ${isActive ? 'text-indigo-600' : 'text-slate-500'}`}>{group.slug}</p>
+                <div className="mt-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
+                  <span className={`px-2 py-1 rounded-md ${isActive ? 'bg-indigo-100/80 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                    {group.roleIds?.length || 0} quyền
                   </span>
-                  <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                    {group.memberIds?.length || 0} members
+                  <span className={`px-2 py-1 rounded-md ${isActive ? 'bg-indigo-100/80 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                    {group.memberIds?.length || 0} thành viên
                   </span>
                 </div>
               </button>
@@ -501,259 +508,279 @@ const AdminUserGroupsPage = () => {
         </div>
       </aside>
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm overflow-hidden flex flex-col max-h-[calc(100vh-120px)]">
+        <div className="flex flex-wrap items-start justify-between gap-3 shrink-0">
           <div>
-            <h1 className="text-lg font-semibold text-slate-900">Role Group Details</h1>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Chi tiết Nhóm quyền</h1>
             <p className="text-sm text-slate-500 mt-1">
-              Create groups, assign default roles, add members, and apply roles in bulk.
+              Quản lý thông tin chung, chỉ định vai trò mặc định và quản trị thành viên của nhóm.
             </p>
           </div>
-          <div className="text-xs text-slate-500">
-            Updated at:{" "}
-            <span className="font-semibold text-slate-700">
-              {formatDateTime(groupForm.updatedAt)}
-            </span>
-          </div>
+          {groupForm.updatedAt && (
+            <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+              Cập nhật lúc: <span className="text-slate-800">{formatDateTime(groupForm.updatedAt)}</span>
+            </div>
+          )}
         </div>
 
         {error && (
-          <div className="mt-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-lg px-3 py-2">
+          <div className="mt-5 bg-rose-50 border border-rose-200/60 flex items-center gap-3 text-rose-700 text-sm font-semibold rounded-xl px-4 py-3 shadow-sm shrink-0">
+            <svg className="w-5 h-5 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
             {error}
           </div>
         )}
         {success && (
-          <div className="mt-4 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-lg px-3 py-2">
+          <div className="mt-5 bg-emerald-50 flex items-center gap-3 border border-emerald-200/60 text-emerald-700 text-sm font-semibold rounded-xl px-4 py-3 shadow-sm shrink-0">
+            <svg className="w-5 h-5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
             {success}
           </div>
         )}
 
-        <div className="mt-5 grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Group name</label>
-            <input
-              value={groupForm.name}
-              onChange={(event) => onFormChange("name", event.target.value)}
-              placeholder="Example: CS Team"
-              className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Slug</label>
-            <input
-              value={groupForm.slug}
-              onChange={(event) => onFormChange("slug", slugify(event.target.value))}
-              placeholder="cs-team"
-              className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-            />
-          </div>
-          <div className="xl:col-span-2">
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Description</label>
-            <textarea
-              rows={3}
-              value={groupForm.description}
-              onChange={(event) => onFormChange("description", event.target.value)}
-              placeholder="Describe the group responsibility scope..."
-              className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Status</label>
-            <select
-              value={groupForm.status}
-              onChange={(event) => onFormChange("status", event.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-            >
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="INACTIVE">INACTIVE</option>
-            </select>
-          </div>
-        </div>
-
-        <section className="mt-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-slate-900">Default roles for group</h3>
-            <span className="text-xs text-slate-500">{groupForm.roleIds.length} roles selected</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
-            {allRoles.map((role) => {
-              const checked = groupForm.roleIds.includes(role._id);
-              return (
-                <label
-                  key={role._id}
-                  className={`flex items-center gap-2.5 border rounded-lg px-3 py-2 text-sm cursor-pointer transition-colors ${
-                    checked ? "border-indigo-300 bg-indigo-50" : "border-slate-200 hover:bg-slate-50"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleRole(role._id)}
-                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-                  />
-                  <div>
-                    <p className="font-medium text-slate-800">{role.name}</p>
-                    <p className="text-[11px] text-slate-500">{role.slug}</p>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="mt-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-slate-900">Group members</h3>
-            <span className="text-xs text-slate-500">{groupForm.memberIds.length} members</span>
+        <div className="mt-6 overflow-y-auto stylish-scrollbar pr-2 pb-6 min-h-0 flex-1">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Tên nhóm</label>
+              <input
+                value={groupForm.name}
+                onChange={(event) => onFormChange("name", event.target.value)}
+                placeholder="VD: Nhóm CSKH"
+                className="w-full pl-4 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Mã hệ thống (chỉ đọc)</label>
+              <input
+                value={groupForm.slug}
+                readOnly
+                placeholder="nhom-cskh"
+                className="w-full pl-4 pr-3 py-3 bg-slate-100/50 border border-slate-200 text-slate-500 font-medium cursor-not-allowed rounded-xl text-sm focus:outline-none"
+              />
+              <p className="text-[10px] text-slate-400 mt-1.5 font-medium ml-1">Tự động tạo dựa trên tên nhóm</p>
+            </div>
+            <div className="xl:col-span-2">
+              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Mô tả chi tiết</label>
+              <textarea
+                rows={3}
+                value={groupForm.description}
+                onChange={(event) => onFormChange("description", event.target.value)}
+                placeholder="Mô tả quyền hạn và phạm vi công việc của nhóm..."
+                className="w-full pl-4 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Trạng thái</label>
+              <select
+                value={groupForm.status}
+                onChange={(event) => onFormChange("status", event.target.value)}
+                className="w-full pl-4 pr-3 py-3 bg-slate-50 border border-slate-200 hover:bg-slate-100 cursor-pointer rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+              >
+                <option value="ACTIVE">Hoạt động (Active)</option>
+                <option value="INACTIVE">Khóa (Inactive)</option>
+              </select>
+            </div>
           </div>
 
-          <div className="flex gap-2 mb-3">
-            <input
-              value={memberKeyword}
-              onChange={(event) => setMemberKeyword(event.target.value)}
-              placeholder="Search users by email/name to add to group..."
-              className="flex-1 border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-            />
-            <button
-              type="button"
-              onClick={onSearchMembers}
-              disabled={searching}
-              className="px-4 py-2.5 rounded-lg border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-            >
-              {searching ? "Searching..." : "Search"}
-            </button>
-          </div>
-
-          {searchUsers.length > 0 && (
-            <div className="border border-slate-200 rounded-lg p-2.5 mb-3 max-h-44 overflow-y-auto">
-              {searchUsers.map((user) => {
-                const added = groupForm.memberIds.includes(user._id);
+          <section className="mt-8 pt-6 border-t border-slate-100">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Vai trò mặc định của nhóm</h3>
+              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">{groupForm.roleIds.length} quyền được chọn</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {allRoles.map((role) => {
+                const checked = groupForm.roleIds.includes(role._id);
                 return (
-                  <div
-                    key={user._id}
-                    className="flex items-center justify-between gap-3 px-2 py-1.5 rounded hover:bg-slate-50"
+                  <label
+                    key={role._id}
+                    className={`flex items-start gap-3 border rounded-xl px-4 py-3 cursor-pointer transition-all ${checked
+                      ? "border-indigo-300 bg-indigo-50 ring-1 ring-indigo-300"
+                      : "border-slate-200 hover:border-indigo-200 hover:bg-slate-50"
+                      }`}
                   >
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-800 truncate">
-                        {user?.profile?.full_name || user.username || user.email}
-                      </p>
-                      <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                    <div className="pt-0.5">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleRole(role._id)}
+                        className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-600 cursor-pointer"
+                      />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => addMember(user._id)}
-                      disabled={added}
-                      className="px-3 py-1 rounded-md text-xs font-semibold border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-50"
-                    >
-                      {added ? "Added" : "Add"}
-                    </button>
-                  </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-slate-900">{role.name}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5 break-words">{role.slug}</p>
+                    </div>
+                  </label>
                 );
               })}
             </div>
-          )}
+          </section>
 
-          <div className="border border-slate-200 rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
-                <tr>
-                  <th className="px-3 py-2 text-left">Member</th>
-                  <th className="px-3 py-2 text-left">Email</th>
-                  <th className="px-3 py-2 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedMembers.length === 0 ? (
-                  <tr>
-                    <td className="px-3 py-4 text-slate-500" colSpan={3}>
-                      No members in this group yet.
-                    </td>
-                  </tr>
-                ) : (
-                  selectedMembers.map((member) => (
-                    <tr key={member._id} className="border-t border-slate-100">
-                      <td className="px-3 py-2.5 text-slate-800">
-                        {member?.profile?.full_name || member.username || "-"}
-                      </td>
-                      <td className="px-3 py-2.5 text-slate-600">{member.email}</td>
-                      <td className="px-3 py-2.5 text-right">
+          <section className="mt-8 pt-6 border-t border-slate-100">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Thành viên nhóm</h3>
+              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">{groupForm.memberIds.length} thành viên</span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              <div className="relative flex-1">
+                <input
+                  value={memberKeyword}
+                  onChange={(event) => setMemberKeyword(event.target.value)}
+                  placeholder="Tìm kiếm bằng tên hoặc email để thêm vào nhóm..."
+                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                />
+                <svg className="w-5 h-5 text-slate-400 absolute left-4 top-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              </div>
+              <button
+                type="button"
+                onClick={onSearchMembers}
+                disabled={searching}
+                className="px-6 py-3.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60 transition-all shadow-sm"
+              >
+                {searching ? "Đang tìm..." : "Tìm kiếm"}
+              </button>
+            </div>
+
+            {searchUsers.length > 0 && (
+              <div className="border border-slate-200 rounded-xl p-3 mb-4 max-h-[220px] overflow-y-auto stylish-scrollbar bg-white">
+                <div className="space-y-2">
+                  {searchUsers.map((user) => {
+                    const added = groupForm.memberIds.includes(user._id);
+                    return (
+                      <div
+                        key={user._id}
+                        className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-200 transition-colors"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-slate-900 truncate">
+                            {user?.profile?.full_name || user.username || user.email}
+                          </p>
+                          <p className="text-xs font-semibold text-slate-500 truncate mt-0.5">{user.email}</p>
+                        </div>
                         <button
                           type="button"
-                          onClick={() => removeMember(member._id)}
-                          className="px-2.5 py-1 rounded-md border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-semibold"
+                          onClick={() => addMember(user._id)}
+                          disabled={added}
+                          className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${added
+                            ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                            : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800"
+                            }`}
                         >
-                          Remove from group
+                          {added ? "Đã thêm" : "Thêm vào"}
                         </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-5 py-3.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider w-[40%]">Thành viên</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider w-[40%]">Email</th>
+                    <th className="px-5 py-3.5 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {selectedMembers.length === 0 ? (
+                    <tr>
+                      <td className="px-5 py-8 text-center text-slate-500 text-sm font-medium" colSpan={3}>
+                        Nhóm chưa có thành viên nào.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                  ) : (
+                    selectedMembers.map((member) => (
+                      <tr key={member._id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-5 py-4">
+                          <p className="text-sm font-bold text-slate-900">{member?.profile?.full_name || member.username || "-"}</p>
+                        </td>
+                        <td className="px-5 py-4">
+                          <p className="text-sm font-semibold text-slate-600">{member.email}</p>
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <button
+                            type="button"
+                            onClick={() => removeMember(member._id)}
+                            className="px-3 py-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold transition-all"
+                          >
+                            Xóa khỏi nhóm
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
 
-        <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
+          <section className="mt-8 pt-6 border-t border-slate-100">
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-3">Lịch sử tác động</h3>
+            <div className="border border-slate-200 rounded-xl max-h-[180px] overflow-y-auto stylish-scrollbar bg-slate-50">
+              {(groupForm.history || []).length === 0 ? (
+                <div className="px-4 py-5 text-sm font-semibold text-slate-500 text-center">Chưa có lịch sử thao tác.</div>
+              ) : (
+                <div className="divide-y divide-slate-200">
+                  {(groupForm.history || []).map((item) => (
+                    <div
+                      key={item.id}
+                      className="px-4 py-3 bg-white"
+                    >
+                      <p className="text-sm font-bold text-slate-900">{item.action}</p>
+                      <p className="text-xs font-semibold text-slate-500 mt-1">
+                        {formatDateTime(item.at)} <span className="mx-1">•</span> {JSON.stringify(item.details || {})}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+
+        <div className="pt-5 mt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 shrink-0 bg-white">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={() => applyRolesToMembers("replace")}
               disabled={applying}
-              className="px-3 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60 transition-all shadow-sm"
             >
-              {applying ? "Running..." : "Apply roles to members (Replace)"}
+              {applying ? "Đang chạy..." : "Áp dụng quyền (Ghi đè)"}
             </button>
             <button
               type="button"
               onClick={() => applyRolesToMembers("merge")}
               disabled={applying}
-              className="px-3 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60 transition-all shadow-sm"
             >
-              {applying ? "Running..." : "Apply roles to members (Merge)"}
+              {applying ? "Đang chạy..." : "Áp dụng quyền (Gộp thêm)"}
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {selectedGroupId && (
               <button
                 type="button"
                 onClick={onDeleteGroup}
-                className="px-3 py-2 rounded-lg border border-rose-200 text-sm font-semibold text-rose-600 hover:bg-rose-50"
+                className="px-5 py-2.5 rounded-xl border border-rose-200 text-sm font-bold text-rose-600 hover:bg-rose-50 transition-all shadow-sm"
               >
-                Delete group
+                Xóa nhóm
               </button>
             )}
             <button
               type="button"
               onClick={onSaveGroup}
               disabled={saving}
-              className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-60"
+              className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-60 transition-all shadow-sm"
             >
-              {saving ? "Saving..." : selectedGroupId ? "Save updates" : "Create group"}
+              {saving ? "Đang lưu..." : selectedGroupId ? "Lưu thay đổi" : "Tạo nhóm mới"}
             </button>
           </div>
         </div>
-
-        <section className="mt-6">
-          <h3 className="text-sm font-semibold text-slate-900 mb-2">Action history</h3>
-          <div className="border border-slate-200 rounded-lg max-h-52 overflow-y-auto">
-            {(groupForm.history || []).length === 0 ? (
-              <div className="px-3 py-4 text-sm text-slate-500">No action history yet.</div>
-            ) : (
-              (groupForm.history || []).map((item) => (
-                <div
-                  key={item.id}
-                  className="px-3 py-2.5 border-t first:border-t-0 border-slate-100"
-                >
-                  <p className="text-sm font-medium text-slate-800">{item.action}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {formatDateTime(item.at)} • {JSON.stringify(item.details || {})}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
       </div>
     </section>
   );

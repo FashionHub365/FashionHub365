@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import storeApi from "../../apis/storeApi";
+import storeApi from "../../apis/store.api";
 
 const FALLBACK_IMAGES = [
     "/textures/storespage/image.jpg",

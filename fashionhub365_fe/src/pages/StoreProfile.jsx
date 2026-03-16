@@ -6,7 +6,7 @@ import { FilterSidebar } from "../components/ListingPage/FilterSidebar";
 import { StoreProductCard } from "../components/StorePage/StoreProductCard";
 import { StoreHeader } from "../components/StorePage/StoreHeader";
 import listingApi from "../apis/listingApi";
-import storeApi from "../apis/storeApi";
+import storeApi from "../apis/store.api";
 
 const isObjectId = (value = "") => /^[a-fA-F0-9]{24}$/.test(String(value));
 
@@ -197,11 +197,10 @@ export const StoreProfile = () => {
             </button>
             <button
               onClick={() => handleCategoryClick("")}
-              className={`px-8 py-4 text-sm font-medium uppercase tracking-tight transition-all border-b-2 ${
-                filters.category === "" 
-                ? "text-[#ee4d2d]" 
-                : "text-gray-800 hover:text-[#ee4d2d]"
-              }`}
+              className={`px-8 py-4 text-sm font-medium uppercase tracking-tight transition-all border-b-2 ${filters.category === ""
+                  ? "text-[#ee4d2d]"
+                  : "text-gray-800 hover:text-[#ee4d2d]"
+                }`}
             >
               TẤT CẢ SẢN PHẨM
             </button>
@@ -210,11 +209,10 @@ export const StoreProfile = () => {
               <button
                 key={cat._id}
                 onClick={() => handleCategoryClick(cat.slug)}
-                className={`px-8 py-4 text-sm font-medium uppercase tracking-tight transition-all border-b-2 ${
-                  filters.category === cat.slug 
-                  ? "border-[#ee4d2d] text-[#ee4d2d]" 
-                  : "border-transparent text-gray-800 hover:text-[#ee4d2d]"
-                }`}
+                className={`px-8 py-4 text-sm font-medium uppercase tracking-tight transition-all border-b-2 ${filters.category === cat.slug
+                    ? "border-[#ee4d2d] text-[#ee4d2d]"
+                    : "border-transparent text-gray-800 hover:text-[#ee4d2d]"
+                  }`}
               >
                 {cat.name}
               </button>
@@ -241,9 +239,8 @@ export const StoreProfile = () => {
                           handleCategoryClick(cat.slug);
                           setShowMoreCategories(false);
                         }}
-                        className={`w-full text-left px-6 py-3 text-xs font-medium uppercase tracking-wide transition-colors hover:bg-gray-50 hover:text-[#ee4d2d] ${
-                          filters.category === cat.slug ? "text-[#ee4d2d] bg-gray-50" : "text-gray-700"
-                        }`}
+                        className={`w-full text-left px-6 py-3 text-xs font-medium uppercase tracking-wide transition-colors hover:bg-gray-50 hover:text-[#ee4d2d] ${filters.category === cat.slug ? "text-[#ee4d2d] bg-gray-50" : "text-gray-700"
+                          }`}
                       >
                         {cat.name}
                       </button>
@@ -260,23 +257,23 @@ export const StoreProfile = () => {
       <div className="max-w-7xl w-full mx-auto px-4 md:px-8 py-8 flex flex-col gap-6">
 
         <div className="flex items-center justify-between">
-           <h3 className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">
-             {filters.category 
-               ? `Danh mục: ${categories.find(c => c.slug === filters.category)?.name || filters.category}` 
-               : "GỢI Ý CHO BẠN"}
-           </h3>
-           <div className="flex items-center gap-4">
-              <span className="text-xs text-gray-400 font-medium">Sắp xếp theo:</span>
-              <select 
-                value={filters.sort} 
-                onChange={handleSortChange} 
-                className="bg-white border border-gray-200 text-xs px-3 py-1.5 outline-none rounded-sm shadow-sm cursor-pointer hover:border-gray-300 transition-colors"
-              >
-                <option value="newest">Mới nhất</option>
-                <option value="price_asc">Giá: Thấp tới Cao</option>
-                <option value="price_desc">Giá: Cao xuống Thấp</option>
-              </select>
-           </div>
+          <h3 className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">
+            {filters.category
+              ? `Danh mục: ${categories.find(c => c.slug === filters.category)?.name || filters.category}`
+              : "GỢI Ý CHO BẠN"}
+          </h3>
+          <div className="flex items-center gap-4">
+            <span className="text-xs text-gray-400 font-medium">Sắp xếp theo:</span>
+            <select
+              value={filters.sort}
+              onChange={handleSortChange}
+              className="bg-white border border-gray-200 text-xs px-3 py-1.5 outline-none rounded-sm shadow-sm cursor-pointer hover:border-gray-300 transition-colors"
+            >
+              <option value="newest">Mới nhất</option>
+              <option value="price_asc">Giá: Thấp tới Cao</option>
+              <option value="price_desc">Giá: Cao xuống Thấp</option>
+            </select>
+          </div>
         </div>
 
         <main className="w-full">

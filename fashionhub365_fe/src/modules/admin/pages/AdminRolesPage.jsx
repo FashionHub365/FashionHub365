@@ -313,25 +313,40 @@ const AdminRolesPage = () => {
   };
 
   const renderLeftPanel = () => (
-    <aside className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-2 mb-4">
-        <div>
-          <h2 className="text-sm font-semibold text-slate-900">Available Roles</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {activeRoles.length} active roles
-          </p>
+    <aside className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm h-fit">
+      <div className="flex flex-col gap-3 mb-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-slate-800">Danh sách Vai trò</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {activeRoles.length} vai trò khả dụng
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onCreateRoleMode}
+            disabled={!canManageRoles}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Tạo mới
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={onCreateRoleMode}
-          disabled={!canManageRoles}
-          className="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          + Add New
-        </button>
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Tìm vai trò..."
+            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+          />
+          <svg className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
       </div>
 
-      <div className="space-y-2 max-h-[680px] overflow-y-auto pr-1">
+      <div className="space-y-1.5 max-h-[600px] overflow-y-auto pr-1 stylish-scrollbar">
         {activeRoles.map((role) => {
           const isActive = !isCreating && selectedRoleId === role._id;
           return (
@@ -339,92 +354,129 @@ const AdminRolesPage = () => {
               key={role._id}
               type="button"
               onClick={() => onSelectRole(role)}
-              className={`w-full text-left border rounded-xl px-3 py-2.5 transition-all ${isActive
-                ? "border-slate-900 bg-slate-50 ring-1 ring-slate-900/10"
-                : "border-slate-200 hover:bg-slate-50"
+              className={`w-full text-left rounded-xl px-3 py-3 transition-all flex items-center gap-3 relative overflow-hidden group ${isActive
+                ? "bg-indigo-50/50 border border-indigo-100 ring-1 ring-indigo-500/10"
+                : "border border-transparent bg-white hover:bg-slate-50 hover:border-slate-200"
                 }`}
             >
-              <p className="text-sm font-semibold text-slate-900">
-                {role.name || role.slug}
-              </p>
-              <p className="text-[11px] uppercase tracking-wide text-slate-500 mt-0.5">
-                {role.slug}
-              </p>
+              {isActive && (
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-600 rounded-r-full shadow-sm" />
+              )}
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isActive ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-700'}`}>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm tracking-tight truncate transition-colors ${isActive ? 'font-bold text-indigo-900' : 'font-semibold text-slate-700 group-hover:text-slate-900'}`}>
+                  {role.name || role.slug}
+                </p>
+                <p className="text-[10px] uppercase font-medium tracking-wider text-slate-500 truncate mt-0.5">
+                  {role.slug}
+                </p>
+              </div>
             </button>
           );
         })}
       </div>
+      <style>{`
+        .stylish-scrollbar::-webkit-scrollbar { width: 4px; }
+        .stylish-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .stylish-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .stylish-scrollbar:hover::-webkit-scrollbar-thumb { background: #94a3b8; }
+      `}</style>
     </aside>
   );
 
   const renderPermissionTree = () => (
-    <div className="space-y-3 mt-5">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-900">Permissions Tree</h3>
+    <div className="space-y-4 mt-6">
+      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+        <div>
+          <h3 className="text-base font-bold text-slate-800">Cây quyền hạn (Permissions)</h3>
+          <p className="text-xs text-slate-500 mt-1">Quản lý chi tiết các quyền truy cập ứng với từng chức năng.</p>
+        </div>
         <button
           type="button"
           onClick={toggleAllPermissions}
           disabled={!canManageRoles}
-          className="text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors border border-indigo-100/50"
         >
-          Select All
+          {selectedPermissionIds.length === totalPermissions ? (
+            <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg> Bỏ chọn tất cả</>
+          ) : (
+            <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> Chọn tất cả</>
+          )}
         </button>
       </div>
 
-      {moduleNames.map((moduleName) => {
-        const permissions = groupedPermissions[moduleName] || [];
-        const selectedCount = permissions.filter((permission) =>
-          selectedPermissionIds.includes(permission._id)
-        ).length;
-        const allSelected = permissions.length > 0 && selectedCount === permissions.length;
+      <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 stylish-scrollbar">
+        {moduleNames.map((moduleName) => {
+          const permissions = groupedPermissions[moduleName] || [];
+          const selectedCount = permissions.filter((permission) =>
+            selectedPermissionIds.includes(permission._id)
+          ).length;
+          const allSelected = permissions.length > 0 && selectedCount === permissions.length;
 
-        return (
-          <section
-            key={moduleName}
-            className="border border-slate-200 rounded-xl p-4 bg-slate-50/40"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold text-slate-800">
-                {moduleName}
-              </h4>
-              <button
-                type="button"
-                onClick={() => toggleModulePermissions(moduleName)}
-                disabled={!canManageRoles}
-                className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 transition-colors"
-              >
-                {allSelected ? "Clear" : "Select All"} ({selectedCount}/{permissions.length})
-              </button>
-            </div>
+          return (
+            <section
+              key={moduleName}
+              className={`border rounded-2xl p-4 transition-colors ${allSelected ? 'bg-indigo-50/30 border-indigo-200/60' : 'bg-slate-50/50 border-slate-200'}`}
+            >
+              <div className="flex items-center justify-between mb-3.5">
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-2 h-6 rounded-full ${allSelected ? 'bg-indigo-500' : (selectedCount > 0 ? 'bg-amber-400' : 'bg-slate-300')}`}></div>
+                  <h4 className="text-sm font-bold text-slate-800 tracking-tight">
+                    {moduleName}
+                  </h4>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${allSelected ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'}`}>
+                    {selectedCount}/{permissions.length}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleModulePermissions(moduleName)}
+                  disabled={!canManageRoles}
+                  className="text-xs font-semibold text-slate-500 hover:text-indigo-600 transition-colors uppercase tracking-wide"
+                >
+                  {allSelected ? "Bỏ chọn" : "Chọn nhóm này"}
+                </button>
+              </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-              {permissions.map((permission) => {
-                const checked = selectedPermissionIds.includes(permission._id);
-                return (
-                  <label
-                    key={permission._id}
-                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${checked
-                      ? "bg-white border-slate-300"
-                      : "bg-white/60 border-slate-200 hover:border-slate-300"
-                      }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => togglePermission(permission._id)}
-                      disabled={!canManageRoles}
-                      className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-                    />
-                    <span className="text-xs text-slate-700">
-                      {permission.name || permission.code}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                {permissions.map((permission) => {
+                  const checked = selectedPermissionIds.includes(permission._id);
+                  return (
+                    <div
+                      key={permission._id}
+                      onClick={() => { if (canManageRoles) togglePermission(permission._id) }}
+                      className={`relative flex flex-col gap-1 p-3 rounded-xl border cursor-pointer transition-all duration-200 group ${checked
+                        ? "bg-white border-indigo-400 shadow-[0_2px_10px_-4px_rgba(79,70,229,0.3)] ring-1 ring-indigo-400/20"
+                        : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 shadow-sm"
+                        } ${!canManageRoles ? "opacity-70 cursor-not-allowed" : ""}`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className={`text-xs font-bold leading-snug truncate transition-colors ${checked ? 'text-indigo-900' : 'text-slate-700 group-hover:text-slate-900'}`}>
+                          {permission.name || permission.code}
+                        </span>
+                        <div className={`shrink-0 w-4 h-4 rounded-md border flex items-center justify-center transition-colors ${checked ? 'bg-indigo-500 border-indigo-500 text-white' : 'bg-white border-slate-300'}`}>
+                          {checked && (
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono tracking-wider truncate" title={permission.code}>
+                        {permission.code}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
+      </div>
     </div>
   );
 
@@ -445,18 +497,18 @@ const AdminRolesPage = () => {
       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg font-semibold text-slate-900">
-              Roles & Permissions
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              Quản lý Vai trò & Quyền
             </h1>
             <p className="text-sm text-slate-500 mt-1">
-              Configure user access levels and feature availability.
+              Thiết lập các nhóm quyền hạn để gán cho người dùng trong hệ thống.
             </p>
             <p className="text-xs text-slate-500 mt-1">
               {currentEffectiveRoles.join(", ") || "user"}
             </p>
           </div>
-          <div className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-700 font-semibold">
-            {selectedPermissionIds.length}/{totalPermissions} permissions selected
+          <div className="px-3 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-xs text-indigo-700 font-bold whitespace-nowrap">
+            {selectedPermissionIds.length}/{totalPermissions} quyền được chọn
           </div>
         </div>
 
@@ -478,40 +530,40 @@ const AdminRolesPage = () => {
 
         <div className="mt-5 grid grid-cols-1 xl:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-              ROLE NAME
+            <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">
+              Tên vai trò
             </label>
             <input
               value={roleForm.name}
               onChange={(event) => onFormChange("name", event.target.value)}
               disabled={!canManageRoles}
-              placeholder="Administrator"
-              className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              placeholder="Ví dụ: Quản trị viên"
+              className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-slate-50/50 focus:bg-white"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-              SLUG (READ-ONLY)
+            <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">
+              Mã hệ thống (Chỉ đọc)
             </label>
             <input
               value={roleForm.slug}
               readOnly
-              className="w-full border border-slate-200 bg-slate-50 rounded-lg px-3 py-2.5 text-sm text-slate-600"
+              className="w-full border border-slate-200 bg-slate-100/70 rounded-xl px-4 py-2.5 text-sm text-slate-500 cursor-not-allowed font-mono"
             />
           </div>
 
           <div className="xl:col-span-2">
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-              DESCRIPTION
+            <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">
+              Mô tả chi tiết
             </label>
             <textarea
               rows={3}
               value={roleForm.description}
               onChange={(event) => onFormChange("description", event.target.value)}
               disabled={!canManageRoles}
-              placeholder="Full access to all modules and system settings."
-              className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              placeholder="Mô tả quyền hạn và phạm vi của vai trò này..."
+              className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-800 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-slate-50/50 focus:bg-white"
             />
           </div>
         </div>
@@ -533,18 +585,20 @@ const AdminRolesPage = () => {
                   setSelectedPermissionIds([]);
                 }
               }}
-              className="px-4 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+              className="px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
             >
-              Cancel
+              Hủy bỏ
             </button>
           )}
           <button
             type="button"
             onClick={onSaveRole}
             disabled={saving || !canManageRoles}
-            className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm"
           >
-            {saving ? "Saving..." : "Save Changes"}
+            {saving ? (
+              <><svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Đang lưu...</>
+            ) : "Lưu thay đổi"}
           </button>
         </div>
       </div>

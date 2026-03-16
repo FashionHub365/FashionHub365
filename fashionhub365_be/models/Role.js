@@ -40,11 +40,10 @@ const roleSchema = new mongoose.Schema({
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
 
-roleSchema.pre('save', function (next) {
+roleSchema.pre('save', function () {
     if (this.slug) {
         this.slug = this.slug.trim().toLowerCase();
     }
-    next();
 });
 
 module.exports = mongoose.model('Role', roleSchema);

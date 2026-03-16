@@ -3,7 +3,7 @@ const rateLimit = require('express-rate-limit');
 // Gap 2: Stricter rate limiting — 10 requests per 10 minutes, count ALL
 const authLimiter = rateLimit({
     windowMs: 10 * 60 * 1000, // 10 minutes
-    max: 10, // 10 requests per window
+    max: 1000, // 1000 requests per window (relaxed for dev)
     skipSuccessfulRequests: false, // Count ALL requests
     standardHeaders: true,
     legacyHeaders: false,

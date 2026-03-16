@@ -4,22 +4,23 @@ const adminAuthRoute = require('./adminAuth.route');
 const userRoute = require('./user.route');
 const userAddressRoute = require('./userAddress.route');
 const adminRoute = require('./admin.route');
-const orderRoute = require('./order.routes');
+const orderRoute = require('./order.route');
 const paymentRoute = require('./payment.route');
 const paymentMethodRoute = require('./paymentMethod.route');
-const productRoute = require('./product.routes');
-const uploadRoute = require('./upload.routes');
+const productRoute = require('./product.route');
+const uploadRoute = require('./upload.route');
 const vnpayRoute = require('./vnpay.route');
 const webhookRoute = require('./webhook.route');
-const cartRoute = require('./cart.routes');
-const listingRoute = require('./listing.routes');
-const customerOrderRoute = require('./customer.order.routes');
-const wishlistRoute = require('./wishlist.routes');
+const cartRoute = require('./cart.route');
+const listingRoute = require('./listing.route');
+const customerOrderRoute = require('./customer.order.route');
+const wishlistRoute = require('./wishlist.route');
 const storeRoute = require('./store.route');
 
 const router = express.Router();
 
 const defaultRoutes = [
+    { path: '/health', route: express.Router().get('/', (req, res) => res.status(200).json({ status: 'UP', timestamp: new Date() })) },
     { path: '/auth', route: authRoute },
     { path: '/admin/auth', route: adminAuthRoute },
     { path: '/users/addresses', route: userAddressRoute },

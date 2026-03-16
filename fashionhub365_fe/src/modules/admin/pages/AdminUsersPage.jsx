@@ -75,6 +75,7 @@ const AdminUsersPage = () => {
   const [accountTypeFilter, setAccountTypeFilter] = useState("all");
 
   const [selectedUser, setSelectedUser] = useState(null);
+  const [activeModalTab, setActiveModalTab] = useState("roles");
   const [selectedRoleIds, setSelectedRoleIds] = useState([]);
   const [selectedStoreId, setSelectedStoreId] = useState("");
   const [selectedStoreRoleIds, setSelectedStoreRoleIds] = useState([]);
@@ -426,6 +427,7 @@ const AdminUsersPage = () => {
     setError("");
     setSuccess("");
     setSelectedUser(targetUser);
+    setActiveModalTab("roles");
     setSelectedRoleIds(
       extractRoleIdsFromUser(targetUser, roleBySlug).filter((roleId) => {
         const role = roleById.get(String(roleId));
@@ -736,13 +738,13 @@ const AdminUsersPage = () => {
     <section className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">User Management</h1>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Danh sách Người dùng</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Current roles: {currentEffectiveRoles.join(", ") || "user"}
+            Vai trò hiện tại của bạn: <span className="font-semibold text-indigo-600">{currentEffectiveRoles.join(", ") || "user"}</span>
           </p>
         </div>
-        <div className="text-xs text-slate-500">
-          Only super-admin and admin can assign roles to users/sellers.
+        <div className="text-xs text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+          Chỉ Super Admin và Admin mới có quyền gán vai trò.
         </div>
       </div>
 
@@ -763,62 +765,70 @@ const AdminUsersPage = () => {
         </div>
       )}
 
-      <form className="mt-5 grid grid-cols-1 lg:grid-cols-[1fr,180px,180px,120px] gap-2.5" onSubmit={onSubmitSearch}>
-        <input
-          value={searchInput}
-          onChange={(event) => setSearchInput(event.target.value)}
-          placeholder="Search by name, username, email..."
-          className="border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-        />
+      <form className="mt-5 grid grid-cols-1 md:grid-cols-[1fr,150px,160px,auto] gap-3" onSubmit={onSubmitSearch}>
+        <div className="relative">
+          <input
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="Tìm kiếm theo tên, email..."
+            className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+          />
+          <svg className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
         <select
           value={statusFilter}
           onChange={(event) => onChangeStatusFilter(event.target.value)}
-          className="border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+          className="border border-slate-200 bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 hover:bg-slate-100 cursor-pointer"
         >
-          <option value="all">All statuses</option>
-          <option value="ACTIVE">ACTIVE</option>
-          <option value="INACTIVE">INACTIVE</option>
-          <option value="BANNED">BANNED (Locked)</option>
+          <option value="all">Tất cả trạng thái</option>
+          <option value="ACTIVE">Hoạt động (Active)</option>
+          <option value="INACTIVE">Chưa kích hoạt</option>
+          <option value="BANNED">Bị khóa (Banned)</option>
         </select>
         <select
           value={accountTypeFilter}
           onChange={(event) => onChangeAccountTypeFilter(event.target.value)}
-          className="border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+          className="border border-slate-200 bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 hover:bg-slate-100 cursor-pointer"
         >
-          <option value="all">All account types</option>
-          <option value="USER">User</option>
-          <option value="SELLER">Seller</option>
-          {isSuperAdmin && <option value="ADMIN">Admin</option>}
+          <option value="all">Tất cả loại tài khoản</option>
+          <option value="USER">Khách hàng (User)</option>
+          <option value="SELLER">Nhà bán hàng (Seller)</option>
+          {isSuperAdmin && <option value="ADMIN">Quản trị (Admin)</option>}
         </select>
         <button
           type="submit"
-          className="rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors"
+          className="rounded-xl bg-slate-900 text-white text-sm font-bold px-5 hover:bg-slate-800 transition-all shadow-sm flex items-center justify-center"
         >
-          Search
+          Tìm kiếm
         </button>
       </form>
 
-      <div className="mt-4 border border-slate-200 rounded-xl overflow-x-auto">
+      <div className="mt-5 border border-slate-200 rounded-2xl overflow-x-auto shadow-sm">
         {loading || loadingRoles ? (
-          <div className="py-14 flex justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900" />
+          <div className="py-20 flex flex-col items-center justify-center gap-3">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Đang tải dữ liệu...</span>
           </div>
         ) : visibleUsers.length === 0 ? (
-          <div className="py-14 text-center text-sm text-slate-500">
-            No accounts match the current filters.
+          <div className="py-20 flex flex-col items-center justify-center gap-2">
+            <svg className="w-12 h-12 text-slate-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            <p className="text-sm font-semibold text-slate-600">Không tìm thấy người dùng nào.</p>
+            <p className="text-xs text-slate-400">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
           </div>
         ) : (
           <table className="w-full text-sm min-w-[1080px]">
-            <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
+            <thead className="bg-slate-50/80 text-xs text-slate-500 uppercase tracking-widest border-b border-slate-200">
               <tr>
-                <th className="px-3 py-2.5 text-left">User</th>
-                <th className="px-3 py-2.5 text-left">Account Type</th>
-                <th className="px-3 py-2.5 text-left">Roles</th>
-                <th className="px-3 py-2.5 text-left">Status</th>
-                <th className="px-3 py-2.5 text-right">Actions</th>
+                <th className="px-4 py-3 text-left font-bold w-1/4">Người dùng</th>
+                <th className="px-4 py-3 text-left font-bold w-[15%]">Loại TK</th>
+                <th className="px-4 py-3 text-left font-bold w-1/4">Vai trò</th>
+                <th className="px-4 py-3 text-left font-bold w-[12%]">Trạng thái</th>
+                <th className="px-4 py-3 text-right font-bold">Thao tác</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100">
               {visibleUsers.map((userItem) => {
                 const canManageThisUser = canManageTargetUser(userItem);
                 const roleNames = roleNamesForUser(userItem);
@@ -826,85 +836,91 @@ const AdminUsersPage = () => {
                 const isProcessing = processingUserIds.includes(userItem._id);
                 const isInactive = status === "INACTIVE";
                 const isLocked = status === "BANNED";
-                const statusDisplay = getStatusDisplay(status);
+
+                let StatusBadge;
+                if (status === "ACTIVE") {
+                  StatusBadge = <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Hoạt động</span>;
+                } else if (isLocked) {
+                  StatusBadge = <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200/60"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Bị khóa</span>;
+                } else if (isInactive) {
+                  StatusBadge = <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200/60"><span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Chưa KH</span>;
+                } else {
+                  StatusBadge = <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200/60"><span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>{status}</span>;
+                }
+
                 return (
-                  <tr key={userItem._id} className="border-t border-slate-100">
-                    <td className="px-3 py-3">
+                  <tr key={userItem._id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="px-4 py-3.5">
                       <div className="flex items-center gap-3">
                         <img
-                          src={`https://ui-avatars.com/api/?name=${userItem.email || 'U'}&background=random&color=fff&rounded=true&bold=true`}
+                          src={userItem.profile?.avatar_url || `https://ui-avatars.com/api/?name=${userItem.email || 'U'}&background=e2e8f0&color=475569&rounded=true&bold=true`}
                           alt="Avatar"
-                          className="w-9 h-9 rounded-full object-cover shadow-sm border border-slate-200"
+                          className="w-10 h-10 rounded-full object-cover shadow-sm border border-slate-200"
                         />
-                        <div>
-                          <p className="text-slate-900 font-medium">{getDisplayName(userItem)}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">{userItem.email || "-"}</p>
+                        <div className="min-w-0">
+                          <p className="text-slate-900 font-bold tracking-tight truncate">{getDisplayName(userItem)}</p>
+                          <p className="text-xs text-slate-500 mt-0.5 truncate">{userItem.email || "-"}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-3">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-slate-100 text-slate-700">
-                        {userItem._accountType}
+                    <td className="px-4 py-3.5">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                        {userItem._accountType === 'USER' ? 'KHÁCH HÀNG' : userItem._accountType === 'SELLER' ? 'NHÀ BÁN HÀNG' : userItem._accountType === 'ADMIN' ? 'QUẢN TRỊ VIÊN' : userItem._accountType}
                       </span>
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-4 py-3.5">
                       <div className="flex flex-wrap gap-1.5">
-                        {roleNames.map((name) => (
+                        {roleNames.length > 0 ? roleNames.map((name) => (
                           <span
                             key={`${userItem._id}-${name}`}
-                            className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700"
+                            className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100"
                           >
                             {name}
                           </span>
-                        ))}
+                        )) : (
+                          <span className="text-xs italic text-slate-400">Không có vai trò</span>
+                        )}
                       </div>
                     </td>
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className={`w-1.5 h-1.5 rounded-full ${statusDisplay.color}`}></span>
-                        <span className={`text-[11px] font-bold ${status === "ACTIVE" ? 'text-emerald-600' :
-                          status === "BANNED" || status === "LOCKED" ? 'text-amber-600' :
-                            status === "DELETED" ? 'text-rose-600' : 'text-slate-500'
-                          }`}>{statusDisplay.text}</span>
-                      </div>
+                    <td className="px-4 py-3.5">
+                      {StatusBadge}
                     </td>
-                    <td className="px-3 py-3 text-right">
-                      <div className="inline-flex flex-wrap justify-end gap-1.5">
+                    <td className="px-4 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                         <button
                           type="button"
                           onClick={() => openAssignRoleModal(userItem)}
                           disabled={!canManageThisUser || isProcessing}
-                          className="px-3 py-1.5 rounded-md border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-30 tooltip"
+                          title="Gán quyền"
                         >
-                          Role details
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/admin/user-permissions?userId=${userItem._id}`)}
-                          disabled={!canManageThisUser || isProcessing}
-                          className="px-3 py-1.5 rounded-md border border-indigo-300 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          User permissions
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+                          </svg>
                         </button>
                         <button
                           type="button"
                           onClick={() => onToggleLockUser(userItem)}
                           disabled={!canManageThisUser || isProcessing || isInactive}
-                          className="px-3 py-1.5 rounded-md border border-amber-300 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 ${isLocked ? 'text-emerald-600 hover:bg-emerald-50' : 'text-amber-500 hover:bg-amber-50'}`}
+                          title={isLocked ? "Mở khóa" : "Khóa tài khoản"}
                         >
-                          {isLocked ? "Unlock" : "Lock account"}
+                          {isLocked ? (
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2-2v6a2 2 0 002 2z" /></svg>
+                          ) : (
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                          )}
                         </button>
                         <button
                           type="button"
                           onClick={() => onSoftDeleteUser(userItem)}
                           disabled={!canManageThisUser || isProcessing}
-                          className={`px-3 py-1.5 rounded-md border text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed ${isInactive
-                            ? "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                            : "border-rose-300 text-rose-700 hover:bg-rose-50"
-                            }`}
+                          className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors disabled:opacity-30"
+                          title="Xóa mềm"
                         >
-                          {isInactive ? "Restore" : "Soft delete"}
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
+
                       </div>
                     </td>
                   </tr>
@@ -917,385 +933,444 @@ const AdminUsersPage = () => {
 
       <div className="mt-4 flex items-center justify-between gap-2 text-sm">
         <p className="text-slate-500">
-          Total: <span className="font-semibold text-slate-700">{total}</span> accounts
+          Tổng cộng: <span className="font-bold text-slate-700">{total}</span> tài khoản
         </p>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
             disabled={page <= 1}
-            className="px-3 py-1.5 rounded-md border border-slate-300 text-slate-700 disabled:opacity-50"
+            className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            Previous
+            Trang trước
           </button>
-          <span className="text-slate-600">
-            Page {page}/{totalPages}
+          <span className="text-slate-600 font-semibold px-2">
+            Trang {page} / {totalPages}
           </span>
           <button
             type="button"
             onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
             disabled={page >= totalPages}
-            className="px-3 py-1.5 rounded-md border border-slate-300 text-slate-700 disabled:opacity-50"
+            className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            Next
+            Trang sau
           </button>
         </div>
       </div>
 
-      {selectedUser && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center">
-          <div className="w-full max-w-2xl bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-base font-semibold text-slate-900">Assign roles to account</h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {getDisplayName(selectedUser)} - {selectedUser.email || "-"}
-                </p>
-                <p className="text-xs text-slate-500 mt-1">
-                  Account type:{" "}
-                  <span className="font-semibold text-slate-700">
-                    {selectedAccountType || "USER"}
-                  </span>
-                </p>
+      {
+        selectedUser && (
+          <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center">
+            <div className="w-full max-w-2xl bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3 shrink-0">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 tracking-tight">Cấp quyền cho tài khoản</h3>
+                  <p className="text-sm text-slate-500 mt-0.5 font-medium">
+                    {getDisplayName(selectedUser)} - {selectedUser.email || "-"}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Loại tài khoản:{" "}
+                    <span className="font-bold text-slate-700 uppercase">
+                      {selectedAccountType === 'USER' ? 'KHÁCH HÀNG' : selectedAccountType === 'SELLER' ? 'NHÀ BÁN HÀNG' : selectedAccountType === 'ADMIN' ? 'QUẢN TRỊ VIÊN' : selectedAccountType}
+                    </span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="text-slate-400 hover:text-slate-600"
+                  aria-label="Close modal"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={closeModal}
-                className="text-slate-400 hover:text-slate-600"
-                aria-label="Close modal"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
 
-            <div className="px-5 py-4">
-              <div className="space-y-4">
-                {loadingAssignContext ? (
-                  <p className="text-sm text-slate-500">Loading role information for this account...</p>
-                ) : (
-                  <>
-                    {showGlobalRoleEditor && (
-                      <div>
-                        <h4 className="text-sm font-semibold text-slate-900">Global roles</h4>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          Applies to user/admin accounts with GLOBAL scope.
-                        </p>
-                        <div className="mt-2 max-h-[220px] overflow-y-auto space-y-2 pr-1">
-                          {globalAssignableRoles.length === 0 ? (
-                            <p className="text-sm text-slate-500">
-                              No assignable global roles.
-                            </p>
-                          ) : (
-                            globalAssignableRoles.map((role) => {
-                              const checked = selectedRoleIds.includes(role._id);
-                              const fullRole = fullRoleById.get(String(role._id));
-                              const permissions = Array.isArray(fullRole?.permission_ids) ? fullRole.permission_ids : [];
-                              return (
-                                <label
-                                  key={role._id}
-                                  className={`flex items-start gap-3 border rounded-xl p-3 cursor-pointer transition-all ${checked
-                                      ? "border-indigo-300 bg-indigo-50 ring-1 ring-indigo-300"
-                                      : "border-slate-200 hover:border-indigo-200 hover:bg-slate-50"
-                                    }`}
-                                >
-                                  <div className="pt-0.5">
-                                    <input
-                                      type="checkbox"
-                                      checked={checked}
-                                      onChange={() => toggleRoleId(role._id)}
-                                      className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-600 cursor-pointer"
-                                    />
+              {!loadingAssignContext && selectedUser && (
+                <div className="flex px-5 pt-3 border-b border-slate-100 bg-slate-50/50 shrink-0 gap-6">
+                  {(showGlobalRoleEditor || showStoreRoleEditor) && (
+                    <button
+                      onClick={() => setActiveModalTab("roles")}
+                      className={`pb-2.5 text-sm font-bold border-b-2 transition-all ${activeModalTab === "roles"
+                        ? "border-indigo-600 text-indigo-700"
+                        : "border-transparent text-slate-500 hover:text-slate-700"
+                        }`}
+                    >
+                      Cấp vai trò
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setActiveModalTab("direct")}
+                    className={`pb-2.5 text-sm font-bold border-b-2 transition-all ${activeModalTab === "direct"
+                      ? "border-indigo-600 text-indigo-700"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                      }`}
+                  >
+                    Ghi đè quyền
+                  </button>
+                  <button
+                    onClick={() => setActiveModalTab("summary")}
+                    className={`pb-2.5 text-sm font-bold border-b-2 transition-all ${activeModalTab === "summary"
+                      ? "border-indigo-600 text-indigo-700"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                      }`}
+                  >
+                    Tổng hợp quyền
+                  </button>
+                </div>
+              )}
+
+              <div className="px-5 py-4 overflow-y-auto stylish-scrollbar flex-1 min-h-[300px]">
+                <div className="space-y-4">
+                  {loadingAssignContext ? (
+                    <div className="py-12 flex flex-col items-center justify-center gap-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Đang tải thông tin quyền...</p>
+                    </div>
+                  ) : (
+                    <>
+                      {activeModalTab === "roles" && (
+                        <>
+                          {showGlobalRoleEditor && (
+                            <div>
+                              <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-1">Quyền hệ thống (Global)</h4>
+                              <p className="text-xs text-slate-500 mb-3">
+                                Áp dụng cho các tài khoản quản trị viện hoặc người dùng chung.
+                              </p>
+                              <div className="max-h-[260px] overflow-y-auto space-y-2.5 pr-1 stylish-scrollbar">
+                                {globalAssignableRoles.length === 0 ? (
+                                  <div className="text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                    <p className="text-sm text-slate-500 font-medium">Không có vai trò nào khả dụng để gán.</p>
                                   </div>
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-bold text-slate-900">{role.name}</p>
-                                    <p className="text-xs text-slate-500 mb-2">{role.slug}</p>
-                                    {permissions.length > 0 ? (
-                                      <div className="flex flex-wrap gap-1.5 mt-1">
-                                        {permissions.map((p) => {
-                                          const code = typeof p === "string" ? p : p.code;
-                                          const name = typeof p === "string" ? p : p.name;
-                                          return (
-                                            <span
-                                              key={code}
-                                              title={name}
-                                              className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white border border-slate-200 text-slate-600 shadow-sm"
-                                            >
-                                              {code}
-                                            </span>
-                                          );
-                                        })}
-                                      </div>
-                                    ) : (
-                                      <p className="text-[10px] text-slate-400 italic mt-1">No permissions configured</p>
-                                    )}
-                                  </div>
-                                </label>
-                              );
-                            })
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {showStoreRoleEditor && (
-                      <div className={`${showGlobalRoleEditor ? "border-t border-slate-100 pt-4" : ""}`}>
-                        <h4 className="text-sm font-semibold text-slate-900">Store roles (Seller)</h4>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          Select a store and assign STORE-scope roles for that seller in that store.
-                        </p>
-
-                        <div className="mt-2">
-                          <select
-                            value={selectedStoreId}
-                            onChange={(event) => {
-                              const nextStoreId = event.target.value;
-                              setSelectedStoreId(nextStoreId);
-                              setSelectedStoreRoleIds(
-                                getStoreRoleIdsForStore(userStoreRoles, nextStoreId).filter((roleId) => {
-                                  const role = roleById.get(String(roleId));
-                                  return normalizeScope(role?.scope) === "STORE";
-                                })
-                              );
-                            }}
-                            className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                          >
-                            <option value="">Select store...</option>
-                            {stores.map((store) => (
-                              <option key={store._id} value={store._id}>
-                                {store.name || store.slug}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div className="mt-2 max-h-[220px] overflow-y-auto space-y-2 pr-1">
-                          {storeAssignableRoles.length === 0 ? (
-                            <p className="text-sm text-slate-500">
-                              No assignable store roles.
-                            </p>
-                          ) : (
-                            storeAssignableRoles.map((role) => {
-                              const checked = selectedStoreRoleIds.includes(role._id);
-                              const fullRole = fullRoleById.get(String(role._id));
-                              const permissions = Array.isArray(fullRole?.permission_ids) ? fullRole.permission_ids : [];
-                              return (
-                                <label
-                                  key={role._id}
-                                  className={`flex items-start gap-3 border rounded-xl p-3 cursor-pointer transition-all ${checked
-                                      ? "border-indigo-300 bg-indigo-50 ring-1 ring-indigo-300"
-                                      : "border-slate-200 hover:border-indigo-200 hover:bg-slate-50"
-                                    }`}
-                                >
-                                  <div className="pt-0.5">
-                                    <input
-                                      type="checkbox"
-                                      checked={checked}
-                                      onChange={() => toggleStoreRoleId(role._id)}
-                                      className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-600 cursor-pointer"
-                                    />
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-bold text-slate-900">{role.name}</p>
-                                    <p className="text-xs text-slate-500 mb-2">{role.slug}</p>
-                                    {permissions.length > 0 ? (
-                                      <div className="flex flex-wrap gap-1.5 mt-1">
-                                        {permissions.map((p) => {
-                                          const code = typeof p === "string" ? p : p.code;
-                                          const name = typeof p === "string" ? p : p.name;
-                                          return (
-                                            <span
-                                              key={code}
-                                              title={name}
-                                              className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white border border-slate-200 text-slate-600 shadow-sm"
-                                            >
-                                              {code}
-                                            </span>
-                                          );
-                                        })}
-                                      </div>
-                                    ) : (
-                                      <p className="text-[10px] text-slate-400 italic mt-1">No permissions configured</p>
-                                    )}
-                                  </div>
-                                </label>
-                              );
-                            })
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="border-t border-slate-100 pt-4">
-                      <h4 className="text-sm font-semibold text-slate-900">
-                        Direct permissions (user-specific)
-                      </h4>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Use ALLOW or DENY to override permissions only for this account.
-                      </p>
-
-                      <div className="mt-3 grid grid-cols-1 md:grid-cols-[1fr,140px] gap-2">
-                        <select
-                          value={selectedDirectPermissionId}
-                          onChange={(event) => setSelectedDirectPermissionId(event.target.value)}
-                          className="border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                          disabled={loadingAssignContext || loadingPermissionCatalog}
-                        >
-                          <option value="">
-                            {loadingPermissionCatalog
-                              ? "Loading permissions..."
-                              : "Select permission..."}
-                          </option>
-                          {permissionCatalog.map((permission) => (
-                            <option key={permission._id} value={permission._id}>
-                              [{permission.module}] {permission.code} - {permission.name}
-                            </option>
-                          ))}
-                        </select>
-                        <select
-                          value={selectedDirectEffect}
-                          onChange={(event) => setSelectedDirectEffect(normalizeDirectEffect(event.target.value))}
-                          className="border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                          disabled={loadingAssignContext}
-                        >
-                          <option value="ALLOW">ALLOW</option>
-                          <option value="DENY">DENY</option>
-                        </select>
-                      </div>
-
-                      <div className="mt-2 grid grid-cols-1 md:grid-cols-[1fr,auto] gap-2">
-                        <input
-                          value={directPermissionNote}
-                          onChange={(event) => setDirectPermissionNote(event.target.value)}
-                          placeholder="Note (optional)"
-                          className="border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                          disabled={loadingAssignContext || savingDirectPermission}
-                        />
-                        <button
-                          type="button"
-                          onClick={onUpsertDirectPermission}
-                          disabled={
-                            loadingAssignContext ||
-                            loadingPermissionCatalog ||
-                            savingDirectPermission ||
-                            !selectedDirectPermissionId
-                          }
-                          className="px-4 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60"
-                        >
-                          {savingDirectPermission ? "Saving..." : "Apply direct permission"}
-                        </button>
-                      </div>
-
-                      <div className="mt-3 max-h-[180px] overflow-y-auto space-y-2 pr-1">
-                        {userDirectPermissions.length === 0 ? (
-                          <p className="text-sm text-slate-500">
-                            No direct permission overrides for this account.
-                          </p>
-                        ) : (
-                          userDirectPermissions.map((override) => {
-                            const permissionId = extractDirectPermissionId(override);
-                            const code = extractDirectPermissionCode(override) || "-";
-                            const effect = normalizeDirectEffect(override?.effect);
-                            const isRemoving = removingDirectPermissionIds.includes(String(permissionId));
-                            return (
-                              <div
-                                key={`${override?._id || permissionId}-${code}`}
-                                className="border border-slate-200 rounded-lg px-3 py-2 flex items-start justify-between gap-3"
-                              >
-                                <div className="min-w-0">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span
-                                      className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${effect === "DENY"
-                                        ? "bg-rose-100 text-rose-700"
-                                        : "bg-emerald-100 text-emerald-700"
-                                        }`}
-                                    >
-                                      {effect}
-                                    </span>
-                                    <span className="text-xs font-semibold text-slate-800 break-all">
-                                      {code}
-                                    </span>
-                                  </div>
-                                  {override?.note ? (
-                                    <p className="text-xs text-slate-500 mt-1">{override.note}</p>
-                                  ) : null}
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => onRemoveDirectPermission(permissionId)}
-                                  disabled={isRemoving || !permissionId}
-                                  className="px-3 py-1.5 rounded-md border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-                                >
-                                  {isRemoving ? "Removing..." : "Remove"}
-                                </button>
+                                ) : (
+                                  globalAssignableRoles.map((role) => {
+                                    const checked = selectedRoleIds.includes(role._id);
+                                    const fullRole = fullRoleById.get(String(role._id));
+                                    const permissions = Array.isArray(fullRole?.permission_ids) ? fullRole.permission_ids : [];
+                                    return (
+                                      <label
+                                        key={role._id}
+                                        className={`flex items-start gap-3 border rounded-xl p-3 cursor-pointer transition-all ${checked
+                                          ? "border-indigo-300 bg-indigo-50 ring-1 ring-indigo-300"
+                                          : "border-slate-200 hover:border-indigo-200 hover:bg-slate-50"
+                                          }`}
+                                      >
+                                        <div className="pt-0.5">
+                                          <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={() => toggleRoleId(role._id)}
+                                            className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-600 cursor-pointer"
+                                          />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                          <p className="text-sm font-bold text-slate-900">{role.name}</p>
+                                          <p className="text-xs text-slate-500 mb-2">{role.slug}</p>
+                                          {permissions.length > 0 ? (
+                                            <div className="flex flex-wrap gap-1.5 mt-1">
+                                              {permissions.slice(0, 5).map((p) => {
+                                                const code = typeof p === "string" ? p : p.code;
+                                                const name = typeof p === "string" ? p : p.name;
+                                                return (
+                                                  <span
+                                                    key={code}
+                                                    title={name}
+                                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white border border-slate-200 text-slate-600 shadow-sm"
+                                                  >
+                                                    {code}
+                                                  </span>
+                                                );
+                                              })}
+                                              {permissions.length > 5 && (
+                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500">
+                                                  +{permissions.length - 5} nữa
+                                                </span>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <p className="text-[10px] text-slate-400 font-medium italic mt-1">Không có quyền nào</p>
+                                          )}
+                                        </div>
+                                      </label>
+                                    );
+                                  })
+                                )}
                               </div>
-                            );
-                          })
-                        )}
-                      </div>
-                    </div>
+                            </div>
+                          )}
 
-                    <div className="border-t border-slate-100 pt-4">
-                      <h4 className="text-sm font-semibold text-slate-900">Current account permissions</h4>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Effective permissions from roles plus direct ALLOW/DENY overrides.
-                      </p>
-                      <div className="mt-2 max-h-[180px] overflow-y-auto">
-                        {effectivePermissionCodesForSelectedUser.length === 0 ? (
-                          <p className="text-sm text-slate-500">This account has no permissions yet.</p>
-                        ) : (
-                          <div className="flex flex-wrap gap-1.5">
-                            {effectivePermissionCodesForSelectedUser.map((code) => (
-                              <span
-                                key={code}
-                                className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700"
-                              >
-                                {code}
-                              </span>
-                            ))}
+                          {showStoreRoleEditor && (
+                            <div className={`${showGlobalRoleEditor ? "border-t border-slate-200 pt-5 mt-5" : ""}`}>
+                              <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-1">Vai trò cửa hàng (Seller)</h4>
+                              <p className="text-xs text-slate-500 mb-3">
+                                Chọn cửa hàng và gán các quyền dành riêng cho chức năng quản lý cửa hàng (Store).
+                              </p>
+
+                              <div className="mb-4">
+                                <select
+                                  value={selectedStoreId}
+                                  onChange={(event) => {
+                                    const nextStoreId = event.target.value;
+                                    setSelectedStoreId(nextStoreId);
+                                    setSelectedStoreRoleIds(
+                                      getStoreRoleIdsForStore(userStoreRoles, nextStoreId).filter((roleId) => {
+                                        const role = roleById.get(String(roleId));
+                                        return normalizeScope(role?.scope) === "STORE";
+                                      })
+                                    );
+                                  }}
+                                  className="w-full border border-slate-200 bg-slate-50 hover:bg-slate-100 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
+                                >
+                                  <option value="">-- Chọn cửa hàng --</option>
+                                  {stores.map((store) => (
+                                    <option key={store._id} value={store._id}>
+                                      {store.name || store.slug}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="max-h-[260px] overflow-y-auto space-y-2.5 pr-1 stylish-scrollbar">
+                                {storeAssignableRoles.length === 0 ? (
+                                  <div className="text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                    <p className="text-sm text-slate-500 font-medium">Không có quyền cửa hàng nào được thiết lập.</p>
+                                  </div>
+                                ) : (
+                                  storeAssignableRoles.map((role) => {
+                                    const checked = selectedStoreRoleIds.includes(role._id);
+                                    const fullRole = fullRoleById.get(String(role._id));
+                                    const permissions = Array.isArray(fullRole?.permission_ids) ? fullRole.permission_ids : [];
+                                    return (
+                                      <label
+                                        key={role._id}
+                                        className={`flex items-start gap-3 border rounded-xl p-3 cursor-pointer transition-all ${checked
+                                          ? "border-indigo-300 bg-indigo-50 ring-1 ring-indigo-300"
+                                          : "border-slate-200 hover:border-indigo-200 hover:bg-slate-50"
+                                          }`}
+                                      >
+                                        <div className="pt-0.5">
+                                          <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={() => toggleStoreRoleId(role._id)}
+                                            className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-600 cursor-pointer"
+                                          />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                          <p className="text-sm font-bold text-slate-900">{role.name}</p>
+                                          <p className="text-xs text-slate-500 mb-2">{role.slug}</p>
+                                          {permissions.length > 0 ? (
+                                            <div className="flex flex-wrap gap-1.5 mt-1">
+                                              {permissions.slice(0, 5).map((p) => {
+                                                const code = typeof p === "string" ? p : p.code;
+                                                const name = typeof p === "string" ? p : p.name;
+                                                return (
+                                                  <span
+                                                    key={code}
+                                                    title={name}
+                                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white border border-slate-200 text-slate-600 shadow-sm"
+                                                  >
+                                                    {code}
+                                                  </span>
+                                                );
+                                              })}
+                                              {permissions.length > 5 && (
+                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500">
+                                                  +{permissions.length - 5} nữa
+                                                </span>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <p className="text-[10px] text-slate-400 font-medium italic mt-1">Không có quyền nào</p>
+                                          )}
+                                        </div>
+                                      </label>
+                                    );
+                                  })
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {activeModalTab === "direct" && (
+                        <div className="pt-2">
+                          <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-1">
+                            Quyền chi tiết (Direct Permissions)
+                          </h4>
+                          <p className="text-xs text-slate-500 mb-3">
+                            Ghi đè bằng ALLOW (cho phép) hoặc DENY (từ chối) một quyền hạn cụ thể đối với tài khoản này.
+                          </p>
+
+                          <div className="mt-3 grid grid-cols-1 md:grid-cols-[1fr,140px] gap-3">
+                            <select
+                              value={selectedDirectPermissionId}
+                              onChange={(event) => setSelectedDirectPermissionId(event.target.value)}
+                              className="border border-slate-200 bg-slate-50 hover:bg-slate-100 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
+                              disabled={loadingAssignContext || loadingPermissionCatalog}
+                            >
+                              <option value="">
+                                {loadingPermissionCatalog
+                                  ? "Đang tải quyền..."
+                                  : "-- Chọn quyền cụ thể --"}
+                              </option>
+                              {permissionCatalog.map((permission) => (
+                                <option key={permission._id} value={permission._id}>
+                                  [{permission.module}] {permission.name || permission.code}
+                                </option>
+                              ))}
+                            </select>
+                            <select
+                              value={selectedDirectEffect}
+                              onChange={(event) => setSelectedDirectEffect(normalizeDirectEffect(event.target.value))}
+                              className="border border-slate-200 bg-slate-50 hover:bg-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
+                              disabled={loadingAssignContext}
+                            >
+                              <option value="ALLOW">CẤP (ALLOW)</option>
+                              <option value="DENY">CẤM (DENY)</option>
+                            </select>
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  </>
+
+                          <div className="mt-3 grid grid-cols-1 md:grid-cols-[1fr,auto] gap-3">
+                            <input
+                              value={directPermissionNote}
+                              onChange={(event) => setDirectPermissionNote(event.target.value)}
+                              placeholder="Ghi chú (không bắt buộc)"
+                              className="w-full pl-4 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                              disabled={loadingAssignContext || savingDirectPermission}
+                            />
+                            <button
+                              type="button"
+                              onClick={onUpsertDirectPermission}
+                              disabled={
+                                loadingAssignContext ||
+                                loadingPermissionCatalog ||
+                                savingDirectPermission ||
+                                !selectedDirectPermissionId
+                              }
+                              className="px-5 py-3 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 disabled:opacity-60 transition-all shadow-sm"
+                            >
+                              {savingDirectPermission ? "Đang lưu..." : "Áp dụng quyền"}
+                            </button>
+                          </div>
+
+                          <div className="mt-4 max-h-[180px] overflow-y-auto space-y-2.5 pr-1 stylish-scrollbar">
+                            {userDirectPermissions.length === 0 ? (
+                              <div className="text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                <p className="text-sm text-slate-500 font-medium">Không có quyền ghi đè trực tiếp nào.</p>
+                              </div>
+                            ) : (
+                              userDirectPermissions.map((override) => {
+                                const permissionId = extractDirectPermissionId(override);
+                                const code = extractDirectPermissionCode(override) || "-";
+                                const effect = normalizeDirectEffect(override?.effect);
+                                const isRemoving = removingDirectPermissionIds.includes(String(permissionId));
+                                return (
+                                  <div
+                                    key={`${override?._id || permissionId}-${code}`}
+                                    className="border border-slate-200 rounded-lg px-3 py-2 flex items-start justify-between gap-3"
+                                  >
+                                    <div className="min-w-0">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <span
+                                          className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${effect === "DENY"
+                                            ? "bg-rose-100 text-rose-700"
+                                            : "bg-emerald-100 text-emerald-700"
+                                            }`}
+                                        >
+                                          {effect}
+                                        </span>
+                                        <span className="text-xs font-semibold text-slate-800 break-all">
+                                          {code}
+                                        </span>
+                                      </div>
+                                      {override?.note ? (
+                                        <p className="text-xs text-slate-500 mt-1">{override.note}</p>
+                                      ) : null}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => onRemoveDirectPermission(permissionId)}
+                                      disabled={isRemoving || !permissionId}
+                                      className="px-3 py-1.5 rounded-lg border border-rose-200 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60 transition-colors"
+                                    >
+                                      {isRemoving ? "Đang xóa..." : "Xóa"}
+                                    </button>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {activeModalTab === "summary" && (
+                        <div className="pt-2">
+                          <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-1">Tổng hợp quyền hiện tại</h4>
+                          <p className="text-xs text-slate-500 mb-3">
+                            Các quyền thực tế tài khoản đang có từ các vai trò và quyền ghi đè trực tiếp.
+                          </p>
+                          <div className="max-h-[180px] overflow-y-auto stylish-scrollbar">
+                            {effectivePermissionCodesForSelectedUser.length === 0 ? (
+                              <div className="text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                <p className="text-sm text-slate-500 font-medium">Tài khoản này chưa có quyền nào.</p>
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap gap-1.5">
+                                {effectivePermissionCodesForSelectedUser.map((code) => (
+                                  <span
+                                    key={code}
+                                    className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700"
+                                  >
+                                    {code}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="px-5 py-4 border-t border-slate-100 bg-slate-50 flex flex-wrap items-center justify-end gap-3 rounded-b-2xl shrink-0">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-white hover:text-slate-900 transition-colors shadow-sm"
+                >
+                  Đóng
+                </button>
+                {showGlobalRoleEditor && (
+                  <button
+                    type="button"
+                    onClick={onSaveUserRoles}
+                    disabled={savingRoles || loadingAssignContext}
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-60 transition-all shadow-sm"
+                  >
+                    {savingRoles ? "Đang lưu..." : "Lưu quyền hệ thống"}
+                  </button>
+                )}
+                {showStoreRoleEditor && (
+                  <button
+                    type="button"
+                    onClick={onSaveStoreRoles}
+                    disabled={savingStoreRoles || loadingAssignContext}
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 disabled:opacity-60 transition-all shadow-sm"
+                  >
+                    {savingStoreRoles ? "Đang lưu..." : "Lưu quyền cửa hàng"}
+                  </button>
                 )}
               </div>
             </div>
-
-            <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={closeModal}
-                className="px-4 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              {showGlobalRoleEditor && (
-                <button
-                  type="button"
-                  onClick={onSaveUserRoles}
-                  disabled={savingRoles || loadingAssignContext}
-                  className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-60"
-                >
-                  {savingRoles ? "Saving global roles..." : "Save global roles"}
-                </button>
-              )}
-              {showStoreRoleEditor && (
-                <button
-                  type="button"
-                  onClick={onSaveStoreRoles}
-                  disabled={savingStoreRoles || loadingAssignContext}
-                  className="px-4 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-                >
-                  {savingStoreRoles ? "Saving store roles..." : "Save store roles"}
-                </button>
-              )}
-            </div>
           </div>
-        </div>
-      )}
-    </section>
+        )
+      }
+    </section >
   );
 };
 

@@ -16,6 +16,10 @@ const storeApi = {
     getFollowingStores: (page = 1, limit = 6) => {
         return axiosClient.get(`/stores/following?page=${page}&limit=${limit}`);
     },
+    listStores: (params = {}) => axiosClient.get('/stores', { params }),
+    getStoreDetail: (storeId) => axiosClient.get(`/stores/${storeId}`),
+    createStore: (data) => axiosClient.post('/stores', data),
+    updateStore: (storeId, data) => axiosClient.put(`/stores/${storeId}`, data),
 };
 
 

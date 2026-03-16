@@ -391,7 +391,7 @@ const updateRole = catchAsync(async (req, res) => {
         }
     }
 
-    Object.assign(role, req.body);
+    role.set(req.body);
     await role.save();
 
     res.send({ success: true, data: { role } });
