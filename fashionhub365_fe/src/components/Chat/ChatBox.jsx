@@ -37,7 +37,7 @@ export const ChatBox = () => {
     const myId = String(user?._id || user?.id || '');
 
     return (
-        <div className="fixed bottom-20 right-5 w-[340px] max-h-[500px] flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-100 z-[200] overflow-hidden">
+        <div className="fixed bottom-5 right-24 w-[340px] max-h-[500px] flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-100 z-[200] overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 bg-black text-white">
                 <div className="flex items-center gap-2">

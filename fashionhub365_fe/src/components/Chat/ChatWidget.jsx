@@ -67,7 +67,7 @@ export const ChatWidget = () => {
 
                 {/* Session List Dropdown */}
                 {showList && !isOpen && (
-                    <div className="absolute bottom-16 right-0 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+                    <div className="absolute bottom-2 right-16 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
                         <div className="px-4 py-3 border-b border-gray-50">
                             <h3 className="text-sm font-semibold text-gray-900">Tin nhắn</h3>
                         </div>
