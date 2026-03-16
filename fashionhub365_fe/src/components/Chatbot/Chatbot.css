@@ -1,7 +1,7 @@
 .chatbot-container {
     position: fixed;
-    bottom: 2rem;
-    right: 2rem;
+    bottom: 5.5rem;
+    right: 1.25rem;
     z-index: 1000;
     display: flex;
     flex-direction: column;
@@ -33,6 +33,9 @@
 }
 
 .chatbot-window {
+    position: absolute;
+    bottom: -4.25rem;
+    right: 4.5rem;
     width: 350px;
     height: 500px;
     background-color: white;
@@ -40,7 +43,6 @@
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     display: flex;
     flex-direction: column;
-    margin-bottom: 1rem;
     overflow: hidden;
     border: 1px solid #f3f4f6;
     animation: slideIn 0.3s ease-out;
@@ -233,6 +235,7 @@
     margin-bottom: 4px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }

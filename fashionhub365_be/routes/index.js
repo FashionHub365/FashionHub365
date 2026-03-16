@@ -16,7 +16,7 @@ const listingRoute = require('./listing.routes');
 const customerOrderRoute = require('./customer.order.routes');
 const wishlistRoute = require('./wishlist.routes');
 const storeRoute = require('./store.route');
-const chatRoute = require('./chat.route');
+const chatRoute = require('./chat.routes');
 
 const router = express.Router();
 

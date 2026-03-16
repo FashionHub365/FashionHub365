@@ -26,6 +26,7 @@ import SellerProducts from "./pages/seller/SellerProducts";
 import SellerDashboard from "./pages/seller/sellerDashboard/SellerDashboard";
 import SellerLayout from "./pages/seller/components/SellerLayout";
 import SellerRegistration from "./pages/seller/SellerRegistration";
+import SellerChat from "./pages/seller/sellerChat/SellerChat";
 
 import { CheckoutShipping } from "./pages/CheckoutShipping";
 import { CheckoutReview } from "./pages/CheckoutReview";
@@ -77,6 +78,7 @@ function App() {
                     <Route path="dashboard" element={<SellerDashboard />} />
                     <Route path="orders" element={<SellerOrders />} />
                     <Route path="products" element={<SellerProducts />} />
+                    <Route path="chat" element={<SellerChat />} />
                   </Route>
                 </Route>
 
