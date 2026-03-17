@@ -44,7 +44,7 @@ const createProduct = catchAsync(async (req, res) => {
     const product = await productService.createProductForSeller(req.body, storeId);
     res.status(httpStatus.CREATED).json({
         success: true,
-        message: 'Sản phẩm đã được tạo thành công.',
+        message: 'Product created successfully.',
         data: product
     });
 });
@@ -81,7 +81,7 @@ const updateProduct = catchAsync(async (req, res) => {
     const product = await productService.updateProductBySeller(req.params.id, storeId, req.body);
     res.json({
         success: true,
-        message: 'Cập nhật sản phẩm thành công.',
+        message: 'Product updated successfully.',
         data: product
     });
 });
@@ -94,7 +94,7 @@ const deleteProduct = catchAsync(async (req, res) => {
     await productService.deleteProductBySeller(req.params.id, storeId);
     res.json({
         success: true,
-        message: 'Xóa sản phẩm thành công.'
+        message: 'Product deleted successfully.'
     });
 });
 
@@ -138,7 +138,7 @@ const respondToReview = catchAsync(async (req, res) => {
     const review = await productService.respondToReview(reviewId, storeId, content);
     res.json({
         success: true,
-        message: 'Đã gửi phản hồi thành công.',
+        message: 'Response sent successfully.',
         data: review
     });
 });
@@ -153,7 +153,7 @@ const toggleReviewVisibility = catchAsync(async (req, res) => {
     const review = await productService.toggleReviewVisibility(reviewId, storeId);
     res.json({
         success: true,
-        message: `Đã ${review.is_hidden ? 'ẩn' : 'hiện'} đánh giá thành công.`,
+        message: `Review ${review.is_hidden ? 'hidden' : 'shown'} successfully.`,
         data: review
     });
 });

@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import authApi from '../apis/authApi';
+import { toast } from 'react-toastify';
 
 const AuthContext = createContext();
 
@@ -45,6 +46,7 @@ export const AuthProvider = ({ children }) => {
                     localStorage.setItem('user', JSON.stringify(user));
                     setUser(user);
                     setIsAuthenticated(true);
+                    toast.success('Login successful!');
                     return { success: true, requiresOtp: false, user };
                 }
 
@@ -73,6 +75,7 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('user', JSON.stringify(user));
                 setUser(user);
                 setIsAuthenticated(true);
+                toast.success('OTP verification successful!');
                 return { success: true, user };
             }
         } catch (error) {
@@ -92,6 +95,7 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('user', JSON.stringify(user));
                 setUser(user);
                 setIsAuthenticated(true);
+                toast.success('Google login successful!');
                 return { success: true, user };
             }
         } catch (error) {
@@ -148,6 +152,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('user');
         setUser(null);
         setIsAuthenticated(false);
+        toast.info('Logged out successfully.');
     };
 
     return (
