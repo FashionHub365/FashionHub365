@@ -21,6 +21,9 @@ import { Profile } from "./pages/Profile";
 import VerifyEmail from "./pages/VerifyEmail"; // Correct default import
 import { Layout } from "./components/Layout";
 import "./App.css";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 import SellerOrders from "./pages/seller/sellerOrders/SellerOrders";
 import SellerProducts from "./pages/seller/SellerProducts";
 import SellerDashboard from "./pages/seller/sellerDashboard/SellerDashboard";
@@ -41,6 +44,7 @@ function App() {
         <AuthProvider>
           <CartProvider>
             <Layout>
+              <ToastContainer position="top-right" autoClose={3000} />
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Landing />} />
