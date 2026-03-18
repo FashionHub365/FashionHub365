@@ -9,7 +9,9 @@ const router = express.Router();
 router
     .route('/')
     .get(validate(storeValidation.listStores), storeController.listStores)
-    .post(auth.auth(), auth.authorize(['STORE.CREATE']), validate(storeValidation.createStore), storeController.createStore);
+    .post(auth.auth(), validate(storeValidation.createStore), storeController.createStore);
+
+router.get('/me', auth.auth(), storeController.getMyStore);
 
 // Protected routes
 router.get('/following', auth.auth(), storeController.getFollowingStores);

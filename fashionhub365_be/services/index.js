@@ -13,6 +13,19 @@ const outboxService = require('./outbox.service');
 const stockReservationService = require('./stockReservation.service');
 const paymentReconcileService = require('./paymentReconcile.service');
 const workerService = require('./worker.service');
+const inventoryService = require('./inventory.service');
+const notificationService = require('./notification.service');
+const voucherService = require('./voucher.service');
+const walletService = require('./wallet.service');
+const campaignService = require('./campaign.service');
+const flashSaleService = require('./flashSale.service');
+const affiliateService = require('./affiliate.service');
+const referralService = require('./referral.service');
+const systemService = require('./system.service');
+const shippingService = require('./shipping.service');
+const brandService = require('./brand.service');
+const collectionService = require('./collection.service');
+const tagService = require('./tag.service');
 
 module.exports = {
     authService,
@@ -30,4 +43,18 @@ module.exports = {
     stockReservationService,
     paymentReconcileService,
     workerService,
+    inventoryService,
+    notificationService,
+    voucherService,
+    walletService,
+    campaignService,
+    flashSaleService,
+    affiliateService,
+    referralService,
+    systemService,
+    shippingService,
+    brandService,
+    collectionService,
+    tagService,
 };
+

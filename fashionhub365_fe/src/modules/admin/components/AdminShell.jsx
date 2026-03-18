@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 
 const menuItems = [
@@ -22,6 +22,7 @@ const menuItems = [
     children: [
       { to: "/admin/products", label: "Tất cả sản phẩm" },
       { to: "/admin/categories", label: "Danh mục" },
+      { to: "/admin/metadata", label: "Metadata (Brands, Tags...)" },
       { to: "/admin/catalog/reports", label: "Báo cáo & Giám sát" }
     ]
   },
@@ -57,7 +58,10 @@ const menuItems = [
     label: "Marketing & Khuyến mãi",
     icon: "marketing",
     children: [
-      { to: "/admin/coupons", label: "Mã giảm giá" },
+      { to: "/admin/vouchers", label: "Mã giảm giá (Vouchers)" },
+      { to: "/admin/campaigns", label: "Chiến dịch (Campaigns)" },
+      { to: "/admin/flash-sales", label: "Flash Sales" },
+      { to: "/admin/coupons", label: "Mã giảm giá cũ" },
       { to: "/admin/banners", label: "Banner & Quảng cáo" }
     ]
   },
@@ -127,15 +131,10 @@ const renderIcon = (name, isActive) => {
   }
 };
 
-const navClass = ({ isActive }) =>
-  `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${isActive
-    ? "bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100"
-    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-  }`;
-
 const AdminShell = () => {
   const location = useLocation();
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -313,16 +312,24 @@ const AdminShell = () => {
                 </svg>
               </button>
 
-              <div className="relative flex-1 max-w-md hidden sm:block">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const query = e.target.search.value;
+                  if (query) navigate(`/admin/products?search=${encodeURIComponent(query)}`);
+                }}
+                className="relative flex-1 max-w-md hidden sm:block"
+              >
                 <svg className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="8" />
                   <path d="m21 21-4.3-4.3" />
                 </svg>
                 <input
-                  placeholder="Search for analytics, users, or reports..."
+                  name="search"
+                  placeholder="Tìm kiếm sản phẩm, người dùng hoặc báo cáo..."
                   className="w-full bg-slate-100/70 border-none rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:bg-white transition-all"
                 />
-              </div>
+              </form>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-4 shrink-0">
@@ -355,14 +362,27 @@ const AdminShell = () => {
 
                 {accountOpen && (
                   <div className="absolute right-0 mt-2 w-52 rounded-xl border border-slate-200 bg-white shadow-lg p-1.5">
-                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 rounded-lg hover:bg-slate-100 transition-colors">
+                    <button
+                      onClick={() => { setAccountOpen(false); navigate('/profile'); }}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+                    >
                       My Profile
                     </button>
-                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 rounded-lg hover:bg-slate-100 transition-colors">
+                    <button
+                      onClick={() => { setAccountOpen(false); navigate('/admin/system'); }}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+                    >
                       Account Settings
                     </button>
                     <div className="my-1 border-t border-slate-100" />
-                    <button className="w-full text-left px-3 py-2 text-sm text-rose-600 font-medium rounded-lg hover:bg-rose-50 transition-colors">
+                    <button
+                      onClick={() => {
+                        if (logout) logout();
+                        setAccountOpen(false);
+                        navigate('/');
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm text-rose-600 font-medium rounded-lg hover:bg-rose-50 transition-colors"
+                    >
                       Logout
                     </button>
                   </div>
@@ -381,4 +401,3 @@ const AdminShell = () => {
 };
 
 export default AdminShell;
-

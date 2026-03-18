@@ -397,6 +397,105 @@ export const adminOverviewService = {
     }
   },
 
+  async getBrands(params = {}) {
+    try {
+      const response = await axiosClient.get("/admin/brands", { params });
+      return Array.isArray(response?.data?.brands) ? response.data.brands : [];
+    } catch (error) {
+      throw toApiError(error);
+    }
+  },
+
+  async createBrand(payload) {
+    try {
+      const response = await axiosClient.post("/admin/brands", payload);
+      return response?.data?.brand || null;
+    } catch (error) {
+      throw toApiError(error);
+    }
+  },
+
+  async updateBrand(brandId, payload) {
+    try {
+      const response = await axiosClient.put(`/admin/brands/${brandId}`, payload);
+      return response?.data?.brand || null;
+    } catch (error) {
+      throw toApiError(error);
+    }
+  },
+
+  async deleteBrand(brandId) {
+    try {
+      await axiosClient.delete(`/admin/brands/${brandId}`);
+      return true;
+    } catch (error) {
+      throw toApiError(error);
+    }
+  },
+
+  async getCollections(params = {}) {
+    try {
+      const response = await axiosClient.get("/admin/collections", { params });
+      return Array.isArray(response?.data?.collections) ? response.data.collections : [];
+    } catch (error) {
+      throw toApiError(error);
+    }
+  },
+
+  async createCollection(payload) {
+    try {
+      const response = await axiosClient.post("/admin/collections", payload);
+      return response?.data?.collection || null;
+    } catch (error) {
+      throw toApiError(error);
+    }
+  },
+
+  async updateCollection(collectionId, payload) {
+    try {
+      const response = await axiosClient.put(`/admin/collections/${collectionId}`, payload);
+      return response?.data?.collection || null;
+    } catch (error) {
+      throw toApiError(error);
+    }
+  },
+
+  async deleteCollection(collectionId) {
+    try {
+      await axiosClient.delete(`/admin/collections/${collectionId}`);
+      return true;
+    } catch (error) {
+      throw toApiError(error);
+    }
+  },
+
+  async getTags(params = {}) {
+    try {
+      const response = await axiosClient.get("/admin/tags", { params });
+      return Array.isArray(response?.data?.tags) ? response.data.tags : [];
+    } catch (error) {
+      throw toApiError(error);
+    }
+  },
+
+  async createTag(payload) {
+    try {
+      const response = await axiosClient.post("/admin/tags", payload);
+      return response?.data?.tag || null;
+    } catch (error) {
+      throw toApiError(error);
+    }
+  },
+
+  async deleteTag(tagId) {
+    try {
+      await axiosClient.delete(`/admin/tags/${tagId}`);
+      return true;
+    } catch (error) {
+      throw toApiError(error);
+    }
+  },
+
   async getAuditLogs(params = {}) {
     try {
       const query = {

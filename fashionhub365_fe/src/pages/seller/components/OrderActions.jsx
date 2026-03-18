@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { confirmOrder, cancelOrder, updateOrderStatus } from '../../../services/orderService';
+import { confirmAction, showSuccess, showError } from '../../../utils/swalUtils';
 
 const OrderActions = ({ order, onOrderUpdate }) => {
     const [loading, setLoading] = useState(false);
@@ -7,15 +8,21 @@ const OrderActions = ({ order, onOrderUpdate }) => {
     const [cancelReason, setCancelReason] = useState('');
 
     const handleConfirm = async () => {
-        if (!window.confirm('Xác nhận đơn hàng này?')) return;
+        const isConfirmed = await confirmAction({
+            title: 'Xác nhận đơn hàng',
+            text: 'Bạn có chắc chắn muốn xác nhận đơn hàng này không?',
+            icon: 'question',
+            confirmButtonText: 'Xác nhận'
+        });
+        if (!isConfirmed) return;
 
         setLoading(true);
         try {
             await confirmOrder(order.uuid);
-            alert('Đã xác nhận đơn hàng thành công!');
+            showSuccess('Đã xác nhận đơn hàng thành công!');
             onOrderUpdate();
         } catch (error) {
-            alert('Có lỗi xảy ra: ' + error.message);
+            showError('Có lỗi xảy ra: ' + error.message);
         } finally {
             setLoading(false);
         }
@@ -23,34 +30,39 @@ const OrderActions = ({ order, onOrderUpdate }) => {
 
     const handleCancel = async () => {
         if (!cancelReason.trim()) {
-            alert('Vui lòng nhập lý do hủy đơn');
+            showError('Vui lòng nhập lý do hủy đơn');
             return;
         }
 
         setLoading(true);
         try {
             await cancelOrder(order.uuid, cancelReason);
-            alert('Đã hủy đơn hàng thành công!');
+            showSuccess('Đã hủy đơn hàng thành công!');
             setShowCancelModal(false);
             setCancelReason('');
             onOrderUpdate();
         } catch (error) {
-            alert('Có lỗi xảy ra: ' + error.message);
+            showError('Có lỗi xảy ra: ' + error.message);
         } finally {
             setLoading(false);
         }
     };
 
     const handleStatusUpdate = async (newStatus) => {
-        if (!window.confirm(`Cập nhật trạng thái thành "${newStatus}"?`)) return;
+        const isConfirmed = await confirmAction({
+            title: 'Cập nhật trạng thái',
+            text: `Bạn có chắc chắn muốn cập nhật trạng thái đơn hàng thành "${newStatus}" không?`,
+            icon: 'info'
+        });
+        if (!isConfirmed) return;
 
         setLoading(true);
         try {
             await updateOrderStatus(order.uuid, newStatus, 'Cập nhật trạng thái');
-            alert('Đã cập nhật trạng thái thành công!');
+            showSuccess('Đã cập nhật trạng thái thành công!');
             onOrderUpdate();
         } catch (error) {
-            alert('Có lỗi xảy ra: ' + error.message);
+            showError('Có lỗi xảy ra: ' + error.message);
         } finally {
             setLoading(false);
         }

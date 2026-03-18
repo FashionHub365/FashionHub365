@@ -219,7 +219,7 @@ const AdminContentPage = () => {
                 categories.slice(0, 12).map((category) => {
                   const isDeleted = Boolean(category?.deleted_at);
                   return (
-                    <tr key={category._id} className="border-t border-slate-100">
+                    <tr key={category._id} className="border-t border-slate-100 text-left">
                       <td className="px-3 py-2.5 text-slate-900 font-medium">{category.name || "-"}</td>
                       <td className="px-3 py-2.5 text-slate-700">{category.slug || "-"}</td>
                       <td className="px-3 py-2.5 text-slate-700">
@@ -227,11 +227,10 @@ const AdminContentPage = () => {
                       </td>
                       <td className="px-3 py-2.5">
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
-                            isDeleted
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${isDeleted
                               ? "bg-rose-50 text-rose-700"
                               : "bg-emerald-50 text-emerald-700"
-                          }`}
+                            }`}
                         >
                           {isDeleted ? "DELETED" : "ACTIVE"}
                         </span>

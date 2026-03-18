@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useCart } from "../contexts/CartContext";
 import checkoutApi from "../apis/checkoutApi";
 import paymentApi from "../apis/paymentApi";
+import voucherApi from "../apis/voucherApi";
 
 // ── Step indicator ──────────────────────────────────────────────────
 const StepBar = ({ step }) => (
@@ -14,13 +15,13 @@ const StepBar = ({ step }) => (
             return (
                 <React.Fragment key={label}>
                     <div className="flex flex-col items-center gap-1.5">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all
-              ${done ? "bg-black text-white" : active ? "bg-x-600 text-white" : "bg-gray-200 text-gray-400"}`}>
+                        <div className={`w - 8 h - 8 rounded - full flex items - center justify - center text - sm font - bold transition - all
+              ${done ? "bg-black text-white" : active ? "bg-x-600 text-white" : "bg-gray-200 text-gray-400"} `}>
                             {done ? <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg> : idx}
                         </div>
-                        <span className={`text-xs font-medium whitespace-nowrap ${active ? "text-x-600" : done ? "text-black" : "text-gray-400"}`}>{label}</span>
+                        <span className={`text - xs font - medium whitespace - nowrap ${active ? "text-x-600" : done ? "text-black" : "text-gray-400"} `}>{label}</span>
                     </div>
-                    {i < 2 && <div className={`h-0.5 w-16 mx-1 mb-5 transition-all ${done ? "bg-black" : "bg-gray-200"}`} />}
+                    {i < 2 && <div className={`h - 0.5 w - 16 mx - 1 mb - 5 transition - all ${done ? "bg-black" : "bg-gray-200"} `} />}
                 </React.Fragment>
             );
         })}
@@ -31,8 +32,8 @@ const StepBar = ({ step }) => (
 const PaymentCard = ({ id, selected, onSelect, icon, title, description }) => (
     <label
         htmlFor={id}
-        className={`flex items-start gap-4 p-4 border-2 cursor-pointer transition-all rounded-sm
-      ${selected ? "border-black bg-gray-50" : "border-gray-200 hover:border-gray-400"}`}
+        className={`flex items - start gap - 4 p - 4 border - 2 cursor - pointer transition - all rounded - sm
+      ${selected ? "border-black bg-gray-50" : "border-gray-200 hover:border-gray-400"} `}
     >
         <input type="radio" id={id} name="payment_method" value={id} checked={selected} onChange={() => onSelect(id)} className="mt-1 accent-black" />
         <div className="text-2xl flex-shrink-0">{icon}</div>
@@ -79,6 +80,10 @@ export const CheckoutReview = () => {
     const [success, setSuccess] = useState(false);
     const [bankTransferPayments, setBankTransferPayments] = useState([]);
     const [createdOrderUuids, setCreatedOrderUuids] = useState([]);
+    const [voucherCode, setVoucherCode] = useState("");
+    const [appliedVoucher, setAppliedVoucher] = useState(null);
+    const [voucherError, setVoucherError] = useState("");
+    const [voucherLoading, setVoucherLoading] = useState(false);
 
     useEffect(() => {
         const saved = sessionStorage.getItem("checkout_shipping");
@@ -91,9 +96,39 @@ export const CheckoutReview = () => {
 
     const { items = [], totalItems = 0, totalAmount = 0 } = cartData;
     const shippingFee = totalAmount >= 1000000 ? 0 : 30000;
-    const grandTotal = totalAmount + shippingFee;
+
+    // Calculate final total after voucher
+    const discountAmount = appliedVoucher ? (
+        appliedVoucher.discount_type === 'percent'
+            ? (totalAmount * appliedVoucher.discount_value / 100)
+            : appliedVoucher.discount_value
+    ) : 0;
+    // Cap discount at max_discount if percentage
+    const finalDiscount = appliedVoucher?.discount_type === 'percent' && appliedVoucher.max_discount
+        ? Math.min(discountAmount, appliedVoucher.max_discount)
+        : discountAmount;
+
+    const grandTotal = Math.max(0, totalAmount + shippingFee - finalDiscount);
     const uniqueStoreCount = new Set(items.map((item) => item.storeId).filter(Boolean)).size;
     const isVnPayBlockedByMultiStore = paymentMethod === "vnpay" && uniqueStoreCount > 1;
+
+    const handleApplyVoucher = async () => {
+        if (!voucherCode.trim()) return;
+        setVoucherLoading(true);
+        setVoucherError("");
+        try {
+            const res = await voucherApi.applyVoucher(voucherCode, totalAmount);
+            if (res.data?.success) {
+                setAppliedVoucher(res.data.data.voucher);
+                setVoucherError("");
+            }
+        } catch (err) {
+            setAppliedVoucher(null);
+            setVoucherError(err.response?.data?.message || "Invalid voucher code");
+        } finally {
+            setVoucherLoading(false);
+        }
+    };
 
     const handlePlaceOrder = async () => {
         if (!shipping) return;
@@ -109,6 +144,7 @@ export const CheckoutReview = () => {
                 shipping_address: shipping,
                 payment_method: paymentMethod,
                 note: shipping.note || "",
+                voucher_code: appliedVoucher?.code || undefined
             });
             const createdOrders = orderRes?.data?.orders || [];
             const orderUuids = createdOrders.map((order) => order?.uuid).filter(Boolean);
@@ -383,7 +419,30 @@ export const CheckoutReview = () => {
                             </div>
 
                             <div className="mt-4 pt-4 border-t border-gray-200 flex flex-col gap-2.5">
-                                <div className="flex justify-between text-sm text-gray-600">
+                                {/* Voucher Section */}
+                                <div className="mb-2">
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            placeholder="Enter voucher code"
+                                            value={voucherCode}
+                                            onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                                            className="flex-1 border border-gray-300 px-3 py-2 text-sm uppercase"
+                                            disabled={appliedVoucher || voucherLoading}
+                                        />
+                                        <button
+                                            onClick={appliedVoucher ? () => { setAppliedVoucher(null); setVoucherCode(""); } : handleApplyVoucher}
+                                            disabled={voucherLoading || (!voucherCode.trim() && !appliedVoucher)}
+                                            className={`px-4 py-2 text-sm font-semibold text-white transition-colors ${appliedVoucher ? 'bg-red-600 hover:bg-red-700' : 'bg-black hover:bg-gray-800 disabled:bg-gray-400'}`}
+                                        >
+                                            {voucherLoading ? 'Wait...' : appliedVoucher ? 'Remove' : 'Apply'}
+                                        </button>
+                                    </div>
+                                    {voucherError && <p className="text-red-500 text-xs mt-1">{voucherError}</p>}
+                                    {appliedVoucher && <p className="text-green-600 text-xs mt-1 font-medium">Voucher applied: {finalDiscount.toLocaleString("vi-VN")}₫ off</p>}
+                                </div>
+
+                                <div className="flex justify-between text-sm text-gray-600 border-t border-gray-200 pt-3">
                                     <span>Subtotal ({totalItems} items)</span>
                                     <span>{totalAmount.toLocaleString("vi-VN")}₫</span>
                                 </div>
@@ -396,6 +455,12 @@ export const CheckoutReview = () => {
                                         }
                                     </span>
                                 </div>
+                                {appliedVoucher && (
+                                    <div className="flex justify-between text-sm text-green-600">
+                                        <span>Voucher Discount</span>
+                                        <span>-{finalDiscount.toLocaleString("vi-VN")}₫</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between items-center pt-3 border-t border-gray-200">
                                     <span className="font-bold text-gray-900">Total Payment</span>
                                     <span className="font-bold text-xl text-gray-900">{grandTotal.toLocaleString("vi-VN")}₫</span>

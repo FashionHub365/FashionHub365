@@ -1,0 +1,232 @@
+const catchAsync = require('../utils/catchAsync');
+const httpStatus = require('http-status');
+const ApiError = require('../utils/ApiError');
+const { Order, User, Product, AuditLog, Category, Role, StoreMember } = require('../models');
+const { buildSort, buildPaginationMeta, ensurePrivilegedAdminActor } = require('./adminUtils');
+
+const getSystemStats = catchAsync(async (req, res) => {
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    const [orderSummary, totalUsers, totalProducts, recentOrdersRaw] = await Promise.all([
+        Order.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: '$total_amount' },
+                    totalOrders: { $sum: 1 },
+                    paidRevenue: {
+                        $sum: {
+                            $cond: [{ $eq: ['$payment_status', 'paid'] }, '$total_amount', 0],
+                        },
+                    },
+                },
+            },
+        ]),
+        User.countDocuments(),
+        Product.countDocuments(),
+        Order.find()
+            .sort({ created_at: -1 })
+            .limit(5)
+            .populate('user_id', 'profile.full_name username email'),
+    ]);
+
+    // Calculate trends (Current Month vs Last Month)
+    const [currentMonthData, lastMonthData] = await Promise.all([
+        Order.aggregate([
+            { $match: { created_at: { $gte: currentMonthStart } } },
+            {
+                $group: {
+                    _id: null,
+                    revenue: { $sum: '$total_amount' },
+                    orders: { $sum: 1 },
+                },
+            },
+        ]),
+        Order.aggregate([
+            { $match: { created_at: { $gte: lastMonthStart, $lte: lastMonthEnd } } },
+            {
+                $group: {
+                    _id: null,
+                    revenue: { $sum: '$total_amount' },
+                    orders: { $sum: 1 },
+                },
+            },
+        ]),
+    ]);
+
+    const [currentMonthUsers, lastMonthUsers] = await Promise.all([
+        User.countDocuments({ created_at: { $gte: currentMonthStart } }),
+        User.countDocuments({ created_at: { $gte: lastMonthStart, $lte: lastMonthEnd } }),
+    ]);
+
+    const calculateGrowth = (current, previous) => {
+        if (!previous || previous === 0) return current > 0 ? 100 : 0;
+        return ((current - previous) / previous) * 100;
+    };
+
+    const trend = {
+        revenue: calculateGrowth(currentMonthData[0]?.revenue || 0, lastMonthData[0]?.revenue || 0),
+        orders: calculateGrowth(currentMonthData[0]?.orders || 0, lastMonthData[0]?.orders || 0),
+        users: calculateGrowth(currentMonthUsers, lastMonthUsers),
+    };
+
+    const recentOrders = recentOrdersRaw.map(order => ({
+        id: order._id,
+        orderNumber: order.order_number || `#ORD-${order._id.toString().slice(-6).toUpperCase()}`,
+        customer: order.user_id?.profile?.full_name || order.user_id?.username || 'Guest',
+        initials: (order.user_id?.profile?.full_name || order.user_id?.username || 'G').charAt(0).toUpperCase(),
+        total: order.total_amount,
+        status: order.status.toUpperCase(),
+        time: new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    }));
+
+    const ordersByStatus = await Order.aggregate([
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+    ]);
+
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11);
+    twelveMonthsAgo.setDate(1);
+    twelveMonthsAgo.setHours(0, 0, 0, 0);
+
+    const monthlyStats = await Order.aggregate([
+        { $match: { created_at: { $gte: twelveMonthsAgo } } },
+        {
+            $group: {
+                _id: {
+                    year: { $year: '$created_at' },
+                    month: { $month: '$created_at' },
+                },
+                revenue: { $sum: '$total_amount' },
+                orders: { $sum: 1 },
+            },
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1 } },
+    ]);
+
+    const monthlyUsers = await User.aggregate([
+        { $match: { created_at: { $gte: twelveMonthsAgo } } },
+        {
+            $group: {
+                _id: {
+                    year: { $year: '$created_at' },
+                    month: { $month: '$created_at' },
+                },
+                count: { $sum: 1 },
+            },
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1 } },
+    ]);
+
+    res.send({
+        success: true,
+        data: {
+            summary: {
+                totalRevenue: orderSummary[0]?.totalRevenue || 0,
+                paidRevenue: orderSummary[0]?.paidRevenue || 0,
+                totalOrders: orderSummary[0]?.totalOrders || 0,
+                totalUsers,
+                totalProducts,
+            },
+            trend,
+            recentOrders,
+            ordersByStatus,
+            monthlyStats,
+            monthlyUsers,
+        },
+    });
+});
+
+const getAuditLogs = catchAsync(async (req, res) => {
+    const {
+        page = 1,
+        limit = 20,
+        userId,
+        action,
+        targetCollection,
+        targetId,
+        search,
+        from,
+        to,
+        sortBy = 'created_at',
+        order = 'desc',
+    } = req.query;
+    const skip = (page - 1) * limit;
+
+    const query = {};
+    if (userId) query.user_id = userId;
+    if (action) query.action = { $regex: action, $options: 'i' };
+    if (targetCollection) query.target_collection = targetCollection;
+    if (targetId) query.target_id = targetId;
+    if (from || to) {
+        query.created_at = {};
+        if (from) query.created_at.$gte = new Date(from);
+        if (to) query.created_at.$lte = new Date(to);
+    }
+    if (search) {
+        query.$or = [
+            { action: { $regex: search, $options: 'i' } },
+            { target_collection: { $regex: search, $options: 'i' } },
+            { ip_address: { $regex: search, $options: 'i' } },
+            { user_agent: { $regex: search, $options: 'i' } },
+        ];
+    }
+
+    const [logs, total] = await Promise.all([
+        AuditLog.find(query)
+            .populate('user_id', 'email username profile.full_name')
+            .sort(buildSort(sortBy, order))
+            .skip(skip)
+            .limit(limit),
+        AuditLog.countDocuments(query),
+    ]);
+
+    res.send({
+        success: true,
+        data: { auditLogs: logs },
+        meta: buildPaginationMeta(page, limit, total),
+    });
+});
+
+const getAuditLogById = catchAsync(async (req, res) => {
+    const log = await AuditLog.findById(req.params.id).populate('user_id', 'email username profile.full_name');
+    if (!log) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'Audit log not found');
+    }
+    res.send({ success: true, data: { auditLog: log } });
+});
+
+const getAdminEnums = catchAsync(async (req, res) => {
+    const userStatuses = User.schema.path('status').enumValues;
+    const roleScopes = Role.schema.path('scope').enumValues;
+    const storeMemberStatuses = StoreMember.schema.path('status').enumValues;
+
+    res.send({
+        success: true,
+        data: {
+            userStatuses,
+            roleScopes,
+            storeMemberStatuses,
+        },
+    });
+});
+
+const getCategoryOptions = catchAsync(async (req, res) => {
+    const includeDeleted = String(req.query.includeDeleted).toLowerCase() === 'true';
+    const query = includeDeleted ? {} : { deleted_at: null };
+    const categories = await Category.find(query)
+        .select('_id name slug parent_id deleted_at')
+        .sort({ name: 1 });
+    res.send({ success: true, data: { categories } });
+});
+
+module.exports = {
+    getSystemStats,
+    getAuditLogs,
+    getAuditLogById,
+    getAdminEnums,
+    getCategoryOptions,
+};

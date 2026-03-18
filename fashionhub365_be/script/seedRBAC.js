@@ -43,6 +43,9 @@ const permissions = [
     { code: 'STORE.PRODUCT.DELETE', module: 'STORE', name: 'Delete Store Product' },
     { code: 'STORE.ORDER.VIEW', module: 'STORE', name: 'View Store Order' },
     { code: 'STORE.ORDER.UPDATE', module: 'STORE', name: 'Update Store Order' },
+    { code: 'PAYOUT.REQUEST', module: 'PAYOUT', name: 'Request Payout' },
+    { code: 'PAYOUT.VIEW', module: 'PAYOUT', name: 'View Payouts' },
+    { code: 'PAYOUT.PROCESS', module: 'PAYOUT', name: 'Process Payout (Admin)' },
 ];
 
 const BASE_USER_PERMISSION_CODES = [
@@ -93,8 +96,10 @@ const STORE_MANAGEMENT_PERMISSION_CODES = [
     'STORE.PRODUCT.VIEW',
     'STORE.PRODUCT.UPDATE',
     'STORE.PRODUCT.DELETE',
-    'STORE.ORDER.VIEW',
     'STORE.ORDER.UPDATE',
+    'PAYOUT.REQUEST',
+    'PAYOUT.VIEW',
+    ...BASE_USER_PERMISSION_CODES,
 ];
 
 const roleDefinitions = [
@@ -131,7 +136,7 @@ const roleDefinitions = [
         slug: 'finance',
         scope: 'GLOBAL',
         description: 'Finance backoffice',
-        permissionCodes: ['ROLE.VIEW', 'PERMISSION.VIEW', ...SELF_ACCOUNT_PERMISSION_CODES],
+        permissionCodes: ['ROLE.VIEW', 'PERMISSION.VIEW', 'PAYOUT.VIEW', 'PAYOUT.PROCESS', ...SELF_ACCOUNT_PERMISSION_CODES],
     },
     {
         name: 'Customer Support',

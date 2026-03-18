@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { adminOverviewService } from "../services/adminOverviewService";
 import { format } from "date-fns";
 import { ChevronRightIcon, Magnify } from "mdi-material-ui";
+import { confirmAction, showSuccess } from "../../../utils/swalUtils";
 
 const AdminSellerRequestsPage = () => {
     const [requests, setRequests] = useState([]);
@@ -58,15 +59,20 @@ const AdminSellerRequestsPage = () => {
     };
 
     const handleApprove = async (storeId) => {
-        if (!window.confirm("Are you sure you want to approve this store request? The user will be granted Seller access.")) {
-            return;
-        }
+        const isConfirmed = await confirmAction({
+            title: "Phê duyệt cửa hàng",
+            text: "Bạn có chắc chắn muốn phê duyệt yêu cầu mở cửa hàng này không? Người dùng sẽ được cấp quyền Seller.",
+            icon: "question",
+            confirmButtonText: "Phê duyệt"
+        });
+
+        if (!isConfirmed) return;
 
         setError("");
         setSuccess("");
         try {
             await adminOverviewService.approveSellerRequest(storeId);
-            setSuccess("Store approved successfully.");
+            showSuccess("Cửa hàng đã được phê duyệt thành công.");
             // Reload current page
             loadRequests(pagination.page);
         } catch (err) {

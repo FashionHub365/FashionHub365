@@ -1,6 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { adminOverviewService } from "../services/adminOverviewService";
+import { showError } from "../../../utils/swalUtils";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
 
 const orderColors = ["#4f46e5", "#10b981", "#f59e0b", "#0ea5e9", "#8b5cf6", "#f43f5e"];
 
@@ -91,48 +95,68 @@ const LineChart = ({ values }) => {
 const DonutChart = ({ segments }) => {
   const total = segments.reduce((sum, item) => sum + Number(item.value || 0), 0);
 
-  // Use demo data to match the image if no data
   const finalSegments = total > 0 ? segments : [
-    { label: "Electronics (45%)", value: 45, color: "#4f46e5" },
-    { label: "Furniture (30%)", value: 30, color: "#f59e0b" },
-    { label: "Clothing (25%)", value: 25, color: "#10b981" }
+    { label: "Chưa có dữ liệu", value: 1, color: "#e2e8f0" }
   ];
 
-  const finalTotal = total > 0 ? total : 100;
+  const finalTotal = total > 0 ? total : 1;
 
-  let cursor = 0;
-  const gradient = finalSegments
-    .map((item) => {
-      const value = Number(item.value || 0);
-      const percent = (value / finalTotal) * 100;
-      const start = cursor;
-      const end = cursor + percent;
-      cursor = end;
-      return `${item.color} ${start}% ${end}%`;
-    })
-    .join(", ");
+  let currentOffset = 0;
+
+  // Calculate SVG stroke parameters
+  const size = 200;
+  const strokeWidth = 22;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
 
   return (
-    <div className="flex flex-col items-center justify-center mt-6 h-full">
-      <div
-        className="w-48 h-48 sm:w-56 sm:h-56 rounded-full relative shadow-sm"
-        style={{ background: `conic-gradient(${gradient})` }}
-      >
-        <div className="absolute inset-4 rounded-full bg-white flex flex-col items-center justify-center shadow-inner">
-          <p className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
-            {total > 0 ? formatCount(total) : "1.5k"}
+    <div className="flex flex-col items-center justify-start pt-4 pb-2">
+      <div className="relative w-44 h-44 sm:w-52 sm:h-52 shrink-0">
+        <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full transform -rotate-90">
+          {finalSegments.map((item, idx) => {
+            const value = Number(item.value || 0);
+            const percent = value / finalTotal;
+            const strokeDasharray = `${percent * circumference} ${circumference}`;
+            const strokeDashoffset = -currentOffset * circumference;
+            currentOffset += percent;
+
+            return (
+              <circle
+                key={idx}
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill="transparent"
+                stroke={item.color}
+                strokeWidth={strokeWidth}
+                strokeDasharray={strokeDasharray}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap={total > 0 ? "round" : "butt"}
+                className="transition-all duration-1000 ease-out"
+              />
+            );
+          })}
+        </svg>
+
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+          <p className="text-3xl font-black text-slate-800 leading-none">
+            {total > 0 ? formatCount(total) : "0"}
           </p>
-          <p className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-widest font-bold mt-1">Total Sales</p>
+          <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-2 leading-tight text-center">Tổng đơn hàng</p>
         </div>
       </div>
 
-      <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-3 w-full px-4">
-        {finalSegments.map((seg, idx) => (
-          <div key={idx} className="flex items-start gap-2">
-            <span className="w-2.5 h-2.5 rounded-full mt-1 shrink-0" style={{ backgroundColor: seg.color }}></span>
-            <span className="text-xs text-slate-600 font-medium leading-tight">{seg.label || seg.name}</span>
+      <div className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-3 w-full px-2">
+        {total > 0 ? finalSegments.map((seg, idx) => (
+          <div key={idx} className="flex items-center gap-2 min-w-[120px] justify-center sm:justify-start">
+            <span className="w-3 h-3 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: seg.color }}></span>
+            <span className="text-[11px] text-slate-600 font-bold whitespace-nowrap uppercase tracking-tight">
+              {seg.label}
+            </span>
           </div>
-        ))}
+        )) : (
+          <div className="w-full text-center text-xs text-slate-400 italic py-2">Chưa có dữ liệu đơn hàng</div>
+        )}
       </div>
     </div>
   );
@@ -162,41 +186,104 @@ const MiniBarChart = () => (
 const AdminOverviewPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [summary, setSummary] = useState({ totalRevenue: 1284500.00, totalUsers: 42893, totalOrders: 1562 });
-  const [trend] = useState({ revenue: 2.5, users: 6.2, orders: -1.1, tickets: -2.4 });
+  const [stats, setStats] = useState(null);
+  const dashboardRef = useRef(null);
 
   const loadDashboard = async () => {
-    setLoading(true);
-    // Fake loading for fluid UI
-    setTimeout(() => {
+    try {
+      setLoading(true);
+      const res = await adminOverviewService.getSystemStats();
+      setStats(res);
+    } catch (err) {
+      console.error("Failed to load dashboard:", err);
+      setError("Không thể tải dữ liệu thống kê.");
+    } finally {
       setLoading(false);
-    }, 400);
+    }
   };
 
   useEffect(() => {
     loadDashboard();
   }, []);
 
+  const handleExportData = async () => {
+    try {
+      const element = dashboardRef.current;
+      if (!element) return;
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+
+      const imgData = canvas.toDataURL("image/jpeg", 1.0);
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`dashboard_overview_${new Date().toISOString().split('T')[0]}.pdf`);
+
+    } catch (err) {
+      console.error("Export failed:", err);
+      showError("Xuất PDF thất bại.");
+    }
+  };
+
+  if (loading && !stats) {
+    return (
+      <div className="max-w-7xl mx-auto space-y-6 bg-slate-50 p-4 rounded-3xl animate-pulse">
+        <div className="h-20 bg-white rounded-2xl border border-slate-100 mb-6" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-40 bg-white rounded-2xl border border-slate-100" />)}
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="h-80 bg-white rounded-2xl border border-slate-100 xl:col-span-2" />
+          <div className="h-80 bg-white rounded-2xl border border-slate-100" />
+        </div>
+      </div>
+    );
+  }
+
+  const summary = stats?.summary || { totalRevenue: 0, totalUsers: 0, totalOrders: 0 };
+  const trend = stats?.trend || { revenue: 0, users: 0, orders: 0 };
+  const recentOrders = stats?.recentOrders || [];
+  const monthlyStats = stats?.monthlyStats || [];
+  const ordersByStatus = (stats?.ordersByStatus || []).map((item, idx) => ({
+    label: `${item._id} (${item.count})`,
+    value: item.count,
+    color: orderColors[idx % orderColors.length]
+  }));
+
+  // Map monthly stats to LineChart values
+  const revenueChartData = monthlyStats.map(m => m.revenue);
+
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
+    <div ref={dashboardRef} className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500 bg-slate-50 p-2 sm:p-4 rounded-3xl">
       {/* Top Header Section */}
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
-          <h2 className="text-[26px] font-bold text-slate-900 tracking-tight">System Overview</h2>
-          <p className="text-[13px] text-slate-500 mt-1 font-medium">Monitor your enterprise metrics and real-time performance.</p>
+          <h2 className="text-[26px] font-bold text-slate-900 tracking-tight">Tổng quan hệ thống</h2>
+          <p className="text-[13px] text-slate-500 mt-1 font-medium">Theo dõi các chỉ số doanh nghiệp và hiệu suất thời gian thực.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button className="flex items-center gap-2 bg-white border border-slate-200/80 text-slate-600 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors shadow-sm">
             <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <span>Oct 1, 2023 - Oct 31, 2023</span>
+            <span>{new Date().toLocaleDateString('vi-VN')}</span>
           </button>
-          <button className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-600/20">
+          <button
+            type="button"
+            onClick={handleExportData}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-600/20"
+          >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            <span>Export Data</span>
+            <span>Xuất dữ liệu</span>
           </button>
         </div>
       </div>
@@ -217,7 +304,7 @@ const AdminOverviewPage = () => {
             </div>
             <TrendIndicator value={trend.revenue} />
           </div>
-          <p className="text-xs text-slate-400 font-bold tracking-wide mb-1">Total Revenue</p>
+          <p className="text-xs text-slate-400 font-bold tracking-wide mb-1">Tổng doanh thu</p>
           <h3 className="text-[26px] font-extrabold text-slate-800 tracking-tight">${formatMoney(summary.totalRevenue)}</h3>
           <div className="mt-4 h-1.5 w-24 bg-emerald-400 rounded-full opacity-80" />
         </div>
@@ -232,7 +319,7 @@ const AdminOverviewPage = () => {
             </div>
             <TrendIndicator value={trend.users} />
           </div>
-          <p className="text-xs text-slate-400 font-bold tracking-wide mb-1 mt-4">Active Users</p>
+          <p className="text-xs text-slate-400 font-bold tracking-wide mb-1 mt-4">Người dùng hoạt động</p>
           <h3 className="text-[26px] font-extrabold text-slate-800 tracking-tight">{formatCount(summary.totalUsers)}</h3>
           <MiniBarChart />
         </div>
@@ -247,9 +334,9 @@ const AdminOverviewPage = () => {
             </div>
             <TrendIndicator value={trend.orders} />
           </div>
-          <p className="text-xs text-slate-400 font-bold tracking-wide mb-1">New Orders</p>
+          <p className="text-xs text-slate-400 font-bold tracking-wide mb-1">Đơn hàng mới</p>
           <h3 className="text-[26px] font-extrabold text-slate-800 tracking-tight">{formatCount(summary.totalOrders)}</h3>
-          <p className="mt-4 text-[10px] sm:text-xs font-semibold text-slate-400">Updated 5 mins ago</p>
+          <p className="mt-4 text-[10px] sm:text-xs font-semibold text-slate-400 font-vietnam">Cập nhật vừa xong</p>
         </div>
 
         {/* Card 4 */}
@@ -260,15 +347,15 @@ const AdminOverviewPage = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
               </svg>
             </div>
-            <TrendIndicator value={trend.tickets} />
+            <TrendIndicator value={-2.4} />
           </div>
-          <p className="text-xs text-slate-400 font-bold tracking-wide mb-1">Pending Tickets</p>
-          <h3 className="text-[26px] font-extrabold text-slate-800 tracking-tight">48</h3>
+          <p className="text-xs text-slate-400 font-bold tracking-wide mb-1">Yêu cầu hỗ trợ</p>
+          <h3 className="text-[26px] font-extrabold text-slate-800 tracking-tight">12</h3>
           <div className="flex items-center gap-2 mt-4">
             <div className="flex -space-x-2">
               <img className="w-6 h-6 rounded-full border border-white" src="https://ui-avatars.com/api/?name=Alex&background=random" alt="" />
               <img className="w-6 h-6 rounded-full border border-white" src="https://ui-avatars.com/api/?name=Sarah&background=random" alt="" />
-              <div className="w-6 h-6 rounded-full border border-white bg-slate-100 text-[10px] font-bold text-slate-600 flex items-center justify-center">+12</div>
+              <div className="w-6 h-6 rounded-full border border-white bg-slate-100 text-[10px] font-bold text-slate-600 flex items-center justify-center">+4</div>
             </div>
           </div>
         </div>
@@ -279,79 +366,86 @@ const AdminOverviewPage = () => {
         <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm xl:col-span-2">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-lg font-bold text-slate-900 tracking-tight">Revenue Growth</h3>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">Year over year performance comparison</p>
+              <h3 className="text-lg font-bold text-slate-900 tracking-tight">Tăng trưởng doanh thu</h3>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">So sánh hiệu suất qua các tháng</p>
             </div>
             <button className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50">
-              Last 12 Months
+              12 tháng qua
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
           </div>
-          {loading ? <CardSkeleton className="h-64 mt-6" /> : <LineChart />}
+          {loading ? <CardSkeleton className="h-64 mt-6" /> : <LineChart values={revenueChartData} />}
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
           <div>
-            <h3 className="text-lg font-bold text-slate-900 tracking-tight">Sales by Category</h3>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">Distribution of item sales</p>
+            <h3 className="text-lg font-bold text-slate-900 tracking-tight">Trạng thái đơn hàng</h3>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">Phân bổ theo trạng thái đơn hàng</p>
           </div>
-          {loading ? <CardSkeleton className="h-64 mt-6" /> : <DonutChart segments={[]} />}
+          {loading ? <CardSkeleton className="h-64 mt-6" /> : <DonutChart segments={ordersByStatus} />}
         </div>
       </div>
 
       {/* Transactions Table */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-6 py-5 flex items-center justify-between border-b border-slate-100">
-          <h3 className="text-lg font-bold text-slate-900 tracking-tight">Recent Transactions</h3>
-          <button className="text-[13px] font-bold text-indigo-700 hover:text-indigo-800 bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors">
-            View All
-          </button>
+          <h3 className="text-lg font-bold text-slate-900 tracking-tight">Giao dịch gần đây</h3>
+          <Link to="/admin/orders" className="text-[13px] font-bold text-indigo-700 hover:text-indigo-800 bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors">
+            Xem tất cả
+          </Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left whitespace-nowrap">
             <thead>
               <tr className="text-[11px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-100 bg-slate-50/50">
-                <th className="px-6 py-4">Order ID</th>
-                <th className="px-6 py-4">Customer Name</th>
-                <th className="px-6 py-4">Date</th>
-                <th className="px-6 py-4">Amount</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-center">Action</th>
+                <th className="px-6 py-4">Mã đơn hàng</th>
+                <th className="px-6 py-4">Khách hàng</th>
+                <th className="px-6 py-4">Ngày tạo</th>
+                <th className="px-6 py-4">Số tiền</th>
+                <th className="px-6 py-4">Trạng thái</th>
+                <th className="px-6 py-4 text-center">Hành động</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {demoRecentOrders.map((order, idx) => (
-                <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
-                  <td className="px-6 py-4 text-sm font-bold text-slate-700">{order.id}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center tracking-tight">
-                        {order.initials}
-                      </div>
-                      <span className="text-sm font-semibold text-slate-900">{order.customer}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm font-medium text-slate-500">{order.time}</td>
-                  <td className="px-6 py-4 text-sm font-bold text-slate-800">${formatMoney(order.total)}</td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase ${order.status === 'SUCCESS' ? 'bg-emerald-100/60 text-emerald-600' :
-                        order.status === 'PENDING' ? 'bg-amber-100/60 text-amber-600' :
-                          'bg-rose-100/60 text-rose-600'
-                      }`}>
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <button className="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-100 transition-colors">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                      </svg>
-                    </button>
-                  </td>
+              {recentOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10 text-center text-slate-500 text-sm">Chưa có đơn hàng nào.</td>
                 </tr>
-              ))}
+              ) : (
+                recentOrders.map((order, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="px-6 py-4 text-sm font-bold text-slate-700">{order.orderNumber}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center tracking-tight">
+                          {order.initials}
+                        </div>
+                        <span className="text-sm font-semibold text-slate-900">{order.customer}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-medium text-slate-500">{order.time}</td>
+                    <td className="px-6 py-4 text-sm font-bold text-slate-800">${formatMoney(order.total)}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase ${order.status === 'DELIVERED' || order.status === 'SUCCESS' ? 'bg-emerald-100/60 text-emerald-600' :
+                        order.status === 'PENDING' || order.status === 'CREATED' ? 'bg-amber-100/60 text-amber-600' :
+                          'bg-rose-100/60 text-rose-600'
+                        }`}>
+                        {order.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <Link to={`/admin/orders?search=${order.orderNumber}`} className="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-100 transition-colors inline-block">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

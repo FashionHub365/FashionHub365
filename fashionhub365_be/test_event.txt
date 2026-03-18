@@ -1,0 +1,60 @@
+{
+  "notifications": [
+    {
+      "_id": "69b38aaec2850d0a3e11a0ad",
+      "user_id": "69ae33a2599d5b4637ad810c",
+      "type": "ORDER_CONFIRMED",
+      "message": "Order eb9a15b4-59a6-4aa2-a6b4-21daa103ba5b payment confirmed.",
+      "is_read": false,
+      "uuid": "8c289293-b3c1-417a-9373-407795099aa9",
+      "created_at": "2026-03-13T03:55:26.001Z",
+      "__v": 0
+    }
+  ],
+  "outbox": [
+    {
+      "_id": "69b8b9fe3ca5755c9b4219f0",
+      "aggregate_type": "ORDER",
+      "aggregate_id": "69b8b9fe3ca5755c9b4219df",
+      "event_type": "ORDER_CREATED",
+      "payload": {
+        "orderId": "69b8b9fe3ca5755c9b4219df",
+        "orderUuid": "1fb8073c-d078-438c-81d8-0dbd0c5058f3",
+        "userId": "69a5a556709d97df2813fffe"
+      },
+      "status": "DONE",
+      "retry_count": 0,
+      "max_retry": 10,
+      "next_retry_at": "2026-03-17T02:18:38.619Z",
+      "uuid": "d76ca2c8-fd7e-4e4f-ac40-03a036b84206",
+      "created_at": "2026-03-17T02:18:38.621Z",
+      "updated_at": "2026-03-17T02:18:47.681Z",
+      "__v": 0,
+      "locked_at": null,
+      "last_error": null,
+      "processed_at": "2026-03-17T02:18:47.680Z"
+    },
+    {
+      "_id": "69b38aa5d70067f17ed3ab52",
+      "aggregate_type": "ORDER",
+      "aggregate_id": "69b38a07d70067f17ed3ab0d",
+      "event_type": "ORDER_CONFIRMED",
+      "payload": {
+        "orderId": "69b38a07d70067f17ed3ab0d",
+        "orderUuid": "eb9a15b4-59a6-4aa2-a6b4-21daa103ba5b",
+        "userId": "69ae33a2599d5b4637ad810c"
+      },
+      "status": "DONE",
+      "retry_count": 0,
+      "max_retry": 10,
+      "next_retry_at": "2026-03-13T03:55:17.517Z",
+      "uuid": "4348f8fc-2438-4e78-a431-791c701c7d16",
+      "created_at": "2026-03-13T03:55:17.518Z",
+      "updated_at": "2026-03-13T03:55:26.044Z",
+      "__v": 0,
+      "locked_at": null,
+      "last_error": null,
+      "processed_at": "2026-03-13T03:55:26.044Z"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 const httpStatus = require('http-status');
 const mongoose = require('mongoose');
-const { Product, Category, ProductReview, Store } = require('../models');
+const { Product, Category, ProductReview, Store, Brand, Tag, Collection } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -132,6 +132,7 @@ const getPublicProducts = async (query) => {
                 }
             })
             .populate('tag_ids', 'name')
+            .populate('collection_ids', 'name')
             .sort(sortOption)
             .skip(skip)
             .limit(parsedLimit),
@@ -185,7 +186,7 @@ const getPublicProducts = async (query) => {
  */
 const getFilterOptions = async () => {
     const products = await Product.find({ status: 'active' }).select('variants.attributes');
-    
+
     const colors = new Set();
     const sizes = new Set();
 
@@ -292,6 +293,7 @@ const getRecommendedProducts = async (categoryId, excludeId, limit = 4) => {
                 select: 'profile.full_name'
             }
         })
+        .populate('collection_ids', 'name')
         .limit(parseInt(limit))
         .sort({ created_at: -1 });
 

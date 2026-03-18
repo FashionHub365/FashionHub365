@@ -18,6 +18,11 @@ import AdminUserPermissionsPage from "../pages/AdminUserPermissionsPage";
 import AdminUsersPage from "../pages/AdminUsersPage";
 import AdminUserGroupsPage from "../pages/AdminUserGroupsPage";
 import AdminSellerRequestsPage from "../pages/AdminSellerRequestsPage";
+import AdminVouchersPage from "../pages/AdminVouchersPage";
+import AdminCampaignsPage from "../pages/AdminCampaignsPage";
+import AdminFlashSalesPage from "../pages/AdminFlashSalesPage";
+
+import AdminMetadataPage from "../pages/AdminMetadataPage";
 
 const normalizeRole = (value) => String(value || "").trim().toLowerCase();
 
@@ -74,6 +79,10 @@ const AdminRoutes = () => {
         <Route path="content" element={<AdminContentPage />} />
         <Route path="products" element={<AdminProductsPage />} />
         <Route path="seller-requests" element={<AdminSellerRequestsPage />} />
+        <Route path="vouchers" element={<AdminVouchersPage />} />
+        <Route path="campaigns" element={<AdminCampaignsPage />} />
+        <Route path="flash-sales" element={<AdminFlashSalesPage />} />
+        <Route path="metadata" element={<AdminMetadataPage />} />
         <Route path="system" element={<AdminSystemPage />} />
         <Route path="audit" element={<AdminAuditLogsPage />} />
         <Route path="support" element={<AdminSupportPage />} />

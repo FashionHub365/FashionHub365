@@ -128,7 +128,7 @@ const AdminProductsPage = () => {
               </tr>
             ) : (
               products.map((product) => (
-                <tr key={product._id} className="border-t border-slate-100">
+                <tr key={product._id} className="border-t border-slate-100 text-left">
                   <td className="px-3 py-2.5">
                     <p className="text-slate-900 font-medium line-clamp-1">{product.name || "-"}</p>
                     <p className="text-xs text-slate-500 mt-0.5">

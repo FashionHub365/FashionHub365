@@ -18,6 +18,7 @@ import { Register } from "./pages/Register";
 import { ForgotPassword } from "./pages/ForgotPassword";
 import { ResetPassword } from "./pages/ResetPassword";
 import { Profile } from "./pages/Profile";
+import NotificationsPage from "./pages/NotificationsPage";
 import VerifyEmail from "./pages/VerifyEmail"; // Correct default import
 import { Layout } from "./components/Layout";
 import "./App.css";
@@ -25,6 +26,11 @@ import SellerOrders from "./pages/seller/sellerOrders/SellerOrders";
 import SellerProducts from "./pages/seller/SellerProducts";
 import SellerDashboard from "./pages/seller/sellerDashboard/SellerDashboard";
 import SellerLayout from "./pages/seller/components/SellerLayout";
+import SellerInventory from "./pages/seller/SellerInventory";
+import SellerWallet from "./pages/seller/SellerWallet";
+import SellerVouchers from "./pages/seller/SellerVouchers";
+import SellerRegistration from "./pages/seller/SellerRegistration";
+import SellerChat from "./pages/seller/sellerChat/SellerChat";
 
 import { CheckoutShipping } from "./pages/CheckoutShipping";
 import { CheckoutReview } from "./pages/CheckoutReview";
@@ -62,8 +68,13 @@ function App() {
                 {/* Protected Routes */}
                 <Route element={<PrivateRoute />}>
                   <Route path="/profile" element={<Profile />} />
+                  <Route path="/notifications" element={<NotificationsPage />} />
                   <Route path="/checkout" element={<CheckoutShipping />} />
                   <Route path="/checkout/review" element={<CheckoutReview />} />
+                </Route>
+
+                <Route element={<RoleRoute allowedRoles={['user']} />}>
+                  <Route path="/seller/register" element={<SellerRegistration />} />
                 </Route>
 
                 {/* Seller Routes (Admin can also access) */}
@@ -72,6 +83,10 @@ function App() {
                     <Route path="dashboard" element={<SellerDashboard />} />
                     <Route path="orders" element={<SellerOrders />} />
                     <Route path="products" element={<SellerProducts />} />
+                    <Route path="inventory" element={<SellerInventory />} />
+                    <Route path="wallet" element={<SellerWallet />} />
+                    <Route path="vouchers" element={<SellerVouchers />} />
+                    <Route path="chat" element={<SellerChat />} />
                   </Route>
                 </Route>
 

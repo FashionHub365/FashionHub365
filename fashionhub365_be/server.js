@@ -1,9 +1,11 @@
 require("dotenv").config();
 
+const http = require('http');
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
+const { Server } = require('socket.io');
 
 const config = require('./config/config');
 const connectDB = require('./config/db');
@@ -14,24 +16,38 @@ const errorHandler = require('./middleware/error');
 const ApiError = require('./utils/ApiError');
 const apiLogger = require('./middleware/apiLogger');
 const { workerService } = require('./services');
+const chatSocket = require('./socket/chatSocket');
 
 
 const app = express();
+const httpServer = http.createServer(app);
+
+// Cấu hình CORS origins (dùng cho cả Express và Socket.IO)
+const env = config?.env || process.env.NODE_ENV || 'development';
+const configuredOrigins = String(config?.frontendUrl || "")
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+const productionOrigins = [...new Set([...configuredOrigins, 'http://localhost:3000'])];
+
+// Khởi tạo Socket.IO
+const io = new Server(httpServer, {
+    cors: {
+        origin: env === 'development' ? true : productionOrigins,
+        methods: ['GET', 'POST'],
+        credentials: true,
+    },
+});
+chatSocket(io);
 
 
 app.use(helmet());
 
 // Cấu hình CORS cho frontend
-const env = config?.env || process.env.NODE_ENV || 'development';
-const configuredOrigins = String(config?.frontendUrl || "")
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
-const productionOrigins = [...new Set([...configuredOrigins, 'http://localhost:3000'])];
 app.use(cors({
-  origin: env === 'development' ? true : productionOrigins,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  credentials: true,
+    origin: env === 'development' ? true : productionOrigins,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    credentials: true,
 }));
 
 // Ghi log request (Chỉ chạy ở môi trường development)
@@ -64,7 +80,7 @@ const PORT = config?.port || process.env.PORT || 5000;
 
 connectDB()
     .then(async () => {
-        
+
         if (typeof initDB === 'function') {
             await initDB();
         }
@@ -75,12 +91,12 @@ connectDB()
             workerService.startWorkers();
         }
 
-        
-        app.listen(PORT, () => {
+
+        httpServer.listen(PORT, () => {
             console.log(`Server started on port ${PORT} in ${env} mode`);
         });
     })
     .catch((err) => {
         console.error("Failed to connect to database:", err);
-        process.exit(1); 
+        process.exit(1);
     });

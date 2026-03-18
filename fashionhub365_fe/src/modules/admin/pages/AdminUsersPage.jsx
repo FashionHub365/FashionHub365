@@ -10,6 +10,7 @@ import {
   getUserRoleSlugs
 } from "../../../utils/roleUtils";
 import { adminOverviewService } from "../services/adminOverviewService";
+import { confirmAction, showSuccess, showError } from "../../../utils/swalUtils";
 
 const normalizeRole = (value) => String(value || "").trim().toLowerCase();
 const normalizeScope = (value) => String(value || "").trim().toUpperCase();
@@ -631,7 +632,12 @@ const AdminUsersPage = () => {
 
   const onRemoveDirectPermission = async (permissionId) => {
     if (!selectedUser?._id || !permissionId) return;
-    if (!window.confirm("Remove this direct permission override?")) return;
+    const isConfirmed = await confirmAction({
+      title: "Xác nhận xóa",
+      text: "Bạn có chắc chắn muốn xóa quyền ghi đè trực tiếp này không?",
+      icon: "warning"
+    });
+    if (!isConfirmed) return;
 
     setRemovingDirectPermissionIds((prev) =>
       Array.from(new Set([...prev, String(permissionId)]))
@@ -689,15 +695,21 @@ const AdminUsersPage = () => {
     }
   };
 
-  const onToggleLockUser = (userItem) => {
+  const onToggleLockUser = async (userItem) => {
     if (!userItem?._id) return;
     const currentStatus = getStatus(userItem);
     const isLocked = currentStatus === "BANNED";
     const nextStatus = isLocked ? "ACTIVE" : "BANNED";
     const confirmMessage = isLocked
-      ? "Are you sure you want to unlock this account?"
-      : "Are you sure you want to lock this account?";
-    if (!window.confirm(confirmMessage)) return;
+      ? "Bạn có chắc chắn muốn mở khóa tài khoản này không?"
+      : "Bạn có chắc chắn muốn khóa tài khoản này không?";
+
+    const isConfirmed = await confirmAction({
+      title: isLocked ? "Mở khóa tài khoản" : "Khóa tài khoản",
+      text: confirmMessage,
+      icon: isLocked ? "info" : "warning"
+    });
+    if (!isConfirmed) return;
 
     runUserAction(userItem._id, async () => {
       await adminOverviewService.updateUserStatus(
@@ -709,25 +721,35 @@ const AdminUsersPage = () => {
     });
   };
 
-  const onSoftDeleteUser = (userItem) => {
+  const onSoftDeleteUser = async (userItem) => {
     if (!userItem?._id) return;
     const currentStatus = getStatus(userItem);
     const isInactive = currentStatus === "INACTIVE";
 
     if (isInactive) {
-      if (!window.confirm("Restore this account to ACTIVE?")) return;
+      const isConfirmed = await confirmAction({
+        title: "Khôi phục tài khoản",
+        text: "Bạn có chắc chắn muốn khôi phục tài khoản này về trạng thái HOẠT ĐỘNG không?",
+        icon: "info"
+      });
+      if (!isConfirmed) return;
       runUserAction(userItem._id, async () => {
         await adminOverviewService.updateUserStatus(
           userItem._id,
           "ACTIVE",
           "Restored by admin"
         );
-        setSuccess("Account restored successfully.");
+        showSuccess("Tài khoản đã được khôi phục thành công.");
       });
       return;
     }
 
-    if (!window.confirm("Soft-delete this account?")) return;
+    const isConfirmed = await confirmAction({
+      title: "Xóa tài khoản",
+      text: "Bạn có chắc chắn muốn xóa tạm thời tài khoản này không?",
+      icon: "warning"
+    });
+    if (!isConfirmed) return;
     runUserAction(userItem._id, async () => {
       await adminOverviewService.deleteUser(userItem._id);
       setSuccess("Account soft-deleted.");

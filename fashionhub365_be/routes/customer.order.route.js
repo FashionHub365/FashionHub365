@@ -16,7 +16,7 @@ router.use(auth());
  * Body: { shipping_address, payment_method, note }
  */
 router.post('/', authorize(['ORDER.CREATE']), catchAsync(async (req, res) => {
-    const { shipping_address, payment_method, note } = req.body;
+    const { shipping_address, payment_method, note, voucher_code } = req.body;
 
     if (!shipping_address) {
         return res.status(httpStatus.BAD_REQUEST).json({
@@ -36,6 +36,7 @@ router.post('/', authorize(['ORDER.CREATE']), catchAsync(async (req, res) => {
         shipping_address,
         payment_method: normalizedPaymentMethod,
         note,
+        voucher_code,
     });
 
     res.status(httpStatus.CREATED).json({
@@ -50,8 +51,31 @@ router.post('/', authorize(['ORDER.CREATE']), catchAsync(async (req, res) => {
  * Lấy lịch sử đơn hàng của user hiện tại
  */
 router.get('/my', authorize(['ORDER.VIEW_OWN']), catchAsync(async (req, res) => {
-    const orders = await orderService.getMyOrders(req.user._id);
-    res.json({ success: true, data: orders });
+    const result = await orderService.getMyOrders(req.user._id, req.query);
+    res.json({ success: true, ...result });
+}));
+
+/**
+ * POST /api/v1/orders/:id/cancel
+ * Customer cancels their own order (only created / pending_payment)
+ */
+router.post('/:id/cancel', authorize(['ORDER.CREATE']), catchAsync(async (req, res) => {
+    const mongoose = require('mongoose');
+    const orderId = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+        return res.status(httpStatus.BAD_REQUEST).json({
+            success: false,
+            message: 'Invalid order ID',
+        });
+    }
+
+    const order = await orderService.cancelMyOrder(req.user._id, orderId);
+    res.json({
+        success: true,
+        message: 'Đơn hàng đã được hủy thành công.',
+        data: order,
+    });
 }));
 
 module.exports = router;

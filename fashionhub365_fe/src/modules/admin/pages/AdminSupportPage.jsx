@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { adminOverviewService } from "../services/adminOverviewService";
+import { confirmAction, showSuccess } from "../../../utils/swalUtils";
 
 const formatDateTime = (value) => {
   if (!value) return "-";
@@ -136,16 +137,21 @@ const AdminSupportPage = () => {
     }
   };
 
-  const onToggleLockUser = (userItem) => {
+  const onToggleLockUser = async (userItem) => {
     if (!userItem?._id) return;
     const currentStatus = getStatus(userItem);
     const isLocked = currentStatus === "BANNED";
     const nextStatus = isLocked ? "ACTIVE" : "BANNED";
     const confirmMessage = isLocked
-      ? "Unlock this account?"
-      : "Lock this account?";
+      ? "Bạn có chắc chắn muốn mở khóa tài khoản này không?"
+      : "Bạn có chắc chắn muốn khóa tài khoản này không?";
 
-    if (!window.confirm(confirmMessage)) return;
+    const isConfirmed = await confirmAction({
+      title: isLocked ? "Mở khóa" : "Khóa tài khoản",
+      text: confirmMessage,
+      icon: isLocked ? "info" : "warning"
+    });
+    if (!isConfirmed) return;
 
     runUserAction(userItem._id, async () => {
       await adminOverviewService.updateUserStatus(
@@ -153,17 +159,22 @@ const AdminSupportPage = () => {
         nextStatus,
         isLocked ? "Unlocked by support" : "Locked by support"
       );
-      setSuccess(isLocked ? "Account unlocked." : "Account locked.");
+      showSuccess(isLocked ? "Đã mở khóa tài khoản thành công." : "Đã khóa tài khoản thành công.");
     });
   };
 
-  const onDisableUser = (userItem) => {
+  const onDisableUser = async (userItem) => {
     if (!userItem?._id) return;
-    if (!window.confirm("Temporarily deactivate this account (INACTIVE)?")) return;
+    const isConfirmed = await confirmAction({
+      title: "Vô hiệu hóa tài khoản",
+      text: "Bạn có chắc chắn muốn tạm dừng hoạt động của tài khoản này không?",
+      icon: "warning"
+    });
+    if (!isConfirmed) return;
 
     runUserAction(userItem._id, async () => {
       await adminOverviewService.deleteUser(userItem._id);
-      setSuccess("Account moved to INACTIVE.");
+      showSuccess("Tài khoản đã được chuyển sang trạng thái NGỪNG HOẠT ĐỘNG.");
     });
   };
 
@@ -335,21 +346,21 @@ const AdminSupportPage = () => {
             onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
             disabled={page <= 1}
             className="px-3 py-1.5 rounded-md border border-slate-300 text-slate-700 disabled:opacity-50"
-        >
-          Previous
-        </button>
-        <span className="text-slate-600">
-          Page {page}/{totalPages}
-        </span>
+          >
+            Previous
+          </button>
+          <span className="text-slate-600">
+            Page {page}/{totalPages}
+          </span>
           <button
             type="button"
             onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
             disabled={page >= totalPages}
             className="px-3 py-1.5 rounded-md border border-slate-300 text-slate-700 disabled:opacity-50"
-        >
-          Next
-        </button>
-      </div>
+          >
+            Next
+          </button>
+        </div>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">

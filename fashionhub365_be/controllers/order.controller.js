@@ -8,6 +8,7 @@ const Product = require("../models/Product");
 const Payment = require("../models/Payment");
 const stockReservationService = require("../services/stockReservation.service");
 const { productService } = require("../services");
+const outboxService = require("../services/outbox.service");
 
 const STATUS_TRANSITIONS = {
   pending_payment: ["cancelled"],
@@ -189,6 +190,21 @@ exports.confirmOrder = async (req, res) => {
     });
     await order.save();
 
+    // Notify customer
+    await outboxService.enqueueEvent({
+      aggregateType: 'ORDER',
+      aggregateId: order._id.toString(),
+      eventType: 'ORDER_STATUS_CHANGED',
+      payload: {
+        orderId: order._id.toString(),
+        orderUuid: order.uuid,
+        userId: order.user_id.toString(),
+        oldStatus: 'created',
+        newStatus: 'confirmed',
+        changedBy: 'seller',
+      },
+    });
+
     res.json(order);
   } catch (error) {
     sendOrderError(res, error);
@@ -209,6 +225,21 @@ exports.cancelOrder = async (req, res) => {
         actor: req.user?._id?.toString() || "seller",
         session,
       });
+    });
+
+    // Notify customer
+    await outboxService.enqueueEvent({
+      aggregateType: 'ORDER',
+      aggregateId: order._id.toString(),
+      eventType: 'ORDER_STATUS_CHANGED',
+      payload: {
+        orderId: order._id.toString(),
+        orderUuid: order.uuid,
+        userId: order.user_id.toString(),
+        oldStatus: 'created',
+        newStatus: 'cancelled',
+        changedBy: 'seller',
+      },
     });
 
     res.json(order);
@@ -262,16 +293,31 @@ exports.updateOrderStatus = async (req, res) => {
         note: note || "Order status updated by seller",
       });
       await current.save(session ? { session } : {});
-      return current;
+      return { order: current, oldStatus, newStatus: nextStatus };
     });
 
-    if (nextStatus === "delivered" && order.items && order.items.length > 0) {
-      productService.incrementSoldCount(order.items).catch((err) => {
+    // Notify customer
+    await outboxService.enqueueEvent({
+      aggregateType: 'ORDER',
+      aggregateId: result.order._id.toString(),
+      eventType: 'ORDER_STATUS_CHANGED',
+      payload: {
+        orderId: result.order._id.toString(),
+        orderUuid: result.order.uuid,
+        userId: result.order.user_id.toString(),
+        oldStatus: result.oldStatus,
+        newStatus: result.newStatus,
+        changedBy: 'seller',
+      },
+    });
+
+    if (result.newStatus === "delivered" && result.order.items && result.order.items.length > 0) {
+      productService.incrementSoldCount(result.order.items).catch((err) => {
         console.error("[sold_count]", err.message);
       });
     }
 
-    res.json(order);
+    res.json(result.order);
   } catch (error) {
     sendOrderError(res, error);
   }
@@ -280,8 +326,30 @@ exports.updateOrderStatus = async (req, res) => {
 // Seller order history
 exports.getSellerOrderHistory = async (req, res) => {
   try {
-    const orders = await Order.find({ store_id: req.storeId }).sort({ created_at: -1 });
-    res.json(orders);
+    const { page = 1, limit = 10, status } = req.query;
+    const skip = (page - 1) * limit;
+
+    const filter = { store_id: req.storeId };
+    if (status) filter.status = status;
+
+    const [orders, total] = await Promise.all([
+      Order.find(filter)
+        .sort({ created_at: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Order.countDocuments(filter)
+    ]);
+
+    res.json({
+      success: true,
+      items: orders,
+      pagination: {
+        total,
+        totalPages: Math.ceil(total / limit),
+        currentPage: parseInt(page),
+        limit: parseInt(limit),
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

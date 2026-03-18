@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchSellerOrders, updateOrderStatus } from '../../../services/orderService';
+import { showSuccess, showError } from '../../../utils/swalUtils';
 import OrderStats from './components/OrderStats';
 import OrderFilters from './components/OrderFilters';
 import OrderList from './components/OrderList';
@@ -33,10 +34,11 @@ const SellerOrders = () => {
     const handleOrderUpdate = async (orderId, newStatus) => {
         try {
             await updateOrderStatus(orderId, newStatus);
+            showSuccess('Đã cập nhật trạng thái đơn hàng thành công!');
             loadOrders();
         } catch (err) {
             console.error('Error updating order:', err);
-            alert('Error updating order: ' + (err.response?.data?.message || err.message));
+            showError('Lỗi khi cập nhật đơn hàng: ' + (err.response?.data?.message || err.message));
         }
     };
 

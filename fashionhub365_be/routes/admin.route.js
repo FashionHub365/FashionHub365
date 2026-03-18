@@ -2,122 +2,128 @@ const express = require('express');
 const auth = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const adminValidation = require('../validations/admin.validation');
-const adminController = require('../controllers/admin.controller');
+const adminUserController = require('../controllers/adminUser.controller');
+const adminRoleController = require('../controllers/adminRole.controller');
+const adminSystemController = require('../controllers/adminSystem.controller');
+const adminStoreController = require('../controllers/adminStore.controller');
 const categoryController = require('../controllers/category.controller');
+const brandController = require('../controllers/brand.controller');
+const collectionController = require('../controllers/collection.controller');
+const tagController = require('../controllers/tag.controller');
 
 const router = express.Router();
 
-router.get('/stats', auth.auth(), auth.authorize(['ROLE.VIEW']), adminController.getSystemStats);
+router.get('/stats', auth.auth(), auth.authorize(['ROLE.VIEW']), adminSystemController.getSystemStats);
 
-router.get('/profile', auth.auth(), adminController.getAdminProfile);
-router.get('/me/permissions', auth.auth(), adminController.getAdminPermissions);
-router.post('/change-password', auth.auth(), validate(adminValidation.changePassword), adminController.changeAdminPassword);
-router.get('/sessions', auth.auth(), adminController.getAdminSessions);
-router.delete('/sessions/:id', auth.auth(), validate(adminValidation.sessionId), adminController.revokeAdminSession);
-router.post('/logout-all', auth.auth(), adminController.logoutAllAdminSessions);
+router.get('/profile', auth.auth(), adminUserController.getAdminProfile);
+router.get('/me/permissions', auth.auth(), adminUserController.getAdminPermissions);
+router.post('/change-password', auth.auth(), validate(adminValidation.changePassword), adminUserController.changeAdminPassword);
+router.get('/sessions', auth.auth(), adminUserController.getAdminSessions);
+router.delete('/sessions/:id', auth.auth(), validate(adminValidation.sessionId), adminUserController.revokeAdminSession);
+router.post('/logout-all', auth.auth(), adminUserController.logoutAllAdminSessions);
 
 router.route('/users')
-    .get(auth.auth(), auth.authorize(['USER.VIEW']), validate(adminValidation.listAdminUsers), adminController.getAdminUsers)
-    .post(auth.auth(), auth.authorize(['USER.CREATE']), validate(adminValidation.createAdminUser), adminController.createAdminUser);
+    .get(auth.auth(), auth.authorize(['USER.VIEW']), validate(adminValidation.listAdminUsers), adminUserController.getAdminUsers)
+    .post(auth.auth(), auth.authorize(['USER.CREATE']), validate(adminValidation.createAdminUser), adminUserController.createAdminUser);
 
 router.get('/users/:id/roles',
     auth.auth(),
     auth.authorize(['USER.VIEW']),
     validate(adminValidation.adminUserId),
-    adminController.getAdminUserRoles
+    adminUserController.getAdminUserRoles
 );
 
 router.get('/users/:id/direct-permissions',
     auth.auth(),
     auth.authorize(['USER.ASSIGN_PERMISSION', 'USER.ASSIGN_ROLE']),
     validate(adminValidation.adminUserId),
-    adminController.getAdminUserDirectPermissions
+    adminUserController.getAdminUserDirectPermissions
 );
 
 router.post('/users/:id/direct-permissions',
     auth.auth(),
     auth.authorize(['USER.ASSIGN_PERMISSION', 'USER.ASSIGN_ROLE']),
     validate(adminValidation.upsertUserDirectPermission),
-    adminController.upsertAdminUserDirectPermission
+    adminUserController.upsertAdminUserDirectPermission
 );
 
 router.delete('/users/:id/direct-permissions/:permissionId',
     auth.auth(),
     auth.authorize(['USER.ASSIGN_PERMISSION', 'USER.ASSIGN_ROLE']),
     validate(adminValidation.deleteUserDirectPermission),
-    adminController.deleteAdminUserDirectPermission
+    adminUserController.deleteAdminUserDirectPermission
 );
 
 router.get('/users/:id/effective-permissions',
     auth.auth(),
     auth.authorize(['USER.VIEW']),
     validate(adminValidation.adminUserId),
-    adminController.getAdminUserEffectivePermissions
+    adminUserController.getAdminUserEffectivePermissions
 );
 
 router.patch('/users/:id/status',
     auth.auth(),
     auth.authorize(['USER.UPDATE']),
     validate(adminValidation.updateAdminUserStatus),
-    adminController.updateAdminUserStatus
+    adminUserController.updateAdminUserStatus
 );
 
 router.route('/users/:id')
-    .get(auth.auth(), auth.authorize(['USER.VIEW']), validate(adminValidation.adminUserId), adminController.getAdminUserById)
-    .put(auth.auth(), auth.authorize(['USER.UPDATE']), validate(adminValidation.updateAdminUser), adminController.updateAdminUser)
-    .delete(auth.auth(), auth.authorize(['USER.DELETE']), validate(adminValidation.adminUserId), adminController.deleteAdminUser);
+    .get(auth.auth(), auth.authorize(['USER.VIEW']), validate(adminValidation.adminUserId), adminUserController.getAdminUserById)
+    .put(auth.auth(), auth.authorize(['USER.UPDATE']), validate(adminValidation.updateAdminUser), adminUserController.updateAdminUser)
+    .delete(auth.auth(), auth.authorize(['USER.DELETE']), validate(adminValidation.adminUserId), adminUserController.deleteAdminUser);
 
 router.post('/users/:userId/global-roles',
     auth.auth(),
     auth.authorize(['USER.ASSIGN_ROLE']),
     validate(adminValidation.assignGlobalRole),
-    adminController.assignGlobalRole
+    adminRoleController.assignGlobalRole
 );
 
 router.delete('/users/:userId/global-roles/:roleId',
     auth.auth(),
     auth.authorize(['USER.ASSIGN_ROLE']),
     validate(adminValidation.revokeGlobalRole),
-    adminController.revokeGlobalRole
+    adminUserController.revokeGlobalRole
 );
 
 router.post('/users/:userId/store-roles',
     auth.auth(),
     auth.authorize(['USER.ASSIGN_ROLE']),
     validate(adminValidation.assignStoreRole),
-    adminController.assignStoreRole
+    adminRoleController.assignStoreRole
 );
 
 router.delete('/users/:userId/store-roles/:roleId',
     auth.auth(),
     auth.authorize(['USER.ASSIGN_ROLE']),
     validate(adminValidation.revokeStoreRole),
-    adminController.revokeStoreRole
+    adminUserController.revokeStoreRole
 );
 
 router.get('/seller-requests',
     auth.auth(),
     auth.authorize(['USER.VIEW']),
     validate(adminValidation.listSellerRequests),
-    adminController.getSellerRequests
+    adminStoreController.getSellerRequests
 );
 
 router.patch('/seller-requests/:storeId/approve',
     auth.auth(),
     auth.authorize(['USER.UPDATE']),
     validate(adminValidation.sellerRequestIdParam),
-    adminController.approveSellerRequest
+    adminStoreController.approveSellerRequest
 );
 
 router.patch('/seller-requests/:storeId/reject',
     auth.auth(),
     auth.authorize(['USER.UPDATE']),
     validate(adminValidation.reviewSellerRequest),
-    adminController.rejectSellerRequest
+    adminStoreController.rejectSellerRequest
 );
 
 router.get('/categories', auth.auth(), auth.authorize(['ROLE.VIEW']), categoryController.getCategories);
-router.get('/categories/options', auth.auth(), auth.authorize(['ROLE.VIEW']), adminController.getCategoryOptions);
+router.get('/categories/options', auth.auth(), auth.authorize(['ROLE.VIEW']), adminSystemController.getCategoryOptions);
 router.post('/categories', auth.auth(), auth.authorize(['ROLE.UPDATE']), categoryController.createCategory);
 router.put('/categories/:id', auth.auth(), auth.authorize(['ROLE.UPDATE']), categoryController.updateCategory);
 router.delete('/categories/:id', auth.auth(), auth.authorize(['ROLE.DELETE']), categoryController.deleteCategory);
@@ -128,76 +134,103 @@ router.patch('/categories/:id/restore',
     categoryController.restoreCategory
 );
 
+// Brands
+router.route('/brands')
+    .post(auth.auth(), auth.authorize(['ROLE.UPDATE']), validate(adminValidation.createBrand), brandController.createBrand)
+    .get(auth.auth(), auth.authorize(['ROLE.VIEW']), brandController.getBrands);
+
+router.route('/brands/:brandId')
+    .get(auth.auth(), auth.authorize(['ROLE.VIEW']), brandController.getBrand)
+    .put(auth.auth(), auth.authorize(['ROLE.UPDATE']), validate(adminValidation.updateBrand), brandController.updateBrand)
+    .delete(auth.auth(), auth.authorize(['ROLE.DELETE']), brandController.deleteBrand);
+
+// Collections
+router.route('/collections')
+    .post(auth.auth(), auth.authorize(['ROLE.UPDATE']), validate(adminValidation.createCollection), collectionController.createCollection)
+    .get(auth.auth(), auth.authorize(['ROLE.VIEW']), collectionController.getCollections);
+
+router.route('/collections/:collectionId')
+    .get(auth.auth(), auth.authorize(['ROLE.VIEW']), collectionController.getCollection)
+    .put(auth.auth(), auth.authorize(['ROLE.UPDATE']), validate(adminValidation.updateCollection), collectionController.updateCollection)
+    .delete(auth.auth(), auth.authorize(['ROLE.DELETE']), collectionController.deleteCollection);
+
+// Tags
+router.route('/tags')
+    .post(auth.auth(), auth.authorize(['ROLE.UPDATE']), validate(adminValidation.createTag), tagController.createTag)
+    .get(auth.auth(), auth.authorize(['ROLE.VIEW']), tagController.getTags);
+
+router.delete('/tags/:tagId', auth.auth(), auth.authorize(['ROLE.DELETE']), tagController.deleteTag);
+
 router.route('/roles')
-    .post(auth.auth(), auth.authorize(['ROLE.CREATE']), validate(adminValidation.createRole), adminController.createRole)
-    .get(auth.auth(), auth.authorize(['ROLE.VIEW']), validate(adminValidation.getRoles), adminController.getRoles);
+    .post(auth.auth(), auth.authorize(['ROLE.CREATE']), validate(adminValidation.createRole), adminRoleController.createRole)
+    .get(auth.auth(), auth.authorize(['ROLE.VIEW']), validate(adminValidation.getRoles), adminRoleController.getRoles);
 
 router.get(
     '/roles/options',
     auth.auth(),
     auth.authorize(['ROLE.VIEW', 'USER.ASSIGN_ROLE']),
-    adminController.getRoleOptions
+    adminRoleController.getRoleOptions
 );
 
 router.route('/roles/:id')
-    .put(auth.auth(), auth.authorize(['ROLE.UPDATE']), validate(adminValidation.updateRole), adminController.updateRole)
-    .delete(auth.auth(), auth.authorize(['ROLE.DELETE']), validate(adminValidation.roleIdParam), adminController.deleteRole);
+    .put(auth.auth(), auth.authorize(['ROLE.UPDATE']), validate(adminValidation.updateRole), adminRoleController.updateRole)
+    .delete(auth.auth(), auth.authorize(['ROLE.DELETE']), validate(adminValidation.roleIdParam), adminRoleController.deleteRole);
 
 router.patch('/roles/:id/restore',
     auth.auth(),
     auth.authorize(['ROLE.UPDATE']),
     validate(adminValidation.roleIdParam),
-    adminController.restoreRole
+    adminRoleController.restoreRole
 );
 
 router.get('/roles/:id/permissions',
     auth.auth(),
     auth.authorize(['ROLE.VIEW']),
     validate(adminValidation.roleIdParam),
-    adminController.getRolePermissions
+    adminRoleController.getRolePermissions
 );
 
 router.post('/roles/:id/permissions',
     auth.auth(),
     auth.authorize(['ROLE.UPDATE']),
     validate(adminValidation.rolePermissionsBody),
-    adminController.addRolePermissions
+    adminRoleController.addRolePermissions
 );
 
 router.put('/roles/:id/permissions',
     auth.auth(),
     auth.authorize(['ROLE.UPDATE']),
     validate(adminValidation.rolePermissionsBody),
-    adminController.replaceRolePermissions
+    adminRoleController.replaceRolePermissions
 );
 
 router.delete('/roles/:id/permissions/:permissionId',
     auth.auth(),
     auth.authorize(['ROLE.UPDATE']),
     validate(adminValidation.deleteRolePermission),
-    adminController.removeRolePermission
+    adminRoleController.removeRolePermission
 );
 
 router.route('/permissions')
-    .post(auth.auth(), auth.authorize(['PERMISSION.CREATE']), validate(adminValidation.createPermission), adminController.createPermission)
-    .get(auth.auth(), auth.authorize(['PERMISSION.VIEW']), validate(adminValidation.getPermissions), adminController.getPermissions);
+    .post(auth.auth(), auth.authorize(['PERMISSION.CREATE']), validate(adminValidation.createPermission), adminRoleController.createPermission)
+    .get(auth.auth(), auth.authorize(['PERMISSION.VIEW']), validate(adminValidation.getPermissions), adminRoleController.getPermissions);
 
-router.get('/permissions/grouped', auth.auth(), auth.authorize(['PERMISSION.VIEW']), adminController.getGroupedPermissions);
+router.get('/permissions/grouped', auth.auth(), auth.authorize(['PERMISSION.VIEW']), adminRoleController.getGroupedPermissions);
 
 router.get('/audit-logs',
     auth.auth(),
     auth.authorize(['ROLE.VIEW']),
     validate(adminValidation.getAuditLogs),
-    adminController.getAuditLogs
+    adminSystemController.getAuditLogs
 );
 
 router.get('/audit-logs/:id',
     auth.auth(),
     auth.authorize(['ROLE.VIEW']),
     validate(adminValidation.auditLogId),
-    adminController.getAuditLogById
+    adminSystemController.getAuditLogById
 );
 
-router.get('/enums', auth.auth(), auth.authorize(['ROLE.VIEW']), adminController.getAdminEnums);
+router.get('/enums', auth.auth(), auth.authorize(['ROLE.VIEW']), adminSystemController.getAdminEnums);
 
 module.exports = router;

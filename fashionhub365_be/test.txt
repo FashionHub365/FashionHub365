@@ -1,0 +1,98 @@
+[
+  {
+    "_id": "69b8ad4e5980eb3d2906dfa7",
+    "user_id": "69ad8749893ea67268612671",
+    "store_id": "69a5a557709d97df28140044",
+    "shipping_address": {
+      "uuid": "98d7df0a-4b0a-45bf-b1db-9e939508ac40",
+      "full_name": "Lê Đặng Nhật Huy",
+      "phone": "0342420875",
+      "email": "huy748566@gmail.com",
+      "province": "Thừa Thiên Huế",
+      "district": "sấ",
+      "ward": "sấ",
+      "address_line": "Phú Vang, ssasa",
+      "note": "á"
+    },
+    "status": "created",
+    "payment_method": "cod",
+    "payment_status": "unpaid",
+    "shipping_fee": 0,
+    "discount_total": 0,
+    "total_amount": 1200000,
+    "currency": "VND",
+    "items": [
+      {
+        "productId": "69a7f31307186c29ee60c886",
+        "variantId": "69a7f31307186c29ee60c88b",
+        "qty": 1,
+        "price": 1200000,
+        "subtotal": 1200000,
+        "snapshot": {
+          "name": "Low-Top Canvas Sneakers",
+          "variantName": "EU 40 / White",
+          "attributes": {
+            "size": "40",
+            "color": "White"
+          },
+          "image": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600"
+        },
+        "_id": "69b8ad4e5980eb3d2906dfa8"
+      }
+    ],
+    "status_history": [
+      {
+        "oldStatus": null,
+        "newStatus": "created",
+        "changedBy": "customer",
+        "note": "á",
+        "_id": "69b8ad4e5980eb3d2906dfa9",
+        "changedAt": "2026-03-17T01:24:30.845Z"
+      }
+    ],
+    "uuid": "59f9ef7e-ab7b-44b5-8486-6646e619304a",
+    "created_at": "2026-03-17T01:24:30.848Z",
+    "updated_at": "2026-03-17T01:24:30.848Z",
+    "__v": 0
+  },
+  {
+    "_id": "69b783553eb4793732435544",
+    "order_id": "69b783543eb4793732435526",
+    "store_id": "69a5a557709d97df28140044",
+    "method": "BANK_TRANSFER",
+    "provider": "BANK_TRANSFER",
+    "transaction_id": "PAY17736343893411A07C4",
+    "amount": 1200000,
+    "currency": "VND",
+    "status": "FAILED",
+    "bank_info": {
+      "bank_name": "FashionHub365 Bank",
+      "account_name": "FASHIONHUB365",
+      "account_number": "0000000000",
+      "bin": "970000"
+    },
+    "transfer_content": "FASHIONHUB PAY17736343893411A07C4",
+    "raw_payload": "{\"reconcile\":\"PAYMENT_EXPIRED\"}",
+    "expires_at": "2026-03-16T04:28:09.341Z",
+    "transactions": [
+      {
+        "providerTxnId": "PAY17736343893411A07C4",
+        "amount": 1200000,
+        "status": "PENDING",
+        "_id": "69b783553eb4793732435545",
+        "createdAt": "2026-03-16T04:13:09.342Z"
+      },
+      {
+        "providerTxnId": "PAY17736343893411A07C4",
+        "amount": 1200000,
+        "status": "FAILED",
+        "_id": "69b786e63eb4793732435762",
+        "createdAt": "2026-03-16T04:28:22.419Z"
+      }
+    ],
+    "uuid": "c712e283-5e0f-4eb4-9240-7ecf131ccb24",
+    "created_at": "2026-03-16T04:13:09.343Z",
+    "__v": 1,
+    "failed_at": "2026-03-16T04:28:22.419Z"
+  }
+]

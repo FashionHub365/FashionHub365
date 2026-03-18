@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useGoogleLogin } from '@react-oauth/google';
+import { showSuccess } from '../utils/swalUtils';
 
 export const Register = () => {
     const [formData, setFormData] = useState({
@@ -86,7 +87,7 @@ export const Register = () => {
         const result = await register(formData);
         setIsLoading(false);
         if (result.success) {
-            alert('Đăng ký thành công! Đang chuyển hướng đến đăng nhập...');
+            await showSuccess('Đăng ký thành công! Đang chuyển hướng đến đăng nhập...');
             navigate('/login');
         } else {
             const msg = result.message || '';

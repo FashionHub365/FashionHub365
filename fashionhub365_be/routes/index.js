@@ -16,6 +16,18 @@ const listingRoute = require('./listing.route');
 const customerOrderRoute = require('./customer.order.route');
 const wishlistRoute = require('./wishlist.route');
 const storeRoute = require('./store.route');
+const chatRoute = require('./chat.routes');
+const inventoryRoute = require('./inventory.route');
+const notificationRoute = require('./notification.route');
+const voucherRoute = require('./voucher.route');
+const walletRoute = require('./wallet.route');
+const campaignRoute = require('./campaign.route');
+const flashSaleRoute = require('./flashSale.route');
+const affiliateRoute = require('./affiliate.route');
+const referralRoute = require('./referral.route');
+const systemRoute = require('./system.route');
+const returnRoute = require('./return.route');
+const shipmentRoute = require('./shipment.route');
 
 const router = express.Router();
 
@@ -38,7 +50,18 @@ const defaultRoutes = [
     { path: '/stores', route: storeRoute },
     { path: '/orders', route: customerOrderRoute },
     { path: '/wishlist', route: wishlistRoute },
-    { path: '/stores', route: storeRoute },
+    { path: '/chat', route: chatRoute },
+    { path: '/inventory', route: inventoryRoute },
+    { path: '/notifications', route: notificationRoute },
+    { path: '/vouchers', route: voucherRoute },
+    { path: '/wallet', route: walletRoute },
+    { path: '/campaigns', route: campaignRoute },
+    { path: '/flash-sales', route: flashSaleRoute },
+    { path: '/affiliates', route: affiliateRoute },
+    { path: '/referrals', route: referralRoute },
+    { path: '/system', route: systemRoute },
+    { path: '/returns', route: returnRoute },
+    { path: '/shipments', route: shipmentRoute },
 ];
 
 

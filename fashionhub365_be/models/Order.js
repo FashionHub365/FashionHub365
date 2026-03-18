@@ -21,12 +21,12 @@ const orderSchema = new mongoose.Schema({
     shipping_address: mongoose.Schema.Types.Mixed,
     status: {
         type: String,
-        enum: ['pending_payment', 'created', 'confirmed', 'shipped', 'delivered', 'cancelled', 'refunded'],
+        enum: ['pending_payment', 'created', 'confirmed', 'shipped', 'delivered', 'cancelled', 'return_requested', 'returned', 'refunded'],
         default: 'created'
     },
     payment_method: {
         type: String,
-        enum: ['cod', 'bank_transfer', 'vnpay'],
+        enum: ['cod', 'bank_transfer', 'vnpay', 'wallet'],
         default: 'cod'
     },
     payment_status: {

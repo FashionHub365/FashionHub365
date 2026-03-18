@@ -5,3 +5,8 @@
 .env*.local
 
 node_modules
+
+
+.agent
+.agent/
+**/.agent/

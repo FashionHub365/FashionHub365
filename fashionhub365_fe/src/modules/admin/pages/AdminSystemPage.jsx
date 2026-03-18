@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { adminOverviewService } from "../services/adminOverviewService";
+import { confirmAction, showSuccess } from "../../../utils/swalUtils";
 
 const formatDateTime = (value) => {
   if (!value) return "-";
@@ -59,13 +60,18 @@ const AdminSystemPage = () => {
   );
 
   const revokeSession = async (sessionId) => {
-    if (!window.confirm("Revoke this session?")) return;
+    const isConfirmed = await confirmAction({
+      title: "Thu hồi phiên làm việc",
+      text: "Bạn có chắc chắn muốn thu hồi phiên làm việc này không?",
+      icon: "warning"
+    });
+    if (!isConfirmed) return;
     setProcessing(true);
     setError("");
     setSuccess("");
     try {
       await adminOverviewService.revokeAdminSession(sessionId);
-      setSuccess("Session revoked successfully.");
+      showSuccess("Phiên làm việc đã được thu hồi thành công.");
       await loadData();
     } catch (nextError) {
       setError(nextError.message || "Failed to revoke session.");
@@ -75,13 +81,18 @@ const AdminSystemPage = () => {
   };
 
   const logoutAll = async () => {
-    if (!window.confirm("Log out from all sessions?")) return;
+    const isConfirmed = await confirmAction({
+      title: "Đăng xuất tất cả",
+      text: "Bạn có chắc chắn muốn đăng xuất khỏi tất cả các phiên làm việc không?",
+      icon: "warning"
+    });
+    if (!isConfirmed) return;
     setProcessing(true);
     setError("");
     setSuccess("");
     try {
       await adminOverviewService.logoutAllAdminSessions();
-      setSuccess("Logged out from all sessions.");
+      showSuccess("Đã đăng xuất khỏi tất cả các phiên làm việc.");
       await loadData();
     } catch (nextError) {
       setError(nextError.message || "Unable to log out all sessions.");
@@ -110,7 +121,7 @@ const AdminSystemPage = () => {
         passwordForm.newPassword
       );
       setPasswordForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
-      setSuccess("Password changed successfully.");
+      showSuccess("Mật khẩu đã được thay đổi thành công.");
       await loadData();
     } catch (nextError) {
       setError(nextError.message || "Failed to change password.");
@@ -255,11 +266,10 @@ const AdminSystemPage = () => {
                     <td className="px-3 py-2.5 text-slate-700">{formatDateTime(session.expires_at)}</td>
                     <td className="px-3 py-2.5">
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${
-                          session.is_revoked
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${session.is_revoked
                             ? "bg-rose-50 text-rose-700"
                             : "bg-emerald-50 text-emerald-700"
-                        }`}
+                          }`}
                       >
                         {session.is_current
                           ? "CURRENT"

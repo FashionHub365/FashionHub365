@@ -267,6 +267,52 @@ const deleteUserDirectPermission = {
     }),
 };
 
+const createBrand = {
+    body: Joi.object().keys({
+        name: Joi.string().required(),
+        description: Joi.string().allow(''),
+        logo_url: Joi.string().allow(''),
+    }),
+};
+
+const updateBrand = {
+    params: Joi.object().keys({
+        brandId: Joi.string().required().custom(objectId),
+    }),
+    body: Joi.object().keys({
+        name: Joi.string(),
+        description: Joi.string().allow(''),
+        logo_url: Joi.string().allow(''),
+    }).min(1),
+};
+
+const createCollection = {
+    body: Joi.object().keys({
+        name: Joi.string().required(),
+        description: Joi.string().allow(''),
+        banner_url: Joi.string().allow(''),
+        status: Joi.string().allow(''),
+    }),
+};
+
+const updateCollection = {
+    params: Joi.object().keys({
+        collectionId: Joi.string().required().custom(objectId),
+    }),
+    body: Joi.object().keys({
+        name: Joi.string(),
+        description: Joi.string().allow(''),
+        banner_url: Joi.string().allow(''),
+        status: Joi.string().allow(''),
+    }).min(1),
+};
+
+const createTag = {
+    body: Joi.object().keys({
+        name: Joi.string().required(),
+    }),
+};
+
 module.exports = {
     createRole,
     updateRole,
@@ -295,4 +341,9 @@ module.exports = {
     reviewSellerRequest,
     upsertUserDirectPermission,
     deleteUserDirectPermission,
+    createBrand,
+    updateBrand,
+    createCollection,
+    updateCollection,
+    createTag,
 };

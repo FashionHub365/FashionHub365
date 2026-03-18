@@ -24,7 +24,7 @@ export const ProductionProcessSection = () => {
 
       <img
         className="w-[700] h-[600px] flex-1 grow relative self-stretch object-cover"
-        alt="Image showing quality materials and craftsmanship"
+        alt="Quality materials and craftsmanship"
         src="/textures/aboutpage/image6.jpg"
       />
     </section>

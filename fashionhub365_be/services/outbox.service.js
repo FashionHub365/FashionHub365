@@ -65,10 +65,73 @@ const handleOrderConfirmedEvent = async (event) => {
     });
 };
 
+const handleOrderCreatedEvent = async (event) => {
+    const orderId = event.payload?.orderId || event.aggregate_id;
+    const order = await Order.findById(orderId).populate('user_id');
+    if (!order) {
+        return;
+    }
+
+    const user = order.user_id?._id ? order.user_id : await User.findById(order.user_id);
+    if (!user) {
+        return;
+    }
+
+    if (user.email) {
+        const subject = `Order ${order.uuid} placed successfully`;
+        const text = `Thank you for your order! Your order ${order.uuid} has been successfully placed.`;
+        await emailService.sendEmail(user.email, subject, text);
+    }
+
+    await Notification.create({
+        user_id: user._id,
+        type: 'ORDER_STATUS',
+        message: `Your order ${order.uuid} has been successfully placed.`,
+    });
+};
+
+const STATUS_LABELS = {
+    created: 'đã đặt',
+    pending_payment: 'chờ thanh toán',
+    confirmed: 'đã xác nhận',
+    shipped: 'đang giao',
+    delivered: 'đã giao',
+    cancelled: 'đã hủy',
+    refunded: 'đã hoàn tiền',
+};
+
+const handleOrderStatusChangedEvent = async (event) => {
+    const { orderId, orderUuid, userId, oldStatus, newStatus, changedBy } = event.payload || {};
+    if (!orderId || !userId) return;
+
+    const user = await User.findById(userId);
+    if (!user) return;
+
+    const statusLabel = STATUS_LABELS[newStatus] || newStatus;
+    const message = `Đơn hàng ${orderUuid} đã chuyển sang trạng thái: ${statusLabel}.`;
+
+    await Notification.create({
+        user_id: user._id,
+        type: 'ORDER_STATUS',
+        message,
+    });
+
+    if (user.email) {
+        const subject = `Đơn hàng ${orderUuid} - ${statusLabel}`;
+        await emailService.sendEmail(user.email, subject, message);
+    }
+};
+
 const dispatchOutboxEvent = async (event) => {
     switch (event.event_type) {
         case 'ORDER_CONFIRMED':
             await handleOrderConfirmedEvent(event);
+            return;
+        case 'ORDER_CREATED':
+            await handleOrderCreatedEvent(event);
+            return;
+        case 'ORDER_STATUS_CHANGED':
+            await handleOrderStatusChangedEvent(event);
             return;
         default:
             return;

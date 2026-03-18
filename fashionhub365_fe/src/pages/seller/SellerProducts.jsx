@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getSellerProducts, updateProduct, deleteProduct, toggleStockStatus, createProduct, getCategories } from '../../services/productService';
+import storeApi from '../../apis/store.api';
 import EditProductModal from './components/EditProductModal';
 import CreateProductModal from './components/CreateProductModal';
 import ReviewManagementModal from './components/ReviewManagementModal';
+import { showSuccess, showError, confirmAction } from '../../utils/swalUtils';
 import Swal from 'sweetalert2';
 
 const STATUS_CONFIG = {
@@ -29,13 +31,20 @@ const SellerProducts = () => {
     const [editProduct, setEditProduct] = useState(null);
     const [reviewProduct, setReviewProduct] = useState(null);
     const [togglingId, setTogglingId] = useState(null);
+    const [storeInfo, setStoreInfo] = useState(null);
 
     const loadInitialData = useCallback(async () => {
         try {
-            const catRes = await getCategories();
+            const [catRes, storeRes] = await Promise.all([
+                getCategories(),
+                storeApi.getMyStore()
+            ]);
             setCategories(catRes.data || catRes || []);
+            if (storeRes.success) {
+                setStoreInfo(storeRes.data.store);
+            }
         } catch (err) {
-            console.error('Error loading categories:', err);
+            console.error('Error loading initial data:', err);
         }
     }, []);
 
@@ -54,18 +63,18 @@ const SellerProducts = () => {
             setTotal(result.total || 0);
         } catch (err) {
             console.error('Error loading products:', err);
-            alert('Error loading products: ' + (err.response?.data?.message || err.message));
+            showError('Lỗi khi tải danh sách sản phẩm: ' + (err.response?.data?.message || err.message));
         } finally {
             setLoading(false);
         }
     }, [statusFilter, search, categoryFilter]);
 
-    useEffect(() => { 
+    useEffect(() => {
         loadInitialData();
     }, [loadInitialData]);
 
-    useEffect(() => { 
-        loadProducts(); 
+    useEffect(() => {
+        loadProducts();
     }, [loadProducts]);
 
     const handleSearch = (e) => {
@@ -138,12 +147,14 @@ const SellerProducts = () => {
     };
 
     const handleToggleStock = async (product) => {
+        const isInactive = product.status === 'inactive';
         setTogglingId(product._id);
         try {
             await toggleStockStatus(product._id);
             loadProducts();
+            showSuccess(`Đã ${isInactive ? 'công khai' : 'ẩn'} sản phẩm thành công.`);
         } catch (err) {
-            alert('Error toggling status: ' + err.message);
+            showError('Lỗi khi cập nhật trạng thái: ' + err.message);
         } finally {
             setTogglingId(null);
         }
@@ -166,15 +177,23 @@ const SellerProducts = () => {
                             Hiện có {total} sản phẩm
                         </p>
                     </div>
-                    <button 
-                        onClick={() => setIsCreateOpen(true)}
-                        className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all transform hover:scale-105 shadow-lg shadow-blue-200"
-                    >
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        Đăng sản phẩm mới
-                    </button>
+                    <div className="flex items-center gap-4">
+                        {storeInfo?.status === 'pending' && (
+                            <div className="bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl flex items-center gap-3 animate-pulse">
+                                <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                                <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">Cửa hàng đang chờ duyệt</span>
+                            </div>
+                        )}
+                        <button
+                            onClick={() => setIsCreateOpen(true)}
+                            className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all transform hover:scale-105 shadow-lg shadow-blue-200"
+                        >
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Đăng sản phẩm mới
+                        </button>
+                    </div>
                 </div>
 
                 {/* Filters */}
@@ -203,7 +222,7 @@ const SellerProducts = () => {
 
                         <div className="flex flex-wrap gap-4 items-center">
                             {/* Category filter */}
-                            <select 
+                            <select
                                 value={categoryFilter}
                                 onChange={(e) => setCategoryFilter(e.target.value)}
                                 className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white min-w-[200px]"
@@ -220,8 +239,8 @@ const SellerProducts = () => {
                                     <button key={key}
                                         onClick={() => setStatusFilter(key)}
                                         className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${statusFilter === key
-                                                ? 'bg-white text-blue-600 shadow-sm'
-                                                : 'text-gray-500 hover:text-gray-700'
+                                            ? 'bg-white text-blue-600 shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700'
                                             }`}>
                                         {label}
                                     </button>
@@ -355,6 +374,7 @@ const SellerProducts = () => {
                 <CreateProductModal
                     onClose={() => setIsCreateOpen(false)}
                     onSave={handleCreate}
+                    storeStatus={storeInfo?.status}
                 />
             )}
             {editProduct && (
@@ -362,6 +382,7 @@ const SellerProducts = () => {
                     product={editProduct}
                     onClose={() => setEditProduct(null)}
                     onSave={handleUpdate}
+                    storeStatus={storeInfo?.status}
                 />
             )}
             {reviewProduct && (

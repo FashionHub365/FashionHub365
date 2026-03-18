@@ -58,6 +58,8 @@ const PasswordResetToken = require('./PasswordResetToken');
 const UserAddress = require('./UserAddress');
 const InvalidatedToken = require('./InvalidatedToken');
 const UserPermissionOverride = require('./UserPermissionOverride');
+const ChatSession = require('./ChatSession');
+const ChatMessage = require('./ChatMessage');
 module.exports = {
     User,
     Role,
@@ -119,4 +121,6 @@ module.exports = {
     UserAddress,
     InvalidatedToken,
     UserPermissionOverride,
+    ChatSession,
+    ChatMessage,
 };

@@ -276,7 +276,7 @@ const AdminCategories = () => {
                   <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wide px-5 py-3">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y text-left divide-slate-100">
                 {categories.map((cat) => (
                   <tr key={cat._id} className="hover:bg-slate-50/80 transition-colors group">
                     <td className="px-5 py-4">
