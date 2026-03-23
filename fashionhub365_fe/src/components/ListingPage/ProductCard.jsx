@@ -245,30 +245,30 @@ export const ProductCard = ({ product, activeColor = "" }) => {
         )}
       </Link>
 
-      <div className="flex flex-col items-start gap-[3px] relative self-stretch w-full flex-[0_0_auto] px-1 pb-1">
+      <div className="flex flex-col items-start gap-1.5 relative self-stretch w-full px-2 pb-2 mt-2">
         {storeName && (
-          <span className="text-[11px] font-semibold text-x-300 uppercase tracking-widest px-0">
+          <span className="text-[10px] sm:text-[11px] font-bold text-gray-500 uppercase tracking-widest truncate w-full">
             {storeName}
           </span>
         )}
-        <div className="flex items-start gap-3 px-0 py-2 relative self-stretch w-full flex-[0_0_auto]">
-          <h3 className="relative flex-1 mt-[-1.00px] font-text-200 font-[number:var(--text-200-font-weight)] text-x-500 text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] [font-style:var(--text-200-font-style)]">
+        <div className="flex flex-col sm:flex-row sm:justify-between items-start w-full gap-1.5 sm:gap-2">
+          <h3 className="text-left text-[13px] sm:text-[14px] font-semibold text-gray-800 leading-snug line-clamp-2 min-h-[40px]">
             {product.name}
           </h3>
-          <div className="inline-flex items-center justify-end gap-1 relative flex-[0_0_auto]">
+          <div className="flex flex-row sm:flex-col items-end shrink-0 gap-2 sm:gap-0 mt-1 sm:mt-0">
             {salePrice < originalPrice && (
-              <span className="font-text-200-strikethrough text-x-300 line-through relative w-fit mt-[-1.00px] font-[number:var(--text-200-strikethrough-font-weight)] text-[length:var(--text-200-strikethrough-font-size)] text-right tracking-[var(--text-200-strikethrough-letter-spacing)] leading-[var(--text-200-strikethrough-line-height)] whitespace-nowrap [font-style:var(--text-200-strikethrough-font-style)]">
+              <span className="text-[11px] text-gray-400 line-through">
                 {originalPrice.toLocaleString("vi-VN")}₫
               </span>
             )}
-            <span className="font-text-200-demi text-x-500 relative w-fit mt-[-1.00px] font-[number:var(--text-200-demi-font-weight)] text-[length:var(--text-200-demi-font-size)] text-right tracking-[var(--text-200-demi-letter-spacing)] leading-[var(--text-200-demi-line-height)] whitespace-nowrap [font-style:var(--text-200-demi-font-style)]">
+            <span className="text-[14px] sm:text-[15px] font-bold text-gray-900 leading-none">
               {salePrice.toLocaleString("vi-VN")}₫
             </span>
           </div>
         </div>
 
         {/* Màu đang chọn */}
-        <span className="relative self-stretch h-4 font-text-200 font-[number:var(--text-200-font-weight)] text-x-300 text-[length:var(--text-200-font-size)] tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] whitespace-nowrap [font-style:var(--text-200-font-style)]">
+        <span className="text-[12px] font-medium text-gray-500 truncate w-full mt-[2px] h-4 text-left">
           {colorVariants[selectedColorIndex]?.name || ""}
         </span>
 
@@ -295,20 +295,26 @@ export const ProductCard = ({ product, activeColor = "" }) => {
 
       {/* Color swatches */}
       {colorVariants.length > 0 && (
-        <div className="flex items-center gap-2.5 relative self-stretch w-full flex-[0_0_auto]">
-          {colorVariants.map((color, index) => (
-            <button
-              key={index}
-              className={`w-5 h-5 rounded-full focus:outline-none ${selectedColorIndex === index
-                ? "ring-1 ring-offset-2 ring-x-600"
-                : ""
-                }`}
-              style={{ background: color.hex }}
-              onClick={() => setSelectedColorIndex(index)}
-              aria-label={`Select color ${color.name}`}
-            />
-          ))}
-        </div>
+        <div className="flex items-center gap-2.5 w-full">
+  {colorVariants.map((color, index) => {
+    const isActive = selectedColorIndex === index;
+    const isWhite = color.hex === "#FFFFFF" || color.name?.toLowerCase().includes("white");
+
+    return (
+      <button
+        key={index}
+        onClick={() => setSelectedColorIndex(index)}
+        aria-label={`Select color ${color.name}`}
+        className={`
+          w-5 h-5 rounded-full transition
+          ${isWhite ? "border border-gray-400" : ""}
+          ${isActive ? "ring-2 ring-black ring-offset-1" : ""}
+        `}
+        style={{ backgroundColor: color.hex }}
+      />
+    );
+  })}
+</div>
       )}
 
     </article>

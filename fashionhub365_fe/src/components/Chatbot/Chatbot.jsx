@@ -6,7 +6,7 @@ import './Chatbot.css';
 const Chatbot = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([
-        { role: 'model', text: 'Xin chào! Tôi là trợ lý ảo FashionHub365. Tôi có thể giúp gì cho bạn?' }
+        { role: 'model', text: 'Xin chào! ✨ Mình là trợ lý AI từ FashionHub365. Hôm nay bạn muốn tìm món đồ gì, cứ nhắn để mình tư vấn nhanh gọn nhé! 👗' }
     ]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
