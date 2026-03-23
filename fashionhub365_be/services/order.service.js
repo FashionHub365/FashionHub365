@@ -2,8 +2,9 @@ const httpStatus = require('http-status');
 const mongoose = require('mongoose');
 const config = require('../config/config');
 const {
-    Cart, Order, Product, Return, Payment, Voucher, VoucherUsage,
+    Cart, Order, Product, Return, Payment, Voucher, VoucherUsage, User,
 } = require('../models');
+const emailService = require('./email.service');
 const ApiError = require('../utils/ApiError');
 const { runWithTransaction } = require('../utils/transaction');
 const stockReservationService = require('./stockReservation.service');
@@ -350,6 +351,16 @@ const createOrderFromCart = async (userId, { shipping_address, payment_method = 
             await voucherService.recordUsage(voucherId, userId, orders[0]._id);
         }
 
+        // Send order confirmation emails
+        const user = await User.findById(userId).session(session || null);
+        if (user && user.email) {
+            setImmediate(() => {
+                orders.forEach(order => {
+                    emailService.sendOrderCreatedEmail(user.email, order);
+                });
+            });
+        }
+
         const grandTotal = orders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
         return {
             orders,
@@ -415,6 +426,14 @@ const cancelMyOrder = async (userId, orderId) => {
         });
         await lockedOrder.save({ session });
 
+        // Send cancellation email
+        const user = await User.findById(userId).session(session || null);
+        if (user && user.email) {
+            setImmediate(() => {
+                emailService.sendOrderCancelledEmail(user.email, lockedOrder, 'Người dùng chủ động hủy đơn hàng');
+            });
+        }
+
         // Enqueue notification event
         await outboxService.enqueueEventIfNotExists(
             {
@@ -442,7 +461,13 @@ const getMyOrders = async (userId, query = {}) => {
     const skip = (page - 1) * limit;
 
     const filter = { user_id: userId };
-    if (status) filter.status = status;
+    if (status) {
+        if (status === 'pending') {
+            filter.status = { $in: ['created', 'pending_payment'] };
+        } else {
+            filter.status = status;
+        }
+    }
 
     const [orders, total] = await Promise.all([
         Order.find(filter)

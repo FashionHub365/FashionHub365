@@ -7,6 +7,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useCart } from '../../contexts/CartContext';
+import { useNotification } from '../../contexts/NotificationContext';
 
 function CartBadgeIcon({ color }: { color: string }) {
   const { cartData } = useCart();
@@ -18,6 +19,21 @@ function CartBadgeIcon({ color }: { color: string }) {
       {count > 0 && (
         <View style={badgeStyles.badge}>
           <Text style={badgeStyles.badgeText}>{count > 9 ? '9+' : count}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function NotificationBadgeIcon({ color }: { color: string }) {
+  const { unreadCount } = useNotification();
+
+  return (
+    <View>
+      <IconSymbol size={28} name="bell.fill" color={color} />
+      {unreadCount > 0 && (
+        <View style={badgeStyles.badge}>
+          <Text style={badgeStyles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
         </View>
       )}
     </View>
@@ -66,6 +82,13 @@ export default function TabLayout() {
         options={{
           title: 'Explore',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="magnifyingglass" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Thông báo',
+          tabBarIcon: ({ color }) => <NotificationBadgeIcon color={color} />,
         }}
       />
       <Tabs.Screen

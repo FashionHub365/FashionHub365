@@ -8,7 +8,7 @@ const createVoucher = catchAsync(async (req, res) => {
 });
 
 const getVouchers = catchAsync(async (req, res) => {
-    const result = await voucherService.getVouchers(req.query);
+    const result = await voucherService.getVouchers(req.query, req.user?._id);
     res.status(httpStatus.OK).send({ success: true, data: result });
 });
 
@@ -27,10 +27,29 @@ const deleteVoucher = catchAsync(async (req, res) => {
     res.status(httpStatus.OK).send({ success: true, message: 'Voucher deleted' });
 });
 
+const claimVoucher = catchAsync(async (req, res) => {
+    const result = await voucherService.claimVoucher(req.params.id, req.user._id);
+    res.status(httpStatus.OK).send({ success: true, data: result });
+});
+
+const getMyVouchers = catchAsync(async (req, res) => {
+    const result = await voucherService.getMyVouchers(req.user._id);
+    res.status(httpStatus.OK).send({ success: true, data: result });
+});
+
 const applyVoucher = catchAsync(async (req, res) => {
     const { code, orderAmount } = req.body;
     const result = await voucherService.applyVoucher(code, req.user._id, orderAmount);
     res.status(httpStatus.OK).send({ success: true, data: result });
 });
 
-module.exports = { createVoucher, getVouchers, getVoucherById, updateVoucher, deleteVoucher, applyVoucher };
+module.exports = {
+    createVoucher,
+    getVouchers,
+    getVoucherById,
+    updateVoucher,
+    deleteVoucher,
+    claimVoucher,
+    getMyVouchers,
+    applyVoucher
+};

@@ -18,13 +18,13 @@ export default function AddressesScreen() {
     const [submitLoading, setSubmitLoading] = useState(false);
 
     const [formData, setFormData] = useState({
-        fullName: '',
+        full_name: '',
         phone: '',
-        street: '',
+        line1: '',
         ward: '',
         district: '',
         city: '',
-        isDefault: false,
+        is_default: false,
     });
 
     useEffect(() => {
@@ -34,9 +34,10 @@ export default function AddressesScreen() {
     const fetchAddresses = async () => {
         setLoading(true);
         try {
-            const res = await addressApi.getAddresses();
-            if ((res as any).success) {
-                setAddresses((res as any).data);
+            const res = (await addressApi.getAddresses()) as any;
+            const addressList = Array.isArray(res?.data?.addresses) ? res.data.addresses : (Array.isArray(res?.data) ? res.data : []);
+            if (res?.success) {
+                setAddresses(addressList);
             }
         } catch (err) {
             console.log('Error fetching addresses:', err);
@@ -50,10 +51,10 @@ export default function AddressesScreen() {
         setFormMode('create');
         setSelectedId(null);
         setFormData({
-            fullName: user?.last_name && user?.first_name ? `${user.last_name} ${user.first_name}` : '',
+            full_name: user?.last_name && user?.first_name ? `${user.last_name} ${user.first_name}` : '',
             phone: user?.phone || '',
-            street: '', ward: '', district: '', city: '',
-            isDefault: addresses.length === 0,
+            line1: '', ward: '', district: '', city: '',
+            is_default: addresses.length === 0,
         });
         setShowModal(true);
     };
@@ -62,13 +63,13 @@ export default function AddressesScreen() {
         setFormMode('edit');
         setSelectedId(addr.uuid || addr._id);
         setFormData({
-            fullName: addr.fullName,
+            full_name: addr.full_name,
             phone: addr.phone,
-            street: addr.street || '',
+            line1: addr.line1 || '',
             ward: addr.ward || '',
             district: addr.district || '',
             city: addr.city || '',
-            isDefault: addr.isDefault,
+            is_default: addr.is_default,
         });
         setShowModal(true);
     };
@@ -101,7 +102,7 @@ export default function AddressesScreen() {
     };
 
     const handleSubmit = async () => {
-        if (!formData.fullName || !formData.phone || !formData.street || !formData.city) {
+        if (!formData.full_name || !formData.phone || !formData.line1 || !formData.city) {
             Alert.alert('Lỗi', 'Vui lòng điền đủ Tên, SĐT, Đường và Tỉnh/Thành phố.');
             return;
         }
@@ -127,7 +128,7 @@ export default function AddressesScreen() {
         return (
             <View style={[styles.addressCard, item.isDefault && styles.defaultCard]}>
                 <View style={styles.cardHeader}>
-                    <Text style={styles.addressName}>{item.fullName}</Text>
+                    <Text style={styles.addressName}>{item.full_name}</Text>
                     {item.isDefault && (
                         <View style={styles.defaultBadge}>
                             <Text style={styles.defaultBadgeText}>Mặc định</Text>
@@ -135,7 +136,7 @@ export default function AddressesScreen() {
                     )}
                 </View>
                 <Text style={styles.addressPhone}>{item.phone}</Text>
-                <Text style={styles.addressText}>{item.street}</Text>
+                <Text style={styles.addressText}>{item.line1}</Text>
                 <Text style={styles.addressText}>
                     {[item.ward, item.district, item.city].filter(Boolean).join(', ')}
                 </Text>
@@ -218,8 +219,8 @@ export default function AddressesScreen() {
                             <Text style={styles.label}>Họ và tên</Text>
                             <TextInput
                                 style={styles.input}
-                                value={formData.fullName}
-                                onChangeText={(text) => setFormData({ ...formData, fullName: text })}
+                                value={formData.full_name}
+                                onChangeText={(text) => setFormData({ ...formData, full_name: text })}
                                 placeholder="Nhập họ và tên"
                             />
 
@@ -259,19 +260,19 @@ export default function AddressesScreen() {
                             <Text style={styles.label}>Tên đường, Toà nhà, Số nhà</Text>
                             <TextInput
                                 style={styles.input}
-                                value={formData.street}
-                                onChangeText={(text) => setFormData({ ...formData, street: text })}
+                                value={formData.line1}
+                                onChangeText={(text) => setFormData({ ...formData, line1: text })}
                                 placeholder="Chi tiết địa chỉ"
                             />
 
                             <TouchableOpacity
                                 style={styles.checkboxRow}
-                                onPress={() => setFormData({ ...formData, isDefault: !formData.isDefault })}
-                                disabled={formMode === 'edit' && addresses.find(a => a.uuid === selectedId)?.isDefault}
+                                onPress={() => setFormData({ ...formData, is_default: !formData.is_default })}
+                                disabled={formMode === 'edit' && addresses.find(a => a.uuid === selectedId)?.is_default}
                             >
                                 <Ionicons
-                                    name={formData.isDefault ? 'checkbox' : 'square-outline'}
-                                    size={24} color={formData.isDefault ? '#111' : '#ccc'}
+                                    name={formData.is_default ? 'checkbox' : 'square-outline'}
+                                    size={24} color={formData.is_default ? '#111' : '#ccc'}
                                 />
                                 <Text style={styles.checkboxLabel}>Đặt làm địa chỉ mặc định</Text>
                             </TouchableOpacity>

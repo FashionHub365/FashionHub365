@@ -125,6 +125,7 @@ const login = catchAsync(async (req, res) => {
             tokens: {
                 access: tokens.access,
                 refresh: {
+                    token: tokens.refresh.token,
                     expires: tokens.refresh.expires,
                 },
             },
@@ -162,6 +163,7 @@ const verifyOtp = catchAsync(async (req, res) => {
             tokens: {
                 access: tokens.access,
                 refresh: {
+                    token: tokens.refresh.token,
                     expires: tokens.refresh.expires,
                 },
             },
@@ -211,6 +213,7 @@ const googleLogin = catchAsync(async (req, res) => {
             tokens: {
                 access: systemTokens.access,
                 refresh: {
+                    token: systemTokens.refresh.token,
                     expires: systemTokens.refresh.expires,
                 },
             },
@@ -247,6 +250,7 @@ const refreshTokens = catchAsync(async (req, res) => {
             tokens: {
                 access: tokens.access,
                 refresh: {
+                    token: tokens.refresh.token,
                     expires: tokens.refresh.expires,
                 },
             },

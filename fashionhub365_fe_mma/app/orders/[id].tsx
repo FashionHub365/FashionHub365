@@ -116,9 +116,9 @@ export default function OrderDetailScreen() {
                         <Text style={styles.sectionTitle}>Địa chỉ nhận hàng</Text>
                     </View>
                     <View style={styles.addressBox}>
-                        <Text style={styles.addressName}>{address.fullName || address.full_name}</Text>
+                        <Text style={styles.addressName}>{address.full_name || address.fullName}</Text>
                         <Text style={styles.addressPhone}>{address.phone}</Text>
-                        <Text style={styles.addressText}>{address.street || address.address}</Text>
+                        <Text style={styles.addressText}>{address.line1 || address.street || address.address}</Text>
                         {(address.ward || address.district || address.city) && (
                             <Text style={styles.addressText}>
                                 {[address.ward, address.district, address.city].filter(Boolean).join(', ')}

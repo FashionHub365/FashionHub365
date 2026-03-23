@@ -70,6 +70,24 @@ export default function CategoriesGrid() {
 
     return (
         <View style={styles.container}>
+            {/* Static Voucher Shortcut */}
+            <TouchableOpacity
+                style={styles.itemCard}
+                activeOpacity={0.7}
+                onPress={() => router.push('/marketing/vouchers' as any)}
+            >
+                <View style={[styles.iconContainer, { backgroundColor: '#FFF2EE', borderColor: '#EE4D2D' }]}>
+                    <MaterialCommunityIcons
+                        name="ticket-percent-outline"
+                        size={28}
+                        color="#EE4D2D"
+                    />
+                </View>
+                <Text style={[styles.title, { color: '#EE4D2D', fontWeight: 'bold' }]} numberOfLines={2}>
+                    Mã Giảm Giá
+                </Text>
+            </TouchableOpacity>
+
             {categories.map((item, index) => {
                 const title = item.name || item.title || 'Danh mục';
                 const bgColor = CATEGORY_COLORS[index % CATEGORY_COLORS.length];

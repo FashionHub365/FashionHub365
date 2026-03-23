@@ -56,10 +56,13 @@ const getPublicProducts = async (query) => {
         size,
         search,
         storeId,
+        store: storeParam,
         sort = 'newest',
         page = 1,
         limit = 20,
     } = query;
+
+    const effectiveStoreId = storeId || storeParam;
     const parsedPage = Math.max(parseInt(page, 10) || 1, 1);
     const parsedLimit = Math.max(parseInt(limit, 10) || 20, 1);
 
@@ -67,13 +70,13 @@ const getPublicProducts = async (query) => {
     const filter = { status: 'active' };
 
     // Filter theo storeId (ho tro ca ObjectId va UUID)
-    if (storeId) {
+    if (effectiveStoreId) {
         let resolvedStoreId = null;
 
-        if (mongoose.Types.ObjectId.isValid(storeId)) {
-            resolvedStoreId = storeId;
+        if (mongoose.Types.ObjectId.isValid(effectiveStoreId)) {
+            resolvedStoreId = effectiveStoreId;
         } else {
-            const store = await Store.findOne({ $or: [{ uuid: storeId }, { slug: storeId }] }).select('_id');
+            const store = await Store.findOne({ $or: [{ uuid: effectiveStoreId }, { slug: effectiveStoreId }] }).select('_id');
             if (store) resolvedStoreId = store._id;
         }
 

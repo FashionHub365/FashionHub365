@@ -29,7 +29,7 @@ const normalizeOrder = (order) => ({
 export const fetchSellerOrders = async () => {
   try {
     const response = await axiosClient.get('/seller/orders/seller/history');
-    const data = Array.isArray(response) ? response : (response.items || response.data || []);
+    const data = response.data?.items || response.items || (Array.isArray(response.data) ? response.data : (Array.isArray(response) ? response : []));
     return data.map(normalizeOrder);
   } catch (error) {
     console.error('Error fetching orders:', error);

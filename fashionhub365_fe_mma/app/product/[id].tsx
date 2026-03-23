@@ -8,8 +8,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import listingApi from '../../apis/listingApi';
 import wishlistApi from '../../apis/wishlistApi';
+import marketingApi from '../../apis/marketingApi';
 import { useCart } from '../../contexts/CartContext';
 import ProductCard from '../../components/ui/ProductCard';
+import VoucherCard from '../../components/ui/VoucherCard';
 import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
@@ -48,6 +50,10 @@ export default function ProductDetailScreen() {
   const [similarProducts, setSimilarProducts] = useState<any[]>([]);
   const [similarLoading, setSimilarLoading] = useState(false);
   const [showSizeChart, setShowSizeChart] = useState(false);
+
+  // Voucher State
+  const [vouchers, setVouchers] = useState<any[]>([]);
+  const [vouchersLoading, setVouchersLoading] = useState(false);
 
   const toggleWishlist = async () => {
     if (!product) return;
@@ -97,6 +103,12 @@ export default function ProductDetailScreen() {
           fetchSimilarProducts((res as any).data.primary_category_id._id);
         }
 
+        // Fetch vouchers
+        if ((res as any).data?.store_id?._id || (res as any).data?.store_id) {
+          const sId = (res as any).data.store_id?._id || (res as any).data.store_id;
+          fetchVouchers(sId);
+        }
+
       } catch (err: any) {
         setError('Không tìm thấy sản phẩm hoặc có lỗi xảy ra.');
       } finally {
@@ -123,6 +135,36 @@ export default function ProductDetailScreen() {
       console.log('Error fetching similar products', err);
     } finally {
       setSimilarLoading(false);
+    }
+  };
+
+  const fetchVouchers = async (storeId: string) => {
+    setVouchersLoading(true);
+    try {
+      const res = await marketingApi.getVouchers({ store_id: storeId, status: 'active' });
+      if (res && (res as any).success) {
+        setVouchers((res as any).data?.items || []);
+      }
+    } catch (err: any) {
+      if (err.message?.includes('No refresh token')) return;
+      console.log('Error fetching vouchers', err);
+    } finally {
+      setVouchersLoading(false);
+    }
+  };
+
+  const handleClaimVoucher = async (voucherId: string) => {
+    try {
+      const res = await marketingApi.claimVoucher(voucherId);
+      if (res && (res as any).success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert('Thành công', 'Voucher đã được lưu vào ví của bạn!');
+        // Update local state
+        setVouchers(prev => prev.map(v => v._id === voucherId ? { ...v, isClaimed: true } : v));
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Không thể lấy voucher. Vui lòng thử lại.';
+      Alert.alert('Thông báo', msg);
     }
   };
 
@@ -340,6 +382,26 @@ export default function ProductDetailScreen() {
               </View>
             )}
           </View>
+
+          {/* Voucher Section */}
+          {vouchers.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Ưu đãi của Shop</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
+                {vouchers.map((v) => (
+                  <VoucherCard
+                    key={v._id}
+                    voucher={v}
+                    compact
+                    isClaimed={v.isClaimed}
+                    onClaim={handleClaimVoucher}
+                  />
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
           {/* Divider */}
           <View style={styles.divider} />

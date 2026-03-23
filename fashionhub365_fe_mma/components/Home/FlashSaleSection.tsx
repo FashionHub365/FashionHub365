@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import Skeleton from '../ui/Skeleton';
 
 import marketingApi from '../../apis/marketingApi';
 import { getProductMainImage } from '../../utils/helpers';
@@ -56,7 +57,27 @@ export default function FlashSaleSection() {
 
     const formatNumber = (num: number) => num.toString().padStart(2, '0');
 
-    if (loading || items.length === 0) return null;
+    if (loading) {
+        return (
+            <View style={styles.container}>
+                <View style={styles.header}>
+                    <Skeleton width={120} height={20} />
+                    <Skeleton width={60} height={16} />
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.listContent}>
+                    {[1, 2, 3].map(i => (
+                        <View key={i} style={styles.card}>
+                            <Skeleton width={120} height={120} borderRadius={6} />
+                            <Skeleton width={80} height={16} style={{ marginTop: 10, marginBottom: 8 }} />
+                            <Skeleton width={100} height={16} borderRadius={8} />
+                        </View>
+                    ))}
+                </ScrollView>
+            </View>
+        );
+    }
+
+    if (items.length === 0) return null;
 
     const renderItem = ({ item }: { item: any }) => {
         const product = item.productId;
