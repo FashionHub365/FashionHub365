@@ -137,7 +137,7 @@ export default function ProfileScreen() {
               <Text style={styles.walletLabel}>Ví của tôi</Text>
             </TouchableOpacity>
             <View style={styles.walletDivider} />
-            <TouchableOpacity style={styles.walletItem}>
+            <TouchableOpacity style={styles.walletItem} onPress={() => router.push('/profile/vouchers' as any)}>
               <Ionicons name="pricetag-outline" size={20} color="#fff" />
               <Text style={styles.walletLabel}>Voucher</Text>
             </TouchableOpacity>

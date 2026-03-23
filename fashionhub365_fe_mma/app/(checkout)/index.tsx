@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, StatusBar,
+  TextInput, ActivityIndicator, Alert, StatusBar, Modal, FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useCart } from '../../contexts/CartContext';
-import addressApi from '../../apis/addressApi';
-import checkoutApi from '../../apis/checkoutApi';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/contexts/CartContext';
+import addressApi from '@/apis/addressApi';
+import checkoutApi from '@/apis/checkoutApi';
+import marketingApi from '@/apis/marketingApi';
+import VoucherCard from '@/components/ui/VoucherCard';
 
 const PAYMENT_METHODS = [
   { id: 'cod', label: 'Thanh toán khi nhận hàng (COD)', icon: 'cash-outline' },
@@ -16,6 +19,7 @@ const PAYMENT_METHODS = [
 ];
 
 export default function CheckoutScreen() {
+  const { user, isAuthenticated } = useAuth();
   const { cartData, fetchCart } = useCart();
   const { items = [], totalAmount = 0 } = cartData || {};
 
@@ -23,56 +27,117 @@ export default function CheckoutScreen() {
   const [selectedAddress, setSelectedAddress] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [note, setNote] = useState('');
+
+  // Voucher states
   const [voucherCode, setVoucherCode] = useState('');
+  const [myVouchers, setMyVouchers] = useState<any[]>([]);
+  const [selectedVoucher, setSelectedVoucher] = useState<any>(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [isVoucherModalVisible, setVoucherModalVisible] = useState(false);
+  const [loadingVouchers, setLoadingVouchers] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [loadingAddresses, setLoadingAddresses] = useState(true);
 
   // New address form
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [newAddress, setNewAddress] = useState({
-    recipient_name: '',
+    full_name: '',
     phone: '',
-    address_line1: '',
+    line1: '',
     city: '',
     district: '',
     ward: '',
   });
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace('/(auth)/login' as any);
+      return;
+    }
     loadAddresses();
-  }, []);
+    fetchMyVouchersForCheckout();
+  }, [isAuthenticated]);
 
   const loadAddresses = async () => {
     try {
-      const res = await addressApi.getAddresses();
-      if (res?.success && res.data) {
-        setAddresses(res.data);
-        const defaultAddr = res.data.find((a: any) => a.is_default) || res.data[0];
+      const res = (await addressApi.getAddresses()) as any;
+      // Backend returns data: { addresses: [...] } or data: [...]
+      const addressList = Array.isArray(res?.data?.addresses) ? res.data.addresses : (Array.isArray(res?.data) ? res.data : []);
+
+      if (res?.success && addressList.length >= 0) {
+        setAddresses(addressList);
+        const defaultAddr = addressList.find((a: any) => a.is_default) || addressList[0];
         if (defaultAddr) setSelectedAddress(defaultAddr);
+      } else {
+        setAddresses([]);
       }
     } catch (err) {
       console.log('Load addresses error:', err);
+      setAddresses([]);
     } finally {
       setLoadingAddresses(false);
     }
   };
 
+  const fetchMyVouchersForCheckout = async () => {
+    setLoadingVouchers(true);
+    try {
+      const res = (await marketingApi.getMyVouchers()) as any;
+      if (res && res.success && Array.isArray(res.data)) {
+        setMyVouchers(res.data);
+      } else {
+        setMyVouchers([]);
+      }
+    } catch (err: any) {
+      console.log('Error fetching checkout vouchers', err.message || err);
+      setMyVouchers([]);
+    } finally {
+      setLoadingVouchers(false);
+    }
+  };
+
+  const handleSelectVoucher = (voucher: any) => {
+    if (totalAmount < (voucher.min_order_amount || 0)) {
+      Alert.alert('Không đủ điều kiện', `Đơn hàng tối thiểu ${voucher.min_order_amount.toLocaleString()}₫ để dùng mã này.`);
+      return;
+    }
+
+    setSelectedVoucher(voucher);
+    setVoucherCode(voucher.code);
+
+    // Calculate discount
+    let discount = 0;
+    if (voucher.discount_type === 'percentage') {
+      discount = (totalAmount * voucher.discount_value) / 100;
+      if (voucher.max_discount_amount) {
+        discount = Math.min(discount, voucher.max_discount_amount);
+      }
+    } else {
+      discount = voucher.discount_value;
+    }
+
+    setDiscountAmount(discount);
+    setVoucherModalVisible(false);
+  };
+
   const handleAddAddress = async () => {
-    const { recipient_name, phone, address_line1, city } = newAddress;
-    if (!recipient_name || !phone || !address_line1 || !city) {
+    const { full_name, phone, line1, city, district } = newAddress;
+    if (!full_name || !phone || !line1 || !city || !district) {
       Alert.alert('Thiếu thông tin', 'Vui lòng điền đầy đủ thông tin địa chỉ.');
       return;
     }
     try {
-      const res = await addressApi.createAddress(newAddress);
+      const res = (await addressApi.createAddress(newAddress)) as any;
       if (res?.success) {
         await loadAddresses();
         setShowAddressForm(false);
-        setNewAddress({ recipient_name: '', phone: '', address_line1: '', city: '', district: '', ward: '' });
+        setNewAddress({ full_name: '', phone: '', line1: '', city: '', district: '', ward: '' });
         Alert.alert('✓', 'Thêm địa chỉ thành công!');
       }
     } catch (err: any) {
-      Alert.alert('Lỗi', err.response?.data?.message || 'Không thể thêm địa chỉ.');
+      const msg = err.response?.data?.message || 'Không thể thêm địa chỉ.';
+      Alert.alert('Lỗi', msg);
     }
   };
 
@@ -88,7 +153,7 @@ export default function CheckoutScreen() {
 
     Alert.alert(
       'Xác nhận đặt hàng',
-      `Tổng: ${totalAmount.toLocaleString('vi-VN')}₫\nGiao đến: ${selectedAddress.address_line1}, ${selectedAddress.city}`,
+      `Tổng: ${grandTotal.toLocaleString('vi-VN')}₫\nGiao đến: ${selectedAddress.address_line1}, ${selectedAddress.city}`,
       [
         { text: 'Huỷ', style: 'cancel' },
         {
@@ -102,7 +167,7 @@ export default function CheckoutScreen() {
                 note: note.trim() || undefined,
                 voucher_code: voucherCode.trim() || undefined,
               };
-              const res = await checkoutApi.placeOrder(payload);
+              const res = (await checkoutApi.placeOrder(payload)) as any;
               if (res?.success) {
                 await fetchCart();
                 router.replace({
@@ -123,7 +188,7 @@ export default function CheckoutScreen() {
   };
 
   const shippingFee = 30000;
-  const grandTotal = totalAmount + shippingFee;
+  const grandTotal = Math.max(0, totalAmount + shippingFee - discountAmount);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -157,7 +222,7 @@ export default function CheckoutScreen() {
             </TouchableOpacity>
           ) : (
             <>
-              {addresses.map((addr: any) => (
+              {(addresses || []).map((addr: any) => (
                 <TouchableOpacity
                   key={addr._id || addr.uuid}
                   style={[styles.addressCard, selectedAddress?._id === addr._id && styles.addressCardSelected]}
@@ -168,11 +233,11 @@ export default function CheckoutScreen() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={styles.addrTopRow}>
-                      <Text style={styles.addrName}>{addr.recipient_name || 'Người nhận'}</Text>
+                      <Text style={styles.addrName}>{addr.full_name || 'Người nhận'}</Text>
                       <Text style={styles.addrPhone}>{addr.phone}</Text>
                     </View>
                     <Text style={styles.addrDetail} numberOfLines={2}>
-                      {[addr.address_line1, addr.ward, addr.district, addr.city].filter(Boolean).join(', ')}
+                      {[addr.line1, addr.ward, addr.district, addr.city].filter(Boolean).join(', ')}
                     </Text>
                     {addr.is_default && (
                       <View style={styles.defaultBadge}>
@@ -195,12 +260,12 @@ export default function CheckoutScreen() {
           {showAddressForm && (
             <View style={styles.formCard}>
               <Text style={styles.formTitle}>Địa chỉ mới</Text>
-              <TextInput style={styles.input} placeholder="Họ và tên người nhận *" value={newAddress.recipient_name} onChangeText={(t) => setNewAddress({ ...newAddress, recipient_name: t })} placeholderTextColor="#aaa" />
+              <TextInput style={styles.input} placeholder="Họ và tên người nhận *" value={newAddress.full_name} onChangeText={(t) => setNewAddress({ ...newAddress, full_name: t })} placeholderTextColor="#aaa" />
               <TextInput style={styles.input} placeholder="Số điện thoại *" value={newAddress.phone} onChangeText={(t) => setNewAddress({ ...newAddress, phone: t })} keyboardType="phone-pad" placeholderTextColor="#aaa" />
-              <TextInput style={styles.input} placeholder="Địa chỉ chi tiết *" value={newAddress.address_line1} onChangeText={(t) => setNewAddress({ ...newAddress, address_line1: t })} placeholderTextColor="#aaa" />
+              <TextInput style={styles.input} placeholder="Địa chỉ chi tiết *" value={newAddress.line1} onChangeText={(t) => setNewAddress({ ...newAddress, line1: t })} placeholderTextColor="#aaa" />
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <TextInput style={[styles.input, { flex: 1 }]} placeholder="Phường/Xã" value={newAddress.ward} onChangeText={(t) => setNewAddress({ ...newAddress, ward: t })} placeholderTextColor="#aaa" />
-                <TextInput style={[styles.input, { flex: 1 }]} placeholder="Quận/Huyện" value={newAddress.district} onChangeText={(t) => setNewAddress({ ...newAddress, district: t })} placeholderTextColor="#aaa" />
+                <TextInput style={[styles.input, { flex: 1 }]} placeholder="Quận/Huyện *" value={newAddress.district} onChangeText={(t) => setNewAddress({ ...newAddress, district: t })} placeholderTextColor="#aaa" />
               </View>
               <TextInput style={styles.input} placeholder="Tỉnh/Thành phố *" value={newAddress.city} onChangeText={(t) => setNewAddress({ ...newAddress, city: t })} placeholderTextColor="#aaa" />
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
@@ -261,21 +326,26 @@ export default function CheckoutScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="pricetag-outline" size={20} color="#111" />
-            <Text style={styles.sectionTitle}>Mã giảm giá</Text>
+            <Text style={styles.sectionTitle}>FashionHub Voucher</Text>
           </View>
-          <View style={styles.voucherRow}>
-            <TextInput
-              style={styles.voucherInput}
-              placeholder="Nhập mã giảm giá"
-              placeholderTextColor="#aaa"
-              value={voucherCode}
-              onChangeText={setVoucherCode}
-              autoCapitalize="characters"
-            />
-            <TouchableOpacity style={styles.voucherApplyBtn}>
-              <Text style={styles.voucherApplyText}>Áp dụng</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.voucherSelector}
+            onPress={() => setVoucherModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="ticket-outline" size={18} color="#EE4D2D" style={{ marginRight: 8 }} />
+              <Text style={[styles.voucherSelectorText, selectedVoucher && { color: '#EE4D2D', fontWeight: 'bold' }]}>
+                {selectedVoucher ? `Đã chọn mã: ${selectedVoucher.code}` : 'Chọn hoặc nhập mã'}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {discountAmount > 0 && (
+                <Text style={styles.discountPreview}>-{discountAmount.toLocaleString('vi-VN')}₫</Text>
+              )}
+              <Ionicons name="chevron-forward" size={16} color="#888" />
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* ── NOTE ── */}
@@ -305,12 +375,70 @@ export default function CheckoutScreen() {
             <Text style={styles.summaryLabel}>Phí vận chuyển</Text>
             <Text style={styles.summaryValue}>{shippingFee.toLocaleString('vi-VN')}₫</Text>
           </View>
+          {discountAmount > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Giảm giá Voucher</Text>
+              <Text style={[styles.summaryValue, { color: '#EE4D2D' }]}>-{discountAmount.toLocaleString('vi-VN')}₫</Text>
+            </View>
+          )}
           <View style={[styles.summaryRow, styles.summaryTotal]}>
             <Text style={styles.totalLabel}>Tổng thanh toán</Text>
             <Text style={styles.totalValue}>{grandTotal.toLocaleString('vi-VN')}₫</Text>
           </View>
         </View>
       </ScrollView>
+
+      {/* ── VOUCHER SELECTION MODAL ── */}
+      <Modal
+        visible={isVoucherModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setVoucherModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Chọn FashionHub Voucher</Text>
+              <TouchableOpacity onPress={() => setVoucherModalVisible(false)} style={styles.closeBtn}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            {loadingVouchers ? (
+              <ActivityIndicator color="#EE4D2D" size="large" style={{ marginTop: 40 }} />
+            ) : (
+              <FlatList
+                data={myVouchers}
+                keyExtractor={(item) => item._id}
+                renderItem={({ item }) => (
+                  <VoucherCard
+                    voucher={item}
+                    isClaimed={true}
+                    onUse={() => handleSelectVoucher(item)}
+                    actionLabel="Dùng ngay"
+                  />
+                )}
+                contentContainerStyle={{ padding: 16 }}
+                ListEmptyComponent={
+                  <View style={{ alignItems: 'center', marginTop: 60 }}>
+                    <Ionicons name="ticket-outline" size={60} color="#eee" />
+                    <Text style={styles.noVouchersText}>Bạn chưa có mã giảm giá nào</Text>
+                    <TouchableOpacity
+                      style={styles.formSaveBtn}
+                      onPress={() => {
+                        setVoucherModalVisible(false);
+                        router.push('/marketing/vouchers');
+                      }}
+                    >
+                      <Text style={styles.formSaveText}>Săn mã ngay</Text>
+                    </TouchableOpacity>
+                  </View>
+                }
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* ── Bottom Bar ── */}
       <View style={styles.bottomBar}>
@@ -433,4 +561,24 @@ const styles = StyleSheet.create({
   },
   placeOrderBtnDisabled: { backgroundColor: '#aaa' },
   placeOrderText: { color: '#fff', fontWeight: '700', fontSize: 15, letterSpacing: 1 },
+
+  // New Voucher Styles
+  voucherSelector: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    padding: 14, borderWidth: 1, borderColor: '#FFD8CC', borderRadius: 8,
+    backgroundColor: '#FFF2EE',
+  },
+  voucherSelectorText: { fontSize: 14, color: '#666' },
+  discountPreview: { fontSize: 14, fontWeight: 'bold', color: '#EE4D2D', marginRight: 4 },
+
+  // Modal Styles
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, height: '70%', paddingBottom: 20 },
+  modalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    padding: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0'
+  },
+  modalTitle: { fontSize: 16, fontWeight: '700', color: '#111' },
+  closeBtn: { padding: 4 },
+  noVouchersText: { fontSize: 14, color: '#999', marginVertical: 20 },
 });

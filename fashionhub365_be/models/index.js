@@ -17,6 +17,7 @@ const Inventory = require('./Inventory');
 const PricingRule = require('./PricingRule');
 const Voucher = require('./Voucher');
 const VoucherUsage = require('./VoucherUsage');
+const UserVoucher = require('./UserVoucher');
 const Cart = require('./Cart');
 const Wishlist = require('./Wishlist');
 const Order = require('./Order');
@@ -82,6 +83,7 @@ module.exports = {
     PricingRule,
     Voucher,
     VoucherUsage,
+    UserVoucher,
     Cart,
     Wishlist,
     Order,

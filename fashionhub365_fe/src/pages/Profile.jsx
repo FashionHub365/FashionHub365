@@ -54,7 +54,10 @@ export const Profile = () => {
         setOrdersError("");
         try {
             const res = await checkoutApi.getMyOrders();
-            if (res.success) setOrders(res.items || res.data || []);
+            if (res.success) {
+                const ordersList = res.data?.items || res.items || (Array.isArray(res.data) ? res.data : []);
+                setOrders(ordersList);
+            }
         } catch {
             setOrdersError("Cannot load orders.");
         } finally {

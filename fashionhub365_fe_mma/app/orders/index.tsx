@@ -19,6 +19,8 @@ const TABS = [
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
     pending_confirmation: { bg: '#FFF8E1', text: '#F9A825', label: 'Chờ xác nhận' },
+    created: { bg: '#FFF8E1', text: '#F9A825', label: 'Chờ xác nhận' },
+    pending_payment: { bg: '#FFF3E0', text: '#E65100', label: 'Chờ thanh toán' },
     confirmed: { bg: '#E3F2FD', text: '#1565C0', label: 'Đã xác nhận' },
     processing: { bg: '#E8F5E9', text: '#2E7D32', label: 'Đang xử lý' },
     shipping: { bg: '#E3F2FD', text: '#1565C0', label: 'Đang giao' },
@@ -37,9 +39,11 @@ export default function OrderHistoryScreen() {
         try {
             const params: any = {};
             if (activeTab !== 'all') params.status = activeTab;
-            const res = await checkoutApi.getMyOrders(params);
-            if ((res as any)?.success) {
-                setOrders((res as any).data || []);
+            const res = (await checkoutApi.getMyOrders(params)) as any;
+            if (res?.success) {
+                // If backend wraps in data: { items: [...] }
+                const orderList = res.data?.items || (Array.isArray(res.data) ? res.data : []);
+                setOrders(orderList);
             }
         } catch (err) {
             console.log('Fetch orders error:', err);
@@ -72,7 +76,7 @@ export default function OrderHistoryScreen() {
             <TouchableOpacity
                 style={styles.orderCard}
                 activeOpacity={0.7}
-                onPress={() => router.push(`/orders/${item.uuid || item._id}` as any)}
+                onPress={() => router.push(`/orders/${item.id}` as any)}
             >
                 <View style={styles.orderHeader}>
                     <Text style={styles.orderIdText}>#{item.uuid?.slice(-8) || item._id?.slice(-8)}</Text>
@@ -89,7 +93,7 @@ export default function OrderHistoryScreen() {
                     <View style={styles.orderInfoRow}>
                         <Ionicons name="time-outline" size={16} color="#888" />
                         <Text style={styles.orderInfoText}>
-                            {item.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN') : '---'}
+                            {item.created_at ? new Date(item.created_at).toLocaleDateString('vi-VN') : '---'}
                         </Text>
                     </View>
                 </View>
@@ -98,10 +102,10 @@ export default function OrderHistoryScreen() {
                     <Text style={styles.orderTotal}>
                         {(item.total_amount || 0).toLocaleString('vi-VN')}₫
                     </Text>
-                    {item.status === 'pending_confirmation' && (
+                    {['created', 'pending_payment', 'pending_confirmation'].includes(item.status) && (
                         <TouchableOpacity
                             style={styles.cancelBtn}
-                            onPress={() => handleCancelOrder(item._id)}
+                            onPress={() => handleCancelOrder(item.id || item._id)}
                         >
                             <Text style={styles.cancelBtnText}>Huỷ đơn</Text>
                         </TouchableOpacity>
@@ -174,7 +178,7 @@ export default function OrderHistoryScreen() {
             ) : (
                 <FlatList
                     data={orders}
-                    keyExtractor={(item) => item._id}
+                    keyExtractor={(item) => item.id || item.uuid || item._id}
                     renderItem={renderOrder}
                     contentContainerStyle={{ padding: 16 }}
                     showsVerticalScrollIndicator={false}

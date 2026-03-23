@@ -1,5 +1,5 @@
 const httpStatus = require('http-status');
-const { Voucher, VoucherUsage } = require('../models');
+const { Voucher, VoucherUsage, UserVoucher } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -17,8 +17,8 @@ const createVoucher = async (data) => {
 /**
  * Get all vouchers with pagination
  */
-const getVouchers = async (query = {}) => {
-    const { page = 1, limit = 20, status } = query;
+const getVouchers = async (query = {}, userId = null) => {
+    const { page = 1, limit = 20, status, store_id } = query;
     const skip = (page - 1) * limit;
     const now = new Date();
 
@@ -31,10 +31,27 @@ const getVouchers = async (query = {}) => {
         filter.end_date = { $lt: now };
     }
 
-    const [items, total] = await Promise.all([
-        Voucher.find(filter).sort({ created_at: -1 }).skip(skip).limit(parseInt(limit)),
+    if (store_id) {
+        filter.store_id = { $in: [store_id, null] };
+    }
+
+    let [items, total] = await Promise.all([
+        Voucher.find(filter).sort({ created_at: -1 }).skip(skip).limit(parseInt(limit)).lean(),
         Voucher.countDocuments(filter),
     ]);
+
+    // If userId is provided, check which vouchers are already claimed
+    if (userId && items.length > 0) {
+        const claimed = await UserVoucher.find({
+            user_id: userId,
+            voucher_id: { $in: items.map(v => v._id) }
+        });
+        const claimedIds = new Set(claimed.map(c => c.voucher_id.toString()));
+        items = items.map(v => ({
+            ...v,
+            isClaimed: claimedIds.has(v._id.toString())
+        }));
+    }
 
     return {
         items,
@@ -80,6 +97,48 @@ const deleteVoucher = async (voucherId) => {
 };
 
 /**
+ * Claim a voucher for a user
+ */
+const claimVoucher = async (voucherId, userId) => {
+    const voucher = await Voucher.findById(voucherId);
+    if (!voucher) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'Voucher not found');
+    }
+
+    // Check validity
+    const now = new Date();
+    if (voucher.end_date && voucher.end_date < now) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Voucher has expired');
+    }
+    if (voucher.used_count >= voucher.usage_limit) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Voucher usage limit reached');
+    }
+
+    // Check if already claimed
+    const existing = await UserVoucher.findOne({ user_id: userId, voucher_id: voucherId });
+    if (existing) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Voucher already claimed');
+    }
+
+    return UserVoucher.create({
+        user_id: userId,
+        voucher_id: voucherId,
+        status: 'claimed'
+    });
+};
+
+/**
+ * Get vouchers owned by a user
+ */
+const getMyVouchers = async (userId) => {
+    const userVouchers = await UserVoucher.find({ user_id: userId, status: 'claimed' })
+        .populate('voucher_id')
+        .sort({ claimed_at: -1 });
+
+    return userVouchers.map(uv => uv.voucher_id).filter(v => v !== null);
+};
+
+/**
  * Validate & apply voucher at checkout
  */
 const applyVoucher = async (code, userId, orderAmount) => {
@@ -108,7 +167,23 @@ const applyVoucher = async (code, userId, orderAmount) => {
         throw new ApiError(httpStatus.BAD_REQUEST, `Minimum order amount is ${voucher.min_order_amount}`);
     }
 
-    // Check if user already used this voucher
+    // Check if user owns / has access to this voucher
+    // In some systems, anyone can use a code if they know it. 
+    // In others, they MUST claim it first.
+    // Let's check if they claimed it, if not, check if it's currently usable by anyone.
+    const userVoucher = await UserVoucher.findOne({
+        user_id: userId,
+        voucher_id: voucher._id,
+        status: 'claimed'
+    });
+
+    if (!userVoucher) {
+        // Option: allow usage even if not claimed? Shopee usually requires claiming or automatic application.
+        // Let's be strict for now if we want a "Wallet" feel.
+        // throw new ApiError(httpStatus.BAD_REQUEST, 'Voucher must be claimed first');
+    }
+
+    // Check if already used
     const alreadyUsed = await VoucherUsage.findOne({ voucher_id: voucher._id, user_id: userId });
     if (alreadyUsed) {
         throw new ApiError(httpStatus.BAD_REQUEST, 'You have already used this voucher');
@@ -142,6 +217,12 @@ const recordUsage = async (voucherId, userId, orderId) => {
         user_id: userId,
         order_id: orderId,
     });
+
+    // Update UserVoucher status
+    await UserVoucher.findOneAndUpdate(
+        { user_id: userId, voucher_id: voucherId, status: 'claimed' },
+        { status: 'used', used_at: new Date(), order_id: orderId }
+    );
 };
 
 module.exports = {
@@ -150,6 +231,8 @@ module.exports = {
     getVoucherById,
     updateVoucher,
     deleteVoucher,
+    claimVoucher,
+    getMyVouchers,
     applyVoucher,
     recordUsage,
 };

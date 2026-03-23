@@ -135,7 +135,7 @@ router.post('/', authorize(['ORDER.CREATE']), catchAsync(async (req, res) => {
 
 router.get('/my', authorize(['ORDER.VIEW_OWN']), catchAsync(async (req, res) => {
     const result = await orderService.getMyOrders(req.user._id, req.query);
-    res.json({ success: true, ...result });
+    res.json({ success: true, data: result });
 }));
 
 router.get('/:id', authorize(['ORDER.VIEW_OWN']), catchAsync(async (req, res) => {

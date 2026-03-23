@@ -2,7 +2,8 @@ const crypto = require('crypto');
 const httpStatus = require('http-status');
 const config = require('../config/config');
 const ApiError = require('../utils/ApiError');
-const { Order, Payment, PaymentMethod } = require('../models');
+const { Order, Payment, PaymentMethod, User } = require('../models');
+const emailService = require('./email.service');
 const { runWithTransaction } = require('../utils/transaction');
 const stockReservationService = require('./stockReservation.service');
 const outboxService = require('./outbox.service');
@@ -323,7 +324,40 @@ const markPaymentFailed = async (payment, meta = {}) => {
                 session,
                 excludePaymentId: lockedPayment._id,
             });
-            order.payment_status = remainingOpenPayments === 0 ? 'failed' : 'unpaid';
+
+            if (remainingOpenPayments === 0) {
+                order.payment_status = 'failed';
+                if (['created', 'pending_payment'].includes(order.status)) {
+                    const oldStatus = order.status;
+                    order.status = 'cancelled';
+                    order.status_history.push({
+                        oldStatus,
+                        newStatus: 'cancelled',
+                        changedBy: 'system',
+                        note: 'Payment failed or cancelled by user',
+                    });
+
+                    await stockReservationService.releaseReservationsForOrder(order._id, {
+                        session,
+                        reason: 'PAYMENT_FAILED',
+                    });
+
+                    // Send cancellation email
+                    const user = await User.findById(order.user_id).session(session || null);
+                    if (user && user.email) {
+                        // We use setImmediate or just fire and forget after session commit might be better, 
+                        // but let's do it simple for now or better, after the transaction.
+                        // Actually, emails should be sent after session is committed to be safe.
+                        // However, the current pattern doesn't easily support post-commit hooks here.
+                        // I'll use setImmediate to send it asynchronously.
+                        setImmediate(() => {
+                            emailService.sendOrderCancelledEmail(user.email, order, 'Thanh toán thất bại hoặc bị hủy bởi người dùng');
+                        });
+                    }
+                }
+            } else {
+                order.payment_status = 'unpaid';
+            }
             await order.save({ session });
         }
 

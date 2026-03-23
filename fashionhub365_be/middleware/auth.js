@@ -14,10 +14,13 @@ const ApiError = require('../utils/ApiError');
 const { tokenTypes } = require('../constants/tokens');
 const { getBearerToken, hashToken } = require('../utils/token.util');
 
-const auth = () => async (req, res, next) => {
+const auth = (optional = false) => async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            if (optional) {
+                return next();
+            }
             throw new ApiError(httpStatus.UNAUTHORIZED, 'Please authenticate');
         }
         const token = getBearerToken(req);

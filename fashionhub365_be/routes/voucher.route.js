@@ -4,8 +4,12 @@ const voucherController = require('../controllers/voucher.controller');
 
 const router = express.Router();
 
-// Public: get active vouchers
-router.get('/active', voucherController.getVouchers);
+// Public: get active vouchers (auth optional to show isClaimed status)
+router.get('/active', (req, res, next) => auth(true)(req, res, next), voucherController.getVouchers);
+
+// Authenticated: voucher claiming and wallet
+router.post('/claim/:id', auth(), voucherController.claimVoucher);
+router.get('/my-vouchers', auth(), voucherController.getMyVouchers);
 
 // Authenticated: apply voucher at checkout
 router.post('/apply', auth(), voucherController.applyVoucher);

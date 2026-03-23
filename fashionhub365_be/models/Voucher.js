@@ -13,6 +13,15 @@ const voucherSchema = new mongoose.Schema({
         unique: true,
         required: true
     },
+    name: {
+        type: String,
+        required: true
+    },
+    store_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Store',
+        default: null // null means platform-wide voucher
+    },
     description: {
         type: String
     },
