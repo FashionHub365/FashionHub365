@@ -5,11 +5,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getStoreStats } from '../../services/orderService';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 import { router } from 'expo-router';
+// @ts-ignore
+import storeApi from '../../apis/store.api';
 
 export default function SellerDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [store, setStore] = useState<any>(null);
 
   useEffect(() => {
     let active = true;
@@ -19,6 +22,11 @@ export default function SellerDashboard() {
         if (!active) return;
         // @ts-ignore
         setStats(data?.data || data || {});
+
+        const storeResponse = await storeApi.getMyStore();
+        if (active) {
+            setStore(storeResponse?.data?.store || storeResponse?.data || storeResponse);
+        }
       } catch (err) {
         if (!active) return;
         console.error(err);
@@ -66,11 +74,22 @@ export default function SellerDashboard() {
         <View style={styles.quickLinks}>
           <TouchableOpacity style={styles.quickLinkBtn} onPress={() => router.push('/(seller)/orders')}>
             <IconSymbol name="list.bullet.rectangle.portrait" size={24} color="#f39c12" />
-            <Text style={styles.quickLinkText}>Manage Orders</Text>
+            <Text style={styles.quickLinkText}>Quản lý đơn</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.quickLinkBtn} onPress={() => router.push('/(seller)/products')}>
             <IconSymbol name="tag.fill" size={24} color="#f39c12" />
-            <Text style={styles.quickLinkText}>My Products</Text>
+            <Text style={styles.quickLinkText}>Sản phẩm</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.quickLinkBtn} 
+            onPress={() => {
+              if (store?._id) {
+                router.push(`/store/${store._id}` as any);
+              }
+            }}
+          >
+            <IconSymbol name="storefront.fill" size={24} color="#f39c12" />
+            <Text style={styles.quickLinkText}>Xem Shop</Text>
           </TouchableOpacity>
         </View>
 

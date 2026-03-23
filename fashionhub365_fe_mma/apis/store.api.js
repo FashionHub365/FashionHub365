@@ -16,6 +16,9 @@ const storeApi = {
     getFollowingStores: (page = 1, limit = 6) => {
         return axiosClient.get(`/stores/following?page=${page}&limit=${limit}`);
     },
+    getMyStore: () => {
+        return axiosClient.get('/stores/me');
+    },
 };
 
 

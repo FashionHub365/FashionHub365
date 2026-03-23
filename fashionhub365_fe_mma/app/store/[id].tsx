@@ -33,7 +33,7 @@ export default function StoreDetailScreen() {
           setStore((storeRes as any).data);
 
           // Fetch products for this store
-          const prodRes = await listingApi.getProducts({ store: (storeRes as any).data._id, limit: 10, sort: 'newest' });
+          const prodRes = await listingApi.getProducts({ store: (storeRes as any).data._id, limit: 50, sort: 'newest' });
           if (prodRes && (prodRes as any).success) {
             setProducts((prodRes as any).data.products);
           }
@@ -147,7 +147,12 @@ export default function StoreDetailScreen() {
         <Image source={{ uri: defaultImage }} style={styles.cardImage} />
         <View style={styles.cardInfo}>
           <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-          <Text style={styles.productPrice}>{item.base_price?.toLocaleString('vi-VN')}₫</Text>
+          <View style={styles.priceRow}>
+            <Text style={styles.productPrice}>{item.base_price?.toLocaleString('vi-VN')}₫</Text>
+            {item.sold_count > 0 && (
+              <Text style={styles.soldText}>Đã bán {item.sold_count}</Text>
+            )}
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -407,10 +412,20 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     lineHeight: 18,
   },
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
   productPrice: {
     fontSize: 15,
     fontWeight: 'bold',
     color: '#111',
+  },
+  soldText: {
+    fontSize: 11,
+    color: '#888',
   },
   emptyProducts: {
     textAlign: 'center',
