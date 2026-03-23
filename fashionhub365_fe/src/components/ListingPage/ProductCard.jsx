@@ -252,7 +252,7 @@ export const ProductCard = ({ product, activeColor = "" }) => {
           </span>
         )}
         <div className="flex flex-col sm:flex-row sm:justify-between items-start w-full gap-1.5 sm:gap-2">
-          <h3 className="flex-1 text-[13px] sm:text-[14px] font-semibold text-gray-800 leading-snug line-clamp-2">
+          <h3 className="text-left text-[13px] sm:text-[14px] font-semibold text-gray-800 leading-snug line-clamp-2 min-h-[40px]">
             {product.name}
           </h3>
           <div className="flex flex-row sm:flex-col items-end shrink-0 gap-2 sm:gap-0 mt-1 sm:mt-0">
@@ -268,7 +268,7 @@ export const ProductCard = ({ product, activeColor = "" }) => {
         </div>
 
         {/* Màu đang chọn */}
-        <span className="text-[12px] font-medium text-gray-500 truncate w-full mt-[2px] h-4">
+        <span className="text-[12px] font-medium text-gray-500 truncate w-full mt-[2px] h-4 text-left">
           {colorVariants[selectedColorIndex]?.name || ""}
         </span>
 
@@ -295,20 +295,26 @@ export const ProductCard = ({ product, activeColor = "" }) => {
 
       {/* Color swatches */}
       {colorVariants.length > 0 && (
-        <div className="flex items-center gap-2.5 relative self-stretch w-full flex-[0_0_auto]">
-          {colorVariants.map((color, index) => (
-            <button
-              key={index}
-              className={`w-5 h-5 rounded-full focus:outline-none ${selectedColorIndex === index
-                ? "ring-1 ring-offset-2 ring-x-600"
-                : ""
-                }`}
-              style={{ background: color.hex }}
-              onClick={() => setSelectedColorIndex(index)}
-              aria-label={`Select color ${color.name}`}
-            />
-          ))}
-        </div>
+        <div className="flex items-center gap-2.5 w-full">
+  {colorVariants.map((color, index) => {
+    const isActive = selectedColorIndex === index;
+    const isWhite = color.hex === "#FFFFFF" || color.name?.toLowerCase().includes("white");
+
+    return (
+      <button
+        key={index}
+        onClick={() => setSelectedColorIndex(index)}
+        aria-label={`Select color ${color.name}`}
+        className={`
+          w-5 h-5 rounded-full transition
+          ${isWhite ? "border border-gray-400" : ""}
+          ${isActive ? "ring-2 ring-black ring-offset-1" : ""}
+        `}
+        style={{ backgroundColor: color.hex }}
+      />
+    );
+  })}
+</div>
       )}
 
     </article>
