@@ -8,16 +8,12 @@ import Skeleton from "../common/Skeleton";
 import { useCart } from "../../contexts/CartContext";
 import { isPrivilegedCommerceUser } from "../../utils/roleUtils";
 import { SizeGuideModal } from "./SizeGuideModal";
-import { FitFinder } from "./FitFinder";
 import { showLoginRequired } from "../../utils/swalUtils";
 
 export const ProductDetailsSection = ({ product, loading = false }) => {
   const { user } = useAuth();
   const isBlockedBuyer = isPrivilegedCommerceUser(user);
   const navigate = useNavigate();
-
-  // ── REFS ──────────────────────────────────────────────────────────
-  const fitFinderRef = React.useRef(null);
 
   // ── STATE ─────────────────────────────────────────────────────────
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
@@ -29,11 +25,6 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
   const { addToCart, loading: cartLoading } = useCart();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
-
-  // ── SCROLL TO FIT FINDER ──────────────────────────────────────────
-  const scrollToFitFinder = () => {
-    fitFinderRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
 
   // ── FETCH WISHLIST STATUS ─────────────────────────────────────────────
   useEffect(() => {
@@ -465,7 +456,7 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
           <div className="flex items-start justify-between relative self-stretch w-full flex-[0_0_auto]">
             <span className="font-text-200 uppercase tracking-widest font-bold text-gray-400">Chọn Kích Cỡ</span>
             <button
-              onClick={scrollToFitFinder}
+              onClick={() => setIsSizeGuideOpen(true)}
               className="font-text-200 underline cursor-pointer hover:text-blue-600 transition-colors"
             >
               Bảng Size (Size Guide)
@@ -474,7 +465,8 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
           <SizeGuideModal
             isOpen={isSizeGuideOpen}
             onClose={() => setIsSizeGuideOpen(false)}
-            productType={product?.primary_category_id?.name?.includes("Bottom") ? "Bottom" : "Top"}
+            categoryName={categoryName}
+            availableSizes={inStockSizeVariants}
           />
           <fieldset className="flex items-start gap-2 flex-wrap relative self-stretch w-full flex-[0_0_auto]">
             <legend className="sr-only">Select size</legend>
@@ -657,11 +649,6 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
         <div className="flex flex-col items-start px-0 py-5 relative self-stretch w-full flex-[0_0_auto] mb-[-1.00px] ml-[-1.00px] mr-[-1.00px] border-b [border-bottom-style:solid] border-x-200">
           <span className="font-text-200 font-bold">Sustainability</span>
           <img src="/textures/productdetailpage/Sustainability.jpg" alt="Sustainability" className="mt-2 w-full object-contain" />
-        </div>
-
-        {/* Fit Finder Tool */}
-        <div className="w-full" ref={fitFinderRef}>
-          <FitFinder categoryName={categoryName} availableSizes={inStockSizeVariants} />
         </div>
       </aside>
     </section>
