@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useCart } from "../contexts/CartContext";
 import { useAuth } from "../contexts/AuthContext";
+import { isPrivilegedCommerceUser } from "../utils/roleUtils";
 import addressApi from "../apis/addressApi";
 import { StepBar } from "./Checkout/CheckoutCommon";
 import { SavedAddressList } from "./Checkout/SavedAddressList";
@@ -46,10 +47,25 @@ const formToShipping = (form, selectedAddressUuid = "") => ({
     note: form.note,
 });
 
+const normalizeAddressValue = (value = "") => String(value || "").trim().toLowerCase();
+
+const toAddressPayload = (form, isDefault = false) => ({
+    full_name: form.fullName.trim(),
+    phone: form.phone.trim(),
+    line1: form.addressLine.trim(),
+    line2: "",
+    ward: form.ward.trim(),
+    district: form.district.trim(),
+    city: form.province.trim(),
+    note: form.note.trim(),
+    is_default: isDefault,
+});
+
 // ── Main Component ────────────────────────────────────────────────────
 export const CheckoutShipping = () => {
     const { cartData } = useCart();
     const { user } = useAuth();
+    const isBlockedBuyer = isPrivilegedCommerceUser(user);
     const navigate = useNavigate();
     const userEmail = user?.email || "";
 
@@ -75,6 +91,15 @@ export const CheckoutShipping = () => {
     const [savedAddresses, setSavedAddresses] = useState([]);
     const [savedAddressesLoading, setSavedAddressesLoading] = useState(false);
     const [selectedAddressUuid, setSelectedAddressUuid] = useState("");
+    const [saveAddressForFuture, setSaveAddressForFuture] = useState(true);
+    const [saveAddressLoading, setSaveAddressLoading] = useState(false);
+    const [saveAddressError, setSaveAddressError] = useState("");
+
+    useEffect(() => {
+        if (isBlockedBuyer) {
+            navigate("/", { replace: true });
+        }
+    }, [isBlockedBuyer, navigate]);
 
     // Fetch provinces on mount
     useEffect(() => {
@@ -247,12 +272,25 @@ export const CheckoutShipping = () => {
         }));
         setErrors({});
         setSelectedAddressUuid(address.uuid || "");
+        setSaveAddressError("");
     };
 
     const set = (key, val) => {
         setForm((f) => ({ ...f, [key]: val }));
         setErrors((e) => ({ ...e, [key]: "" }));
         setSelectedAddressUuid("");
+        setSaveAddressError("");
+    };
+
+    const findMatchingSavedAddress = (payload) => {
+        return savedAddresses.find((address) => (
+            normalizeAddressValue(address.full_name) === normalizeAddressValue(payload.full_name)
+            && normalizeAddressValue(address.phone) === normalizeAddressValue(payload.phone)
+            && normalizeAddressValue(address.line1) === normalizeAddressValue(payload.line1)
+            && normalizeAddressValue(address.ward) === normalizeAddressValue(payload.ward)
+            && normalizeAddressValue(address.district) === normalizeAddressValue(payload.district)
+            && normalizeAddressValue(address.city) === normalizeAddressValue(payload.city)
+        ));
     };
 
     const validate = () => {
@@ -271,18 +309,48 @@ export const CheckoutShipping = () => {
         return e;
     };
 
-    const handleContinue = () => {
+    const handleContinue = async () => {
         const e = validate();
         if (Object.keys(e).length > 0) {
             setErrors(e);
             return;
         }
-        sessionStorage.setItem(CHECKOUT_SHIPPING_KEY, JSON.stringify(formToShipping(form, selectedAddressUuid)));
+
+        let nextSelectedAddressUuid = selectedAddressUuid;
+
+        if (user && saveAddressForFuture && !selectedAddressUuid) {
+            setSaveAddressLoading(true);
+            setSaveAddressError("");
+            try {
+                const payload = toAddressPayload(form, savedAddresses.length === 0);
+                const matchedAddress = findMatchingSavedAddress(payload);
+
+                if (matchedAddress?.uuid) {
+                    nextSelectedAddressUuid = matchedAddress.uuid;
+                } else {
+                    const res = await addressApi.createAddress(payload);
+                    const createdAddress = res?.data?.address;
+                    if (createdAddress?.uuid) {
+                        nextSelectedAddressUuid = createdAddress.uuid;
+                        setSavedAddresses((prev) => [createdAddress, ...prev.filter((item) => item.uuid !== createdAddress.uuid)]);
+                    }
+                }
+            } catch (err) {
+                setSaveAddressError(err.response?.data?.message || "Unable to save this address right now.");
+                setSaveAddressLoading(false);
+                return;
+            }
+            setSaveAddressLoading(false);
+        }
+
+        sessionStorage.setItem(CHECKOUT_SHIPPING_KEY, JSON.stringify(formToShipping(form, nextSelectedAddressUuid)));
         navigate("/checkout/review");
     };
 
     const { items = [], totalItems = 0, totalAmount = 0 } = cartData;
     const shippingFee = totalAmount >= 1000000 ? 0 : 30000;
+
+    if (isBlockedBuyer) return null;
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -332,9 +400,27 @@ export const CheckoutShipping = () => {
                             onWardChange={handleWardChange}
                         />
 
+                        {user && (
+                            <div className="mt-5 rounded-sm border border-gray-200 bg-gray-50 px-4 py-3">
+                                <label className="flex items-start gap-3 text-sm text-gray-700">
+                                    <input
+                                        type="checkbox"
+                                        checked={saveAddressForFuture}
+                                        onChange={(e) => setSaveAddressForFuture(e.target.checked)}
+                                        className="mt-1 accent-black"
+                                    />
+                                    <span>Save this shipping address to my address book for next time</span>
+                                </label>
+                                {saveAddressError && (
+                                    <p className="mt-2 text-sm text-rose-600">{saveAddressError}</p>
+                                )}
+                            </div>
+                        )}
+
                         <button
                             onClick={handleContinue}
-                            className="mt-8 w-full bg-black text-white py-4 font-semibold tracking-wider uppercase hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                            disabled={saveAddressLoading}
+                            className="mt-8 w-full bg-black text-white py-4 font-semibold tracking-wider uppercase hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             Continue – Review Order
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

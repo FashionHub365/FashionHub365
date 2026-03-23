@@ -10,6 +10,7 @@ const SellerOrders = () => {
     const [filteredOrders, setFilteredOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeFilter, setActiveFilter] = useState('all');
+    const [error, setError] = useState('');
 
     useEffect(() => { loadOrders(); }, []);
 
@@ -19,8 +20,10 @@ const SellerOrders = () => {
             const data = await fetchSellerOrders();
             setOrders(data);
             setFilteredOrders(data);
+            setError('');
         } catch (err) {
             console.error('Error loading orders:', err);
+            setError(err.response?.data?.message || 'Could not load seller orders.');
         } finally {
             setLoading(false);
         }
@@ -47,6 +50,15 @@ const SellerOrders = () => {
             <div className="relative w-11 h-11">
                 <div className="absolute inset-0 rounded-full border-4 border-indigo-100" />
                 <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
+            </div>
+        </div>
+    );
+
+    if (error) return (
+        <div className="flex items-center justify-center py-24">
+            <div className="bg-red-50 border border-red-100 rounded-2xl p-8 text-center max-w-sm">
+                <p className="text-red-600 font-semibold text-sm">{error}</p>
+                <p className="text-xs text-red-400 mt-1">Please check your seller account permissions and store access.</p>
             </div>
         </div>
     );

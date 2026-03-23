@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { ArrowRight } from "./Icons";
 
 export const FooterSection = () => {
@@ -7,38 +8,53 @@ export const FooterSection = () => {
   const footerSections = [
     {
       title: "Acount",
-      links: ["Log In", "Sign Up", "Redeem a Gift Card"],
+      links: [
+        { label: "Log In", href: "/login" },
+        { label: "Sign Up", href: "/register" },
+        { label: "Redeem a Gift Card", href: "/" },
+      ],
     },
     {
       title: "Company",
       links: [
-        "About",
-        "Environmental Initiatives",
-        "Factories",
-        "DEI",
-        "Careers",
-        "International",
-        "Accessibility",
+        { label: "About", href: "/about" },
+        { label: "Environmental Initiatives", href: "/" },
+        { label: "Factories", href: "/" },
+        { label: "DEI", href: "/" },
+        { label: "Careers", href: "/" },
+        { label: "International", href: "/" },
+        { label: "Accessibility", href: "/" },
       ],
     },
     {
       title: "Get Help",
-      links: ["Help Center", "Return Policy", "Shipping Info", "Bulk Orders"],
+      links: [
+        { label: "Help Center", href: "/" },
+        { label: "Return Policy", href: "/" },
+        { label: "Shipping Info", href: "/" },
+        { label: "Bulk Orders", href: "/" },
+      ],
     },
     {
       title: "Connect",
-      links: ["Facebook", "Instagram", "Twitter", "Affiliates", "Out Stores"],
+      links: [
+        { label: "Facebook", href: "/" },
+        { label: "Instagram", href: "/" },
+        { label: "Twitter", href: "/" },
+        { label: "Affiliates", href: "/" },
+        { label: "Out Stores", href: "/stores" },
+      ],
     },
   ];
 
   const legalLinks = [
-    "Privacy Policy",
-    "Terms of Service",
-    "Do Not Sell or Share My Personal Information",
-    "CS Supply Chain Transparency",
-    "Vendor Code of Conduct",
-    "Sitemap Pages",
-    "Sitemap Products",
+    { label: "Privacy Policy", href: "/" },
+    { label: "Terms of Service", href: "/" },
+    { label: "Do Not Sell or Share My Personal Information", href: "/" },
+    { label: "CS Supply Chain Transparency", href: "/" },
+    { label: "Vendor Code of Conduct", href: "/" },
+    { label: "Sitemap Pages", href: "/" },
+    { label: "Sitemap Products", href: "/" },
   ];
 
   const handleEmailSubmit = (e) => {
@@ -59,13 +75,13 @@ export const FooterSection = () => {
 
             <nav className="flex flex-col items-start gap-2.5 relative self-stretch w-full flex-[0_0_auto]">
               {section.links.map((link, linkIndex) => (
-                <a
+                <Link
                   key={linkIndex}
-                  href="/"
+                  to={link.href}
                   className={`relative self-stretch ${linkIndex === 0 ? "mt-[-1.00px]" : ""} font-text-300 font-[number:var(--text-300-font-weight)] text-x-300 text-[length:var(--text-300-font-size)] tracking-[var(--text-300-letter-spacing)] leading-[var(--text-300-line-height)] [font-style:var(--text-300-font-style)] hover:underline focus:outline-none focus:underline`}
                 >
-                  {link}
-                </a>
+                  {link.label}
+                </Link>
               ))}
             </nav>
           </div>
@@ -103,13 +119,13 @@ export const FooterSection = () => {
           aria-label="Legal links"
         >
           {legalLinks.map((link, index) => (
-            <a
+            <Link
               key={index}
-              href="/"
+              to={link.href}
               className="relative w-fit mt-[-1.00px] font-text-200 font-[number:var(--text-200-font-weight)] text-x-300 text-[length:var(--text-200-font-size)] text-center tracking-[var(--text-200-letter-spacing)] leading-[var(--text-200-line-height)] whitespace-nowrap [font-style:var(--text-200-font-style)] hover:underline focus:outline-none focus:underline"
             >
-              {link}
-            </a>
+              {link.label}
+            </Link>
           ))}
         </nav>
 

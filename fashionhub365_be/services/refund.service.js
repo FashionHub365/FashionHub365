@@ -2,6 +2,7 @@ const httpStatus = require('http-status');
 const { Refund, Order, Payment } = require('../models');
 const ApiError = require('../utils/ApiError');
 const walletService = require('./wallet.service');
+const settlementService = require('./settlement.service');
 const { runWithTransaction } = require('../utils/transaction');
 
 /**
@@ -47,6 +48,8 @@ const processRefund = async (orderId, amount, reason, processedBy = 'system') =>
             payment.status = 'REFUNDED';
             await payment.save({ session });
         }
+
+        await settlementService.refundSettlementForOrder(order._id, `Refund processed: ${reason}`, { session });
 
         return refund[0];
     });

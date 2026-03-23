@@ -6,6 +6,7 @@ const { Order, Payment, PaymentMethod } = require('../models');
 const { runWithTransaction } = require('../utils/transaction');
 const stockReservationService = require('./stockReservation.service');
 const outboxService = require('./outbox.service');
+const settlementService = require('./settlement.service');
 
 const DEFAULT_BANK_INFO = {
     bank_name: 'FashionHub365 Bank',
@@ -249,6 +250,18 @@ const markPaymentPaid = async (payment, meta = {}) => {
 
         const order = await Order.findById(lockedPayment.order_id).session(session || null);
         if (order) {
+            if (['cancelled', 'refunded'].includes(order.status) && order.payment_status !== 'paid') {
+                order.payment_status = 'paid';
+                order.status_history.push({
+                    oldStatus: order.status,
+                    newStatus: order.status,
+                    changedBy: 'system',
+                    note: 'Late payment received after order cancellation. Manual review or refund may be required.',
+                });
+                await order.save({ session });
+                return lockedPayment;
+            }
+
             order.payment_status = 'paid';
             if (['created', 'pending_payment'].includes(order.status)) {
                 const oldStatus = order.status;
@@ -262,6 +275,7 @@ const markPaymentPaid = async (payment, meta = {}) => {
             }
             await order.save({ session });
             await stockReservationService.confirmReservationsForOrder(order._id, { session });
+            await settlementService.createSettlementForPaidOrder(order._id, lockedPayment._id, { session });
             await outboxService.enqueueEventIfNotExists(
                 {
                     aggregateType: 'ORDER',

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import StatusBadge from './StatusBadge';
-import { fmtVND, fmtDate, STATUS_CONFIG } from './OrderUtils';
+import { fmtVND, fmtDate, STATUS_CONFIG, STATUS_TRANSITIONS } from './OrderUtils';
 
 const OrderRow = ({ order, onOrderUpdate }) => {
     const [expanded, setExpanded] = useState(false);
@@ -81,7 +81,7 @@ const OrderRow = ({ order, onOrderUpdate }) => {
                                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Update Status</p>
                                     <div className="flex flex-wrap gap-2">
                                         {Object.entries(STATUS_CONFIG)
-                                            .filter(([k]) => k !== 'all' && k !== order.status)
+                                            .filter(([k]) => (STATUS_TRANSITIONS[order.status] || []).includes(k))
                                             .map(([key, cfg]) => (
                                                 <button key={key}
                                                     onClick={(e) => { e.stopPropagation(); onOrderUpdate && onOrderUpdate(order._id || order.id, key); }}

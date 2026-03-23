@@ -137,7 +137,7 @@ export const StoreHeader = ({ store, totalProducts }) => {
           <div className="lg:w-[390px] h-36 relative rounded overflow-hidden shrink-0 shadow-lg border border-gray-100">
             <div className="absolute inset-0 bg-black/60 z-0">
               <div className="absolute inset-0 bg-cover bg-center opacity-40 blur-[2px]"
-                style={{ backgroundImage: "url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80')" }}>
+                style={{ backgroundImage: `url('${store?.banner_url || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80'}')` }}>
               </div>
             </div>
 
@@ -146,8 +146,8 @@ export const StoreHeader = ({ store, totalProducts }) => {
                 <div className="relative shrink-0">
                   <div className="w-16 h-16 md:w-[72px] md:h-[72px] rounded-full border-2 border-white/30 p-1 bg-white/10 backdrop-blur-sm">
                     <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-3xl overflow-hidden shadow-inner font-bold text-[#ee4d2d]">
-                      {store?.avatar ? (
-                        <img src={store.avatar} alt={storeName} className="w-full h-full object-cover" />
+                      {(store?.avatar_url || store?.avatar) ? (
+                        <img src={store.avatar_url || store.avatar} alt={storeName} className="w-full h-full object-cover" />
                       ) : store?.name ? (
                         storeName.charAt(0).toUpperCase()
                       ) : (
@@ -183,7 +183,7 @@ export const StoreHeader = ({ store, totalProducts }) => {
                 <button
                   onClick={() => {
                     if (!user) { navigate('/login'); return; }
-                    openChat(store._id, { name: storeName, avatar: store?.avatar });
+                    openChat(store._id, { name: storeName, avatar: store?.avatar_url || store?.avatar });
                   }}
                   className="flex-1 py-1.5 bg-transparent border border-white/50 text-white rounded text-[10px] font-bold hover:bg-white/10 transition-colors flex items-center justify-center gap-1 uppercase tracking-tight"
                 >

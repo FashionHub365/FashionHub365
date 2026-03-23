@@ -15,15 +15,16 @@ const LayoutInner = ({ children }) => {
     
     // Hide footer and header on seller routes if needed, but the original logic didn't.
     // We definitely want to hide the global ChatWidget on seller route because we have a dedicated page.
-    const showChatWidget = isAuthenticated && !isSellerRoute && !isAdminRoute;
+    const showMarketplaceChrome = !isSellerRoute && !isAdminRoute;
+    const showChatWidget = isAuthenticated && showMarketplaceChrome;
 
     return (
         <div className="App">
-            {!isAdminRoute && <HeaderSection />}
+            {showMarketplaceChrome && <HeaderSection />}
             {children}
-            {!isAdminRoute && <FooterSection />}
+            {showMarketplaceChrome && <FooterSection />}
             {showChatWidget && <ChatWidget />}
-            {!isAdminRoute && <Chatbot />}
+            {showMarketplaceChrome && <Chatbot />}
         </div>
     );
 };

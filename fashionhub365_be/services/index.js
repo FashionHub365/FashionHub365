@@ -17,6 +17,8 @@ const inventoryService = require('./inventory.service');
 const notificationService = require('./notification.service');
 const voucherService = require('./voucher.service');
 const walletService = require('./wallet.service');
+const settlementService = require('./settlement.service');
+const platformLedgerService = require('./platformLedger.service');
 const campaignService = require('./campaign.service');
 const flashSaleService = require('./flashSale.service');
 const affiliateService = require('./affiliate.service');
@@ -47,6 +49,8 @@ module.exports = {
     notificationService,
     voucherService,
     walletService,
+    settlementService,
+    platformLedgerService,
     campaignService,
     flashSaleService,
     affiliateService,

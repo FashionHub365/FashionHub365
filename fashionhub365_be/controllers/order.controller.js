@@ -7,7 +7,7 @@ const Order = require("../models/Order");
 const Product = require("../models/Product");
 const Payment = require("../models/Payment");
 const stockReservationService = require("../services/stockReservation.service");
-const { productService } = require("../services");
+const { productService, settlementService } = require("../services");
 const outboxService = require("../services/outbox.service");
 
 const STATUS_TRANSITIONS = {
@@ -88,6 +88,8 @@ const cancelOrderWithConsistency = async ({ order, reason, actor, session = null
     { $set: { status: "CANCELLED", cancelled_at: new Date() } },
     session ? { session } : {}
   );
+
+  await settlementService.cancelSettlementForOrder(order._id, reason || "Order cancelled by seller", { session });
 
   const oldStatus = order.status;
   order.status = "cancelled";
@@ -190,6 +192,10 @@ exports.confirmOrder = async (req, res) => {
     });
     await order.save();
 
+    if (order.payment_status === "paid") {
+      await settlementService.createSettlementForPaidOrder(order._id);
+    }
+
     // Notify customer
     await outboxService.enqueueEvent({
       aggregateType: 'ORDER',
@@ -214,7 +220,7 @@ exports.confirmOrder = async (req, res) => {
 // Cancel order
 exports.cancelOrder = async (req, res) => {
   try {
-    const order = await runWithTransaction(async (session) => {
+    const result = await runWithTransaction(async (session) => {
       const current = await loadOrderForSeller(req.params.id, req.storeId, session);
       if (!current) {
         throw new ApiError(httpStatus.NOT_FOUND, "Order not found");
@@ -228,21 +234,22 @@ exports.cancelOrder = async (req, res) => {
     });
 
     // Notify customer
+    const latestStatusChange = result.status_history?.[result.status_history.length - 1];
     await outboxService.enqueueEvent({
       aggregateType: 'ORDER',
-      aggregateId: order._id.toString(),
+      aggregateId: result._id.toString(),
       eventType: 'ORDER_STATUS_CHANGED',
       payload: {
-        orderId: order._id.toString(),
-        orderUuid: order.uuid,
-        userId: order.user_id.toString(),
-        oldStatus: 'created',
+        orderId: result._id.toString(),
+        orderUuid: result.uuid,
+        userId: result.user_id.toString(),
+        oldStatus: latestStatusChange?.oldStatus || 'created',
         newStatus: 'cancelled',
         changedBy: 'seller',
       },
     });
 
-    res.json(order);
+    res.json(result);
   } catch (error) {
     sendOrderError(res, error);
   }
@@ -261,19 +268,25 @@ exports.updateOrderStatus = async (req, res) => {
       throw new ApiError(httpStatus.BAD_REQUEST, `Invalid status: ${nextStatus}`);
     }
 
-    const order = await runWithTransaction(async (session) => {
+    const result = await runWithTransaction(async (session) => {
       const current = await loadOrderForSeller(req.params.id, req.storeId, session);
       if (!current) {
         throw new ApiError(httpStatus.NOT_FOUND, "Order not found");
       }
 
       if (nextStatus === "cancelled") {
-        return cancelOrderWithConsistency({
+        const oldStatus = current.status;
+        const cancelledOrder = await cancelOrderWithConsistency({
           order: current,
           reason: note,
           actor: req.user?._id?.toString() || "seller",
           session,
         });
+        return {
+          order: cancelledOrder,
+          oldStatus,
+          newStatus: "cancelled",
+        };
       }
 
       const allowedNext = STATUS_TRANSITIONS[current.status] || [];
@@ -292,7 +305,20 @@ exports.updateOrderStatus = async (req, res) => {
         changedBy: req.user?._id?.toString() || "seller",
         note: note || "Order status updated by seller",
       });
+      if (nextStatus === "delivered" && current.payment_method === "cod") {
+        current.payment_status = "paid";
+      }
       await current.save(session ? { session } : {});
+
+      if (nextStatus === "confirmed" && current.payment_status === "paid") {
+        await settlementService.createSettlementForPaidOrder(current._id, null, { session });
+      }
+
+      if (nextStatus === "delivered" && current.payment_status === "paid") {
+        await settlementService.createSettlementForPaidOrder(current._id, null, { session });
+        await settlementService.releaseSettlementToWallet(current._id, { session });
+      }
+
       return { order: current, oldStatus, newStatus: nextStatus };
     });
 

@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { Field, SearchableSelect } from "../Checkout/CheckoutCommon";
+
+const VN_API = "https://provinces.open-api.vn/api";
 
 const EMPTY_ADDRESS_FORM = {
     full_name: "",
@@ -12,22 +15,165 @@ const EMPTY_ADDRESS_FORM = {
     is_default: false,
 };
 
-const AddressesTab = ({ addresses, loading, error, submitting, onSave, onDelete, onSetDefault, onUseForCheckout }) => {
+const mapOptions = (items = []) => items.map((item) => ({ code: item.code, name: item.name }));
+
+const AddressesTab = ({
+    addresses,
+    loading,
+    error,
+    submitting,
+    onSave,
+    onDelete,
+    onSetDefault,
+    onUseForCheckout,
+}) => {
     const [editingUuid, setEditingUuid] = useState(null);
     const [form, setForm] = useState(EMPTY_ADDRESS_FORM);
     const [localError, setLocalError] = useState("");
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [provinces, setProvinces] = useState([]);
+    const [districts, setDistricts] = useState([]);
+    const [wards, setWards] = useState([]);
+    const [provincesLoading, setProvincesLoading] = useState(false);
+    const [districtsLoading, setDistrictsLoading] = useState(false);
+    const [wardsLoading, setWardsLoading] = useState(false);
+
+    useEffect(() => {
+        if (!isFormOpen) {
+            return undefined;
+        }
+
+        let active = true;
+        setProvincesLoading(true);
+
+        fetch(`${VN_API}/?depth=1`)
+            .then((r) => r.json())
+            .then((data) => {
+                if (active) {
+                    setProvinces(mapOptions(data));
+                }
+            })
+            .catch(() => {
+                if (active) {
+                    setProvinces([]);
+                }
+            })
+            .finally(() => {
+                if (active) {
+                    setProvincesLoading(false);
+                }
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [isFormOpen]);
+
+    useEffect(() => {
+        if (!isFormOpen || !form.city || provinces.length === 0) {
+            if (!form.city) {
+                setDistricts([]);
+                setWards([]);
+            }
+            return;
+        }
+
+        const selectedProvince = provinces.find((item) => item.name === form.city);
+        if (!selectedProvince?.code) {
+            setDistricts([]);
+            setWards([]);
+            return;
+        }
+
+        let active = true;
+        setDistrictsLoading(true);
+
+        fetch(`${VN_API}/p/${selectedProvince.code}?depth=2`)
+            .then((r) => r.json())
+            .then((data) => {
+                if (!active) {
+                    return;
+                }
+                setDistricts(mapOptions(data.districts || []));
+            })
+            .catch(() => {
+                if (active) {
+                    setDistricts([]);
+                }
+            })
+            .finally(() => {
+                if (active) {
+                    setDistrictsLoading(false);
+                }
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [isFormOpen, form.city, provinces]);
+
+    useEffect(() => {
+        if (!isFormOpen || !form.district || districts.length === 0) {
+            if (!form.district) {
+                setWards([]);
+            }
+            return;
+        }
+
+        const selectedDistrict = districts.find((item) => item.name === form.district);
+        if (!selectedDistrict?.code) {
+            setWards([]);
+            return;
+        }
+
+        let active = true;
+        setWardsLoading(true);
+
+        fetch(`${VN_API}/d/${selectedDistrict.code}?depth=2`)
+            .then((r) => r.json())
+            .then((data) => {
+                if (!active) {
+                    return;
+                }
+                setWards(mapOptions(data.wards || []));
+            })
+            .catch(() => {
+                if (active) {
+                    setWards([]);
+                }
+            })
+            .finally(() => {
+                if (active) {
+                    setWardsLoading(false);
+                }
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [isFormOpen, form.district, districts]);
 
     const resetForm = () => {
         setEditingUuid(null);
         setForm(EMPTY_ADDRESS_FORM);
+        setDistricts([]);
+        setWards([]);
         setLocalError("");
         setIsFormOpen(false);
     };
 
+    const startCreate = () => {
+        setEditingUuid(null);
+        setForm(EMPTY_ADDRESS_FORM);
+        setDistricts([]);
+        setWards([]);
+        setLocalError("");
+        setIsFormOpen(true);
+    };
+
     const startEdit = (address) => {
         setEditingUuid(address.uuid);
-        setIsFormOpen(true);
+        setLocalError("");
         setForm({
             full_name: address.full_name || "",
             phone: address.phone || "",
@@ -39,6 +185,39 @@ const AddressesTab = ({ addresses, loading, error, submitting, onSave, onDelete,
             note: address.note || "",
             is_default: !!address.is_default,
         });
+        setIsFormOpen(true);
+    };
+
+    const updateField = (key, value) => {
+        setForm((prev) => ({ ...prev, [key]: value }));
+        setLocalError("");
+    };
+
+    const handleCityChange = (selectedName) => {
+        setForm((prev) => ({
+            ...prev,
+            city: selectedName,
+            district: "",
+            ward: "",
+        }));
+        setDistricts([]);
+        setWards([]);
+        setLocalError("");
+    };
+
+    const handleDistrictChange = (selectedName) => {
+        setForm((prev) => ({
+            ...prev,
+            district: selectedName,
+            ward: "",
+        }));
+        setWards([]);
+        setLocalError("");
+    };
+
+    const handleWardChange = (selectedName) => {
+        setForm((prev) => ({ ...prev, ward: selectedName }));
+        setLocalError("");
     };
 
     const submit = async (e) => {
@@ -47,8 +226,11 @@ const AddressesTab = ({ addresses, loading, error, submitting, onSave, onDelete,
             setLocalError("Please fill required fields.");
             return;
         }
+
         const ok = await onSave(form, editingUuid);
-        if (ok) resetForm();
+        if (ok) {
+            resetForm();
+        }
     };
 
     return (
@@ -62,12 +244,7 @@ const AddressesTab = ({ addresses, loading, error, submitting, onSave, onDelete,
                         </div>
                         <button
                             type="button"
-                            onClick={() => {
-                                setEditingUuid(null);
-                                setForm(EMPTY_ADDRESS_FORM);
-                                setLocalError("");
-                                setIsFormOpen(true);
-                            }}
+                            onClick={startCreate}
                             className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-gray-900 shadow-sm hover:bg-gray-100"
                         >
                             + Add address
@@ -78,38 +255,47 @@ const AddressesTab = ({ addresses, loading, error, submitting, onSave, onDelete,
 
             <section className="space-y-3">
                 {loading && <div className="py-8 text-center text-sm text-gray-500">Loading addresses...</div>}
-                {!loading && addresses.length === 0 && <div className="rounded-2xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">No saved addresses yet. Click "Add address" to create one.</div>}
-                {!loading &&
-                    addresses.map((address) => (
-                        <article key={address.uuid} className="rounded-2xl border border-gray-200 bg-white p-4">
-                            <div className="flex flex-wrap items-start justify-between gap-2">
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-sm font-bold text-gray-900">{address.full_name}</p>
-                                        {address.is_default && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">Default</span>}
-                                    </div>
-                                    <p className="text-xs text-gray-500">{address.phone}</p>
-                                    <p className="mt-1 text-sm text-gray-700">{[address.line1, address.line2, address.ward, address.district, address.city].filter(Boolean).join(", ")}</p>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    <button type="button" onClick={() => onUseForCheckout(address)} className="rounded bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white">
-                                        Use checkout
-                                    </button>
-                                    {!address.is_default && (
-                                        <button type="button" onClick={() => onSetDefault(address.uuid)} className="rounded border px-3 py-1.5 text-xs font-semibold text-gray-700">
-                                            Set default
-                                        </button>
+                {!loading && addresses.length === 0 && (
+                    <div className="rounded-2xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
+                        No saved addresses yet. Click "Add address" to create one.
+                    </div>
+                )}
+                {!loading && addresses.map((address) => (
+                    <article key={address.uuid} className="rounded-2xl border border-gray-200 bg-white p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <p className="text-sm font-bold text-gray-900">{address.full_name}</p>
+                                    {address.is_default && (
+                                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                                            Default
+                                        </span>
                                     )}
-                                    <button type="button" onClick={() => startEdit(address)} className="rounded border px-3 py-1.5 text-xs font-semibold text-gray-700">
-                                        Edit
-                                    </button>
-                                    <button type="button" onClick={() => onDelete(address.uuid)} className="rounded border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700">
-                                        Delete
-                                    </button>
                                 </div>
+                                <p className="text-xs text-gray-500">{address.phone}</p>
+                                <p className="mt-1 text-sm text-gray-700">
+                                    {[address.line1, address.line2, address.ward, address.district, address.city].filter(Boolean).join(", ")}
+                                </p>
                             </div>
-                        </article>
-                    ))}
+                            <div className="flex flex-wrap gap-2">
+                                <button type="button" onClick={() => onUseForCheckout(address)} className="rounded bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white">
+                                    Use checkout
+                                </button>
+                                {!address.is_default && (
+                                    <button type="button" onClick={() => onSetDefault(address.uuid)} className="rounded border px-3 py-1.5 text-xs font-semibold text-gray-700">
+                                        Set default
+                                    </button>
+                                )}
+                                <button type="button" onClick={() => startEdit(address)} className="rounded border px-3 py-1.5 text-xs font-semibold text-gray-700">
+                                    Edit
+                                </button>
+                                <button type="button" onClick={() => onDelete(address.uuid)} className="rounded border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+                ))}
             </section>
 
             {isFormOpen && (
@@ -125,17 +311,86 @@ const AddressesTab = ({ addresses, loading, error, submitting, onSave, onDelete,
                             </button>
                         </div>
 
-                        <form onSubmit={submit} className="grid gap-3 p-5 sm:grid-cols-2">
-                            <input value={form.full_name} onChange={(e) => setForm((p) => ({ ...p, full_name: e.target.value }))} placeholder="Full name *" className="rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-gray-800 sm:col-span-1" />
-                            <input value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} placeholder="Phone *" className="rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-gray-800 sm:col-span-1" />
-                            <input value={form.line1} onChange={(e) => setForm((p) => ({ ...p, line1: e.target.value }))} placeholder="Address line 1 *" className="rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-gray-800 sm:col-span-2" />
-                            <input value={form.line2} onChange={(e) => setForm((p) => ({ ...p, line2: e.target.value }))} placeholder="Address line 2" className="rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-gray-800 sm:col-span-2" />
-                            <input value={form.ward} onChange={(e) => setForm((p) => ({ ...p, ward: e.target.value }))} placeholder="Ward" className="rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-gray-800" />
-                            <input value={form.district} onChange={(e) => setForm((p) => ({ ...p, district: e.target.value }))} placeholder="District *" className="rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-gray-800" />
-                            <input value={form.city} onChange={(e) => setForm((p) => ({ ...p, city: e.target.value }))} placeholder="City/Province *" className="rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-gray-800 sm:col-span-1" />
-                            <input value={form.note} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value }))} placeholder="Note for courier" className="rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-gray-800 sm:col-span-1" />
+                        <form onSubmit={submit} className="grid gap-4 p-5 sm:grid-cols-2">
+                            <Field
+                                id="address_full_name"
+                                label="Full name"
+                                required
+                                value={form.full_name}
+                                onChange={(e) => updateField("full_name", e.target.value)}
+                                placeholder="Nguyen Van A"
+                            />
+                            <Field
+                                id="address_phone"
+                                label="Phone"
+                                required
+                                value={form.phone}
+                                onChange={(e) => updateField("phone", e.target.value)}
+                                placeholder="0912 345 678"
+                            />
+                            <div className="sm:col-span-2">
+                                <Field
+                                    id="address_line1"
+                                    label="Specific address"
+                                    required
+                                    value={form.line1}
+                                    onChange={(e) => updateField("line1", e.target.value)}
+                                    placeholder="123 Le Loi Street"
+                                />
+                            </div>
+                            <div className="sm:col-span-2">
+                                <Field
+                                    id="address_line2"
+                                    label="Address line 2"
+                                    value={form.line2}
+                                    onChange={(e) => updateField("line2", e.target.value)}
+                                    placeholder="Apartment, building, landmark..."
+                                />
+                            </div>
+                            <SearchableSelect
+                                id="address_city"
+                                label="Province / City"
+                                required
+                                placeholder="-- Select Province / City --"
+                                options={provinces}
+                                value={form.city}
+                                onChange={handleCityChange}
+                                loading={provincesLoading}
+                            />
+                            <SearchableSelect
+                                id="address_district"
+                                label="District"
+                                required
+                                placeholder={form.city ? "-- Select District --" : "-- Select Province First --"}
+                                options={districts}
+                                value={form.district}
+                                onChange={handleDistrictChange}
+                                loading={districtsLoading}
+                                disabled={!form.city}
+                            />
+                            <SearchableSelect
+                                id="address_ward"
+                                label="Ward"
+                                placeholder={form.district ? "-- Select Ward --" : "-- Select District First --"}
+                                options={wards}
+                                value={form.ward}
+                                onChange={handleWardChange}
+                                loading={wardsLoading}
+                                disabled={!form.district}
+                            />
+                            <Field
+                                id="address_note"
+                                label="Note for courier"
+                                value={form.note}
+                                onChange={(e) => updateField("note", e.target.value)}
+                                placeholder="Optional delivery note"
+                            />
                             <label className="inline-flex items-center gap-2 text-sm text-gray-700 sm:col-span-2">
-                                <input type="checkbox" checked={form.is_default} onChange={(e) => setForm((p) => ({ ...p, is_default: e.target.checked }))} />
+                                <input
+                                    type="checkbox"
+                                    checked={form.is_default}
+                                    onChange={(e) => updateField("is_default", e.target.checked)}
+                                />
                                 Set as default address
                             </label>
                             {(localError || error) && <p className="text-sm text-rose-700 sm:col-span-2">{localError || error}</p>}

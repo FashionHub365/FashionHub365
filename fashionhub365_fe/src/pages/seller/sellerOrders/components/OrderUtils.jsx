@@ -1,3 +1,12 @@
+export const STATUS_TRANSITIONS = {
+    pending_payment: ["cancelled"],
+    created: ["confirmed", "cancelled"],
+    confirmed: ["shipped", "cancelled"],
+    shipped: ["delivered"],
+    delivered: [],
+    cancelled: [],
+    refunded: [],
+};
 
 
 export const STATUS_CONFIG = {

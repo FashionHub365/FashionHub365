@@ -39,6 +39,125 @@ const getProductIdFromItem = (item) => {
     return item.productId?._id || "";
 };
 
+/** Group items by productId. Returns array of { productId, name, image, totalQty, totalAmount, variants: [...items] } */
+const groupItemsByProduct = (items) => {
+    const map = new Map();
+    (items || []).forEach((item) => {
+        const pid = getProductIdFromItem(item);
+        const key = pid || `_idx_${Math.random()}`;
+        if (map.has(key)) {
+            const group = map.get(key);
+            group.variants.push(item);
+            group.totalQty += Number(item.qty || 0);
+            group.totalAmount += Number(item.subtotal || Number(item.price || 0) * Number(item.qty || 0));
+        } else {
+            map.set(key, {
+                productId: pid,
+                name: item.snapshot?.name || "Product",
+                image: item.snapshot?.image || "/textures/productdetailpage/image7.jpg",
+                totalQty: Number(item.qty || 0),
+                totalAmount: Number(item.subtotal || Number(item.price || 0) * Number(item.qty || 0)),
+                variants: [item],
+            });
+        }
+    });
+    return Array.from(map.values());
+};
+
+/* ─── Grouped Item Row ───────────────────────────────────────────── */
+const GroupedItemRow = ({ group, orderKey, navigate }) => {
+    const [expanded, setExpanded] = useState(false);
+    const hasMultipleVariants = group.variants.length > 1;
+
+    return (
+        <div>
+            {/* Main collapsed row */}
+            <div
+                className={`flex gap-3 px-4 py-4 ${hasMultipleVariants ? "cursor-pointer hover:bg-gray-50 transition-colors" : ""}`}
+                onClick={() => hasMultipleVariants && setExpanded((prev) => !prev)}
+            >
+                <img
+                    src={group.image}
+                    alt={group.name}
+                    className="h-20 w-20 flex-shrink-0 rounded border border-gray-200 object-cover"
+                />
+                <div className="min-w-0 flex-1">
+                    <p
+                        className={`line-clamp-2 text-sm leading-6 text-gray-900 ${group.productId ? "cursor-pointer hover:text-gray-700" : ""}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (group.productId) navigate(`/product/${group.productId}`);
+                        }}
+                    >
+                        {group.name}
+                    </p>
+                    {hasMultipleVariants ? (
+                        <div className="mt-1 flex items-center gap-1.5">
+                            <span className="text-sm text-gray-500">
+                                {group.variants.length} phân loại
+                            </span>
+                            <svg
+                                className={`h-3.5 w-3.5 text-gray-400 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+                                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    ) : (
+                        <p className="mt-1 text-sm text-gray-500">
+                            Variant: {group.variants[0]?.snapshot?.variantName || "Default"}
+                        </p>
+                    )}
+                    <p className="mt-1 text-sm font-semibold text-gray-700">x{group.totalQty}</p>
+                </div>
+                <div className="text-right">
+                    <p className="text-sm font-semibold text-gray-900">{formatVnd(group.totalAmount)}</p>
+                </div>
+            </div>
+
+            {/* Expanded variant rows */}
+            {hasMultipleVariants && expanded && (
+                <div className="border-t border-dashed border-gray-200 bg-gray-50/60">
+                    {group.variants.map((item, idx) => {
+                        const unitPrice = Number(item.price || 0);
+                        const quantity = Number(item.qty || 0);
+                        const lineTotal = Number(item.subtotal || unitPrice * quantity);
+                        const oldLineTotal = Number(item.discount || 0) > 0 ? lineTotal + Number(item.discount || 0) * quantity : 0;
+
+                        return (
+                            <div key={`${orderKey}-variant-${idx}`} className="flex gap-3 border-b border-gray-100 px-6 py-3 last:border-b-0">
+                                <img
+                                    src={item.snapshot?.image || "/textures/productdetailpage/image7.jpg"}
+                                    alt={item.snapshot?.name || "Product"}
+                                    className="h-14 w-14 flex-shrink-0 rounded border border-gray-200 object-cover"
+                                />
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm text-gray-700">
+                                        {item.snapshot?.variantName || "Default"}
+                                    </p>
+                                    {item.snapshot?.attributes && (
+                                        <p className="mt-0.5 text-xs text-gray-400">
+                                            {Object.entries(item.snapshot.attributes)
+                                                .map(([k, v]) => `${k}: ${v}`)
+                                                .join(" · ")}
+                                        </p>
+                                    )}
+                                    <p className="mt-1 text-xs font-semibold text-gray-600">x{quantity}</p>
+                                </div>
+                                <div className="text-right">
+                                    {oldLineTotal > 0 && <p className="text-xs text-gray-400 line-through">{formatVnd(oldLineTotal)}</p>}
+                                    <p className="text-sm font-semibold text-gray-900">{formatVnd(lineTotal)}</p>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+};
+
+/* ─── Main Component ─────────────────────────────────────────────── */
 const OrdersTab = ({ orders, loading, error, onShop, onCancelOrder }) => {
     const navigate = useNavigate();
     const [activeStatusTab, setActiveStatusTab] = useState("all");
@@ -86,120 +205,100 @@ const OrdersTab = ({ orders, loading, error, onShop, onCancelOrder }) => {
                     <p className="text-sm text-gray-500">No orders in this status.</p>
                 </div>
             ) : (
-                filteredOrders.map((order) => (
-                    <article key={order.id || order.uuid} className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-4 py-3">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-sm font-bold text-gray-900">{order.store_name || "Store"}</p>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const ref = order.store_uuid || order.store_id;
-                                        if (ref) navigate(`/stores/${ref}`);
-                                        else navigate("/stores");
-                                    }}
-                                    className="rounded bg-gray-900 px-2.5 py-1 text-xs font-semibold text-white hover:bg-gray-800"
-                                >
-                                    Chat
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const ref = order.store_uuid || order.store_id;
-                                        if (ref) navigate(`/stores/${ref}`);
-                                        else navigate("/stores");
-                                    }}
-                                    className="rounded border border-gray-300 px-2.5 py-1 text-xs font-semibold text-gray-700"
-                                >
-                                    View Shop
-                                </button>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                                <span className={`font-medium ${ORDER_STATUS_META[order.status]?.textColor || "text-gray-600"}`}>{ORDER_STATUS_META[order.status]?.note || STATUS_LABELS[order.status] || order.status}</span>
-                                <span className="text-gray-300">|</span>
-                                <span className={`font-semibold uppercase tracking-wide ${ORDER_STATUS_META[order.status]?.finalColor || "text-gray-600"}`}>
-                                    {ORDER_STATUS_META[order.status]?.finalLabel || STATUS_LABELS[order.status] || order.status}
-                                </span>
-                            </div>
-                        </div>
+                filteredOrders.map((order) => {
+                    const grouped = groupItemsByProduct(order.items);
+                    const orderKey = order.uuid || order.id;
 
-                        <div className="divide-y divide-gray-200">
-                            {(order.items || []).map((item, index) => {
-                                const productId = getProductIdFromItem(item);
-                                const unitPrice = Number(item.price || 0);
-                                const quantity = Number(item.qty || 0);
-                                const lineTotal = Number(item.subtotal || unitPrice * quantity);
-                                const oldLineTotal = Number(item.discount || 0) > 0 ? lineTotal + Number(item.discount || 0) * quantity : 0;
-
-                                return (
-                                    <div key={`${order.uuid || order.id}-${index}`} className="flex gap-3 px-4 py-4">
-                                        <img
-                                            src={item.snapshot?.image || "/textures/productdetailpage/image7.jpg"}
-                                            alt={item.snapshot?.name || "Product"}
-                                            className="h-20 w-20 flex-shrink-0 rounded border border-gray-200 object-cover"
-                                        />
-                                        <div className="min-w-0 flex-1">
-                                            <p
-                                                className={`line-clamp-2 text-sm leading-6 text-gray-900 ${productId ? "cursor-pointer hover:text-gray-700" : ""}`}
-                                                onClick={() => {
-                                                    if (productId) navigate(`/product/${productId}`);
-                                                }}
-                                            >
-                                                {item.snapshot?.name || "Product"}
-                                            </p>
-                                            <p className="mt-1 text-sm text-gray-500">Variant: {item.snapshot?.variantName || "Default"}</p>
-                                            <p className="mt-1 text-sm font-semibold text-gray-700">x{quantity}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            {oldLineTotal > 0 && <p className="text-sm text-gray-400 line-through">{formatVnd(oldLineTotal)}</p>}
-                                            <p className="text-sm font-semibold text-gray-900">{formatVnd(lineTotal)}</p>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-
-                        <div className="border-t border-gray-200 bg-white px-4 py-4">
-                            <div className="flex items-center justify-end gap-2">
-                                <span className="text-sm text-gray-700">Total:</span>
-                                <span className="text-xl font-semibold text-gray-900">{formatVnd(order.total_amount || 0)}</span>
-                            </div>
-                            <div className="mt-4 flex flex-wrap justify-end gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const firstProductId = getProductIdFromItem(order.items?.[0]);
-                                        if (firstProductId) navigate(`/product/${firstProductId}`);
-                                        else onShop();
-                                    }}
-                                    className="rounded bg-gray-900 px-5 py-2 text-sm font-semibold text-white hover:bg-gray-800"
-                                >
-                                    Buy Again
-                                </button>
-                                {["created", "pending_payment"].includes(order.status) && (
+                    return (
+                        <article key={orderKey} className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-4 py-3">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <p className="text-sm font-bold text-gray-900">{order.store_name || "Store"}</p>
                                     <button
                                         type="button"
-                                        onClick={() => onCancelOrder(order.id || order._id)}
-                                        className="rounded border border-rose-300 px-5 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                                        onClick={() => {
+                                            const ref = order.store_uuid || order.store_id;
+                                            if (ref) navigate(`/stores/${ref}`);
+                                            else navigate("/stores");
+                                        }}
+                                        className="rounded bg-gray-900 px-2.5 py-1 text-xs font-semibold text-white hover:bg-gray-800"
                                     >
-                                        Hủy đơn
+                                        Chat
                                     </button>
-                                )}
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const ref = order.store_uuid || order.store_id;
-                                        if (ref) navigate(`/stores/${ref}`);
-                                        else navigate("/stores");
-                                    }}
-                                    className="rounded border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700"
-                                >
-                                    Contact Seller
-                                </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const ref = order.store_uuid || order.store_id;
+                                            if (ref) navigate(`/stores/${ref}`);
+                                            else navigate("/stores");
+                                        }}
+                                        className="rounded border border-gray-300 px-2.5 py-1 text-xs font-semibold text-gray-700"
+                                    >
+                                        View Shop
+                                    </button>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm">
+                                    <span className={`font-medium ${ORDER_STATUS_META[order.status]?.textColor || "text-gray-600"}`}>{ORDER_STATUS_META[order.status]?.note || STATUS_LABELS[order.status] || order.status}</span>
+                                    <span className="text-gray-300">|</span>
+                                    <span className={`font-semibold uppercase tracking-wide ${ORDER_STATUS_META[order.status]?.finalColor || "text-gray-600"}`}>
+                                        {ORDER_STATUS_META[order.status]?.finalLabel || STATUS_LABELS[order.status] || order.status}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                    </article>
-                ))
+
+                            <div className="divide-y divide-gray-200">
+                                {grouped.map((group, gIdx) => (
+                                    <GroupedItemRow
+                                        key={`${orderKey}-g-${gIdx}`}
+                                        group={group}
+                                        orderKey={orderKey}
+                                        navigate={navigate}
+                                    />
+                                ))}
+                            </div>
+
+                            <div className="border-t border-gray-200 bg-white px-4 py-4">
+                                <div className="flex items-center justify-end gap-2">
+                                    <span className="text-sm text-gray-700">Total:</span>
+                                    <span className="text-xl font-semibold text-gray-900">{formatVnd(order.total_amount || 0)}</span>
+                                </div>
+                                <div className="mt-4 flex flex-wrap justify-end gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const firstProductId = getProductIdFromItem(order.items?.[0]);
+                                            if (firstProductId) navigate(`/product/${firstProductId}`);
+                                            else onShop();
+                                        }}
+                                        className="rounded bg-gray-900 px-5 py-2 text-sm font-semibold text-white hover:bg-gray-800"
+                                    >
+                                        Buy Again
+                                    </button>
+                                    {["created", "pending_payment"].includes(order.status) && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onCancelOrder(order.id || order._id)}
+                                            className="rounded border border-rose-300 px-5 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                                        >
+                                            Hủy đơn
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const ref = order.store_uuid || order.store_id;
+                                            if (ref) navigate(`/stores/${ref}`);
+                                            else navigate("/stores");
+                                        }}
+                                        className="rounded border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700"
+                                    >
+                                        Contact Seller
+                                    </button>
+                                </div>
+                            </div>
+                        </article>
+                    );
+                })
             )}
         </div>
     );

@@ -60,7 +60,8 @@ const userSchema = new mongoose.Schema({
 });
 
 // Indexes
-
+userSchema.index({ created_at: -1 });
+userSchema.index({ status: 1, created_at: -1 });
 userSchema.index({ username: 1 });
 
 // Methods

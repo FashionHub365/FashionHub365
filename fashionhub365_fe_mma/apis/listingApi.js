@@ -13,6 +13,20 @@ const listingApi = {
         return axiosClient.get('/listing/products', { params });
     },
 
+    /** POST /listing/products/:id/view - Tăng lượt xem (không yêu cầu auth) */
+    trackProductView: (id) => {
+        return axiosClient.post(`/listing/products/${id}/view`);
+    },
+
+    /** GET /listing/products/:id/reviews - Lấy review của sản phẩm */
+    getProductReviews: (id, params = {}) => {
+        return axiosClient.get(`/listing/products/${id}/reviews`, { params });
+    },
+
+    /** POST /listing/products/:id/reviews - Thêm review (yêu cầu bộ token auth, axios interceptor sẽ lo) */
+    createProductReview: (id, data) => {
+        return axiosClient.post(`/listing/products/${id}/reviews`, data);
+    },
     /**
      * Lấy chi tiết 1 sản phẩm theo ID
      * @param {string} id - Product ID

@@ -53,9 +53,11 @@ const register = catchAsync(async (req, res) => {
     username = username || email.split('@')[0];
     const normalizedFullName = full_name || fullName || '';
 
-    // Default role: User
-    const userRole = await Role.findOne({ slug: 'user' }) || await Role.findOne({ slug: 'customer' });
-    const global_role_ids = userRole ? [userRole._id] : [];
+    const userRole = await Role.findOne({ slug: 'user', scope: 'GLOBAL', deleted_at: null }).select('_id');
+    if (!userRole) {
+        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'User role is not configured. Please run RBAC seed.');
+    }
+    const global_role_ids = [userRole._id];
 
     // Register: status PENDING (Requires email verification)
     const user = await userService.createUser({
@@ -167,26 +169,32 @@ const verifyOtp = catchAsync(async (req, res) => {
     });
 });
 
-
 const googleLogin = catchAsync(async (req, res) => {
-    const { code } = req.body;
+    const { code, idToken } = req.body;
 
-    if (!code) {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Authorization code is missing');
+    if (!code && !idToken) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Authorization code or idToken is missing');
     }
 
     let tokens, ticket;
     try {
-        const response = await googleClient.getToken(code);
-        tokens = response.tokens;
+        if (code) {
+            const response = await googleClient.getToken(code);
+            tokens = response.tokens;
 
-        ticket = await googleClient.verifyIdToken({
-            idToken: tokens.id_token,
-            audience: process.env.GOOGLE_CLIENT_ID,
-        });
+            ticket = await googleClient.verifyIdToken({
+                idToken: tokens.id_token,
+                audience: process.env.GOOGLE_CLIENT_ID,
+            });
+        } else if (idToken) {
+            ticket = await googleClient.verifyIdToken({
+                idToken: idToken,
+                audience: [process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_IOS_CLIENT_ID, process.env.GOOGLE_ANDROID_CLIENT_ID].filter(Boolean),
+            });
+        }
     } catch (error) {
         console.error('[AUTH ERROR] Google token verification failed:', error);
-        throw new ApiError(httpStatus.UNAUTHORIZED, 'Invalid Google authorization code');
+        throw new ApiError(httpStatus.UNAUTHORIZED, 'Invalid Google authorization code or token');
     }
 
     const payload = ticket.getPayload();

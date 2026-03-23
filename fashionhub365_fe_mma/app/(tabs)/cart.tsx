@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View,  FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCart } from '../../contexts/CartContext';
 import CartItem from '../../components/Cart/CartItem';
@@ -32,7 +32,7 @@ export default function CartScreen() {
         </View>
       ) : (
         <>
-          <FlatList 
+          <FlatList
             data={items}
             keyExtractor={item => item.itemId}
             renderItem={({ item }) => <CartItem item={item} />}
@@ -44,7 +44,7 @@ export default function CartScreen() {
               <Text style={styles.totalLabel}>Subtotal</Text>
               <Text style={styles.totalValue}>{totalAmount.toLocaleString('vi-VN')}₫</Text>
             </View>
-            <TouchableOpacity style={styles.checkoutBtn} onPress={() => {/* router.push('/(checkout)') */}}>
+            <TouchableOpacity style={styles.checkoutBtn} onPress={() => router.push('/(checkout)')}>
               <Text style={styles.checkoutBtnText}>Checkout</Text>
             </TouchableOpacity>
           </View>

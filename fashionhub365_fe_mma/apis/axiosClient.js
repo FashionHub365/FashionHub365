@@ -32,6 +32,21 @@ axiosClient.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+    failedQueue.forEach((prom) => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+
+    failedQueue = [];
+};
+
 // Interceptor to handle Token Refresh on 401
 axiosClient.interceptors.response.use(
     (response) => {
@@ -41,11 +56,34 @@ axiosClient.interceptors.response.use(
         const originalRequest = error.config;
 
         if (error.response?.status === 401 && !originalRequest._retry) {
+            if (isRefreshing) {
+                return new Promise(function (resolve, reject) {
+                    failedQueue.push({ resolve, reject });
+                })
+                    .then((token) => {
+                        originalRequest.headers.Authorization = `Bearer ${token}`;
+                        return axiosClient(originalRequest);
+                    })
+                    .catch((err) => {
+                        return Promise.reject(err);
+                    });
+            }
+
             originalRequest._retry = true;
+            isRefreshing = true;
+
             try {
+                const tokensStr = await getStorageItem('tokens');
+                const tokens = tokensStr ? JSON.parse(tokensStr) : null;
+                const refreshToken = tokens?.refresh?.token;
+
+                if (!refreshToken) {
+                    throw new Error('No refresh token available');
+                }
+
                 const response = await axios.post(
                     `${API_BASE_URL}/auth/refresh`,
-                    {},
+                    { refreshToken },
                     { withCredentials: true }
                 );
 
@@ -59,19 +97,28 @@ axiosClient.interceptors.response.use(
                     };
 
                     await setStorageItem('tokens', JSON.stringify(newTokens));
-                    originalRequest.headers.Authorization = `Bearer ${newTokens.access.token}`;
+                    const newToken = newTokens.access.token;
+
+                    originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                    processQueue(null, newToken);
 
                     return axiosClient(originalRequest);
+                } else {
+                    throw new Error('Refresh failed on server');
                 }
             } catch (refreshError) {
-                console.error('Token refresh failed:', refreshError);
+                console.error('Token refresh failed (Phase 7 Fix):', refreshError);
+                processQueue(refreshError, null);
+
                 await removeStorageItem('tokens');
                 await removeStorageItem('user');
 
-                // Redirect logic requires router from expo-router
                 if (router) {
                     router.replace('/login');
                 }
+                return Promise.reject(refreshError);
+            } finally {
+                isRefreshing = false;
             }
         }
 

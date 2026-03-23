@@ -1,9 +1,47 @@
 const httpStatus = require('http-status');
 const mongoose = require('mongoose');
-const { Product, Category, ProductReview, Store, Brand, Tag, Collection } = require('../models');
+const { Product, Category, ProductReview, Store, Brand, Tag, Collection, Inventory } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const syncInventoryRecordsForProduct = async (product) => {
+    if (!product?._id) return;
+
+    const variants = Array.isArray(product.variants) ? product.variants : [];
+    const now = new Date();
+
+    if (variants.length === 0) {
+        await Inventory.findOneAndUpdate(
+            { product_id: product._id, variant_id: null, location: 'default' },
+            {
+                $set: {
+                    quantity: 0,
+                    updated_at: now,
+                },
+            },
+            { upsert: true, new: true }
+        );
+        return;
+    }
+
+    await Promise.all(
+        variants.map((variant) => Inventory.findOneAndUpdate(
+            {
+                product_id: product._id,
+                variant_id: variant._id.toString(),
+                location: 'default',
+            },
+            {
+                $set: {
+                    quantity: Number(variant.stock) || 0,
+                    updated_at: now,
+                },
+            },
+            { upsert: true, new: true }
+        ))
+    );
+};
 
 /**
  * Lấy danh sách sản phẩm công khai cho trang Listing
@@ -232,7 +270,11 @@ const getAllCategories = async () => {
  * @returns {Promise<Product>}
  */
 const getPublicProductById = async (productId) => {
-    const product = await Product.findOne({ _id: productId, status: 'active' })
+    const queryCond = mongoose.Types.ObjectId.isValid(productId)
+        ? { _id: productId }
+        : { slug: productId };
+
+    const product = await Product.findOne({ ...queryCond, status: 'active' })
         .populate('primary_category_id', 'name slug')
         .populate('brand_id', 'name')
         .populate({
@@ -278,11 +320,18 @@ const getPublicProductById = async (productId) => {
  * @returns {Promise<Array>}
  */
 const getRecommendedProducts = async (categoryId, excludeId, limit = 4) => {
-    const products = await Product.find({
+    const query = {
         status: 'active',
-        category_ids: categoryId,
         _id: { $ne: excludeId },
-    })
+    };
+    if (categoryId) {
+        query.$or = [
+            { category_ids: categoryId },
+            { primary_category_id: categoryId }
+        ];
+    }
+
+    let products = await Product.find(query)
         .populate('primary_category_id', 'name slug')
         .populate('brand_id', 'name')
         .populate({
@@ -296,6 +345,30 @@ const getRecommendedProducts = async (categoryId, excludeId, limit = 4) => {
         .populate('collection_ids', 'name')
         .limit(parseInt(limit))
         .sort({ created_at: -1 });
+
+    if (products.length < parseInt(limit)) {
+        const foundIds = products.map(p => p._id);
+        const fallbackLimit = parseInt(limit) - products.length;
+        const fallbackProducts = await Product.find({
+            status: 'active',
+            _id: { $nin: [...foundIds, excludeId] }
+        })
+            .populate('primary_category_id', 'name slug')
+            .populate('brand_id', 'name')
+            .populate({
+                path: 'store_id',
+                select: 'name slug description rating_summary owner_user_id',
+                populate: {
+                    path: 'owner_user_id',
+                    select: 'profile.full_name'
+                }
+            })
+            .populate('collection_ids', 'name')
+            .sort({ view_count: -1, sold_count: -1 })
+            .limit(fallbackLimit);
+
+        products = [...products, ...fallbackProducts];
+    }
 
     return products;
 };
@@ -320,12 +393,15 @@ const createProductForSeller = async (productBody, storeId) => {
         counter++;
     }
 
-    return Product.create({
+    const product = await Product.create({
         ...productBody,
         store_id: storeId,
         slug,
         status: 'active' // Default to active for simplicity, can be changed to 'draft'
     });
+
+    await syncInventoryRecordsForProduct(product);
+    return product;
 };
 
 /**
@@ -479,6 +555,7 @@ const updateProductBySeller = async (productId, storeId, updateBody) => {
     }
     Object.assign(product, updateBody);
     await product.save();
+    await syncInventoryRecordsForProduct(product);
     return product;
 };
 

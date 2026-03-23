@@ -1,5 +1,6 @@
 const httpStatus = require('http-status');
-const { Wallet, WalletTransaction, Payout } = require('../models');
+const mongoose = require('mongoose');
+const { Wallet, WalletTransaction, Payout, Store, Settlement } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -20,7 +21,35 @@ const getOrCreateWallet = async (userId, options = {}) => {
  */
 const getBalance = async (userId) => {
     const wallet = await getOrCreateWallet(userId);
-    return { balance: wallet.balance, currency: wallet.currency };
+    const rows = await Settlement.aggregate([
+        {
+            $match: {
+                seller_user_id: userId,
+                status: { $in: ['pending', 'available'] },
+            },
+        },
+        {
+            $group: {
+                _id: '$status',
+                total: { $sum: '$net_amount' },
+            },
+        },
+    ]);
+    const summary = rows.reduce(
+        (acc, row) => {
+            if (row._id === 'pending') acc.pendingBalance = Number(row.total || 0);
+            if (row._id === 'available') acc.settledBalance = Number(row.total || 0);
+            return acc;
+        },
+        { pendingBalance: 0, settledBalance: 0 }
+    );
+    return {
+        balance: wallet.balance,
+        availableBalance: wallet.balance,
+        pendingBalance: summary.pendingBalance,
+        settledBalance: summary.settledBalance,
+        currency: wallet.currency,
+    };
 };
 
 /**
@@ -37,7 +66,7 @@ const deposit = async (userId, amount, reference = '', options = {}) => {
 
     await WalletTransaction.create([{
         wallet_id: wallet._id,
-        type: 'deposit',
+        type: 'DEPOSIT',
         amount,
         reference,
     }], { session });
@@ -50,10 +79,10 @@ const deposit = async (userId, amount, reference = '', options = {}) => {
  */
 const withdraw = async (userId, amount, reference = '', options = {}) => {
     if (amount <= 0) throw new ApiError(httpStatus.BAD_REQUEST, 'Amount must be positive');
-    const { session } = options;
+    const { session, allowNegative = false } = options;
 
     const wallet = await getOrCreateWallet(userId, { session });
-    if (wallet.balance < amount) {
+    if (!allowNegative && wallet.balance < amount) {
         throw new ApiError(httpStatus.BAD_REQUEST, 'Insufficient wallet balance');
     }
 
@@ -63,7 +92,7 @@ const withdraw = async (userId, amount, reference = '', options = {}) => {
 
     await WalletTransaction.create([{
         wallet_id: wallet._id,
-        type: 'withdraw',
+        type: 'WITHDRAW',
         amount: -amount,
         reference,
     }], { session });
@@ -101,11 +130,20 @@ const getTransactions = async (userId, query = {}) => {
     };
 };
 
-const requestPayout = async (storeId, amount) => {
+const requestPayout = async (userId, storeId, amount) => {
     if (amount <= 0) throw new ApiError(httpStatus.BAD_REQUEST, 'Amount must be positive');
 
-    const store = await Store.findById(storeId);
+    let store = null;
+    if (storeId) {
+        store = await Store.findById(storeId);
+    } else if (userId) {
+        store = await Store.findOne({ owner_user_id: userId, status: { $ne: 'closed' } });
+    }
+
     if (!store) throw new ApiError(httpStatus.NOT_FOUND, 'Store not found');
+    if (userId && store.owner_user_id.toString() !== userId.toString()) {
+        throw new ApiError(httpStatus.FORBIDDEN, 'You can only request payout for your own store');
+    }
 
     const wallet = await getOrCreateWallet(store.owner_user_id);
     if (wallet.balance < amount) {
@@ -113,7 +151,7 @@ const requestPayout = async (storeId, amount) => {
     }
 
     return Payout.create({
-        store_id: storeId,
+        store_id: store._id,
         amount,
         status: 'pending',
     });

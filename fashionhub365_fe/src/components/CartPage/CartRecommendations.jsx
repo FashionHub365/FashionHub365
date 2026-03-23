@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../../contexts/CartContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { showLoginRequired } from "../../utils/swalUtils";
 import cartApi from "../../apis/cartApi";
 
 // ── Star rating mini ──────────────────────────────────────────────────
@@ -86,6 +88,8 @@ const RecommendCard = ({ product, onAdd, adding, meta }) => {
 // ── Main Component ────────────────────────────────────────────────────
 export const CartRecommendations = () => {
   const { cartData, addToCart } = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const { items = [], totalAmount = 0 } = cartData;
 
   const [recs, setRecs] = useState([]);
@@ -127,6 +131,10 @@ export const CartRecommendations = () => {
 
   const handleAdd = async (product) => {
     if (!product.variantId) return;
+    if (!user) {
+      showLoginRequired(navigate, "thêm sản phẩm vào giỏ hàng");
+      return;
+    }
     setAddingId(product._id.toString());
     try {
       await addToCart(product._id, product.variantId, 1);

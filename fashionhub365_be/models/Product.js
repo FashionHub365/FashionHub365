@@ -68,6 +68,7 @@ const productSchema = new mongoose.Schema({
         variantName: String,
         price: Number,
         stock: Number,
+        image_url: String,
         barcode: String,
         attributes: mongoose.Schema.Types.Mixed,
         condition: String,

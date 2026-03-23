@@ -1,5 +1,5 @@
 const express = require('express');
-const { auth, authorize } = require('../middleware/auth');
+const { auth, authorize, denyRoles } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const cartValidation = require('../validations/cart.validation');
 const cartController = require('../controllers/cart.controller');
@@ -7,7 +7,14 @@ const cartController = require('../controllers/cart.controller');
 const router = express.Router();
 
 // All cart routes require authentication
-router.use(auth(), authorize(['CART.MANAGE']));
+router.use(
+    auth(),
+    denyRoles(
+        ['super-admin', 'admin', 'staff', 'operator', 'finance', 'cs', 'seller', 'store-owner'],
+        'Admin and seller accounts are not allowed to use the shopping cart'
+    ),
+    authorize(['CART.MANAGE'])
+);
 
 router
     .route('/')

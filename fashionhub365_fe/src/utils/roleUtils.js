@@ -89,6 +89,11 @@ export const hasAnyRole = (user, allowedRoles = []) => {
   return userRoles.some((role) => allowed.has(normalizeRole(role)));
 };
 
+export const isPrivilegedCommerceUser = (user) => {
+  const roles = getUserRoleSlugs(user);
+  return roles.includes("admin") || roles.includes("seller");
+};
+
 export const getDefaultRouteByRole = (user) => {
   const roles = getUserRoleSlugs(user);
   if (roles.includes("admin")) return "/admin/dashboard";

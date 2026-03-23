@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import storeApi from '../../apis/store.api';
 import { Check } from '../../components/Icons';
+import { getUserRoleSlugs } from '../../utils/roleUtils';
 
 // Sub-component for form fields to match CheckoutShipping style
 const Field = ({ label, id, required, error, ...props }) => (
@@ -12,6 +13,7 @@ const Field = ({ label, id, required, error, ...props }) => (
         </label>
         <input
             id={id}
+            required={required}
             className={`w-full px-4 py-3 border text-sm font-text-200 outline-none transition-all
         ${error ? "border-red-400 bg-red-50 focus:border-red-500" : "border-gray-300 focus:border-black focus:ring-1 focus:ring-black/5"}`}
             {...props}
@@ -23,9 +25,13 @@ const Field = ({ label, id, required, error, ...props }) => (
 const SellerRegistration = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const roleSlugs = getUserRoleSlugs(user);
     const [loading, setLoading] = useState(false);
+    const [checkingStore, setCheckingStore] = useState(true);
     const [error, setError] = useState(null);
+    const [formErrors, setFormErrors] = useState({});
     const [success, setSuccess] = useState(false);
+    const [existingStore, setExistingStore] = useState(null);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -40,8 +46,37 @@ const SellerRegistration = () => {
         }
     });
 
+    useEffect(() => {
+        let active = true;
+
+        const fetchMyStore = async () => {
+            try {
+                const response = await storeApi.getMyStore();
+                const store = response?.data?.store || response?.store || null;
+                if (active) {
+                    setExistingStore(store);
+                }
+            } catch (err) {
+                if (active) {
+                    setExistingStore(null);
+                }
+            } finally {
+                if (active) {
+                    setCheckingStore(false);
+                }
+            }
+        };
+
+        fetchMyStore();
+
+        return () => {
+            active = false;
+        };
+    }, []);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
+        setFormErrors(prev => ({ ...prev, [name]: '' }));
         if (name.startsWith('bank.')) {
             const bankField = name.split('.')[1];
             setFormData(prev => ({
@@ -56,29 +91,57 @@ const SellerRegistration = () => {
         }
     };
 
+    const validateForm = () => {
+        const nextErrors = {};
+
+        if (!formData.name.trim()) nextErrors.name = 'Vui long nhap ten shop.';
+        if (!formData.description.trim()) nextErrors.description = 'Vui long nhap mo ta shop.';
+
+        const email = formData.email.trim();
+        if (!email) {
+            nextErrors.email = 'Vui long nhap email kinh doanh.';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            nextErrors.email = 'Email khong hop le.';
+        }
+
+        if (!formData.phone.trim()) nextErrors.phone = 'Vui long nhap so dien thoai.';
+        if (!formData.pickupAddress.trim()) nextErrors.pickupAddress = 'Vui long nhap dia chi lay hang.';
+        if (!formData.bankAccount.bankName.trim()) nextErrors['bank.bankName'] = 'Vui long nhap ten ngan hang.';
+        if (!formData.bankAccount.ownerName.trim()) nextErrors['bank.ownerName'] = 'Vui long nhap ten chu tai khoan.';
+        if (!formData.bankAccount.accountNumber.trim()) nextErrors['bank.accountNumber'] = 'Vui long nhap so tai khoan.';
+
+        return nextErrors;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
         setError(null);
+        const nextErrors = validateForm();
+        setFormErrors(nextErrors);
+        if (Object.keys(nextErrors).length > 0) {
+            return;
+        }
+        setLoading(true);
 
         try {
             const payload = {
-                name: formData.name,
-                description: formData.description,
-                email: formData.email,
-                phone: formData.phone,
+                name: formData.name.trim(),
+                description: formData.description.trim(),
+                email: formData.email.trim(),
+                phone: formData.phone.trim(),
                 information: {
-                    addressesText: formData.pickupAddress,
+                    addressesText: formData.pickupAddress.trim(),
                 },
                 bank_accounts: [{
-                    account_name: formData.bankAccount.ownerName,
-                    account_number: formData.bankAccount.accountNumber,
-                    bank_name: formData.bankAccount.bankName
+                    account_name: formData.bankAccount.ownerName.trim(),
+                    account_number: formData.bankAccount.accountNumber.trim(),
+                    bank_name: formData.bankAccount.bankName.trim()
                 }]
             };
 
             const response = await storeApi.createStore(payload);
             if (response.success) {
+                setExistingStore(response?.data?.store || null);
                 setSuccess(true);
             } else {
                 setError(response.message || 'Đăng ký thất bại. Vui lòng thử lại.');
@@ -89,6 +152,57 @@ const SellerRegistration = () => {
             setLoading(false);
         }
     };
+
+    if (checkingStore) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+                <div className="max-w-md w-full bg-white border border-gray-200 p-10 text-center shadow-sm">
+                    <div className="mx-auto h-10 w-10 rounded-full border-2 border-gray-200 border-t-black animate-spin mb-5" />
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">Dang kiem tra thong tin seller</h2>
+                    <p className="text-sm text-gray-500">Vui long doi trong giay lat...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (existingStore && !success) {
+        const storeStatus = existingStore.status || 'pending';
+        const storeRef = existingStore.uuid || existingStore._id || existingStore.slug;
+        const isSeller = roleSlugs.includes('seller');
+
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+                <div className="max-w-md w-full bg-white border border-gray-200 p-10 text-center shadow-sm">
+                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-black text-white mb-6">
+                        <Check className="h-8 w-8 text-white" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Ban da co shop hoac yeu cau seller</h2>
+                    <p className="text-sm text-gray-500 leading-relaxed mb-2">
+                        Shop <strong>{existingStore.name}</strong> da ton tai trong he thong.
+                    </p>
+                    <p className="text-sm text-gray-500 leading-relaxed mb-8">
+                        Trang thai hien tai: <strong className="uppercase text-gray-900">{storeStatus}</strong>.
+                    </p>
+                    <div className="space-y-3">
+                        <button
+                            onClick={() => navigate(isSeller ? '/seller/dashboard' : '/profile')}
+                            className="w-full bg-black text-white py-4 font-semibold tracking-wider uppercase hover:bg-gray-800 transition-all shadow-lg active:scale-[0.98]"
+                        >
+                            {isSeller ? 'Vao Seller Center' : 'Quay lai Ho so'}
+                        </button>
+                        {storeRef && (
+                            <button
+                                onClick={() => navigate(`/stores/${storeRef}`)}
+                                className="w-full border border-gray-300 text-gray-800 py-4 font-semibold tracking-wider uppercase hover:bg-gray-50 transition-all active:scale-[0.98]"
+                            >
+                                Xem Trang Shop
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     if (success) {
         return (
@@ -155,32 +269,33 @@ const SellerRegistration = () => {
                                     <div className="md:col-span-2">
                                         <Field
                                             id="name" label="Tên Cửa hàng" required
-                                            name="name" value={formData.name} onChange={handleChange}
+                                            name="name" value={formData.name} onChange={handleChange} error={formErrors.name}
                                             placeholder="VD: Minimalist Authentic"
                                         />
                                     </div>
                                     <Field
                                         id="email" label="Email kinh doanh" type="email" required
-                                        name="email" value={formData.email} onChange={handleChange}
+                                        name="email" value={formData.email} onChange={handleChange} error={formErrors.email}
                                         placeholder="shop@example.com"
                                     />
                                     <Field
                                         id="phone" label="Số điện thoại" required
-                                        name="phone" value={formData.phone} onChange={handleChange}
+                                        name="phone" value={formData.phone} onChange={handleChange} error={formErrors.phone}
                                         placeholder="0123 456 789"
                                     />
                                     <div className="md:col-span-2 flex flex-col gap-1.5">
-                                        <label htmlFor="description" className="text-sm font-medium text-gray-700">Mô tả Shop</label>
+                                        <label htmlFor="description" className="text-sm font-medium text-gray-700">Mô tả Shop<span className="text-red-500 ml-0.5">*</span></label>
                                         <textarea
-                                            id="description" name="description" rows="3" value={formData.description} onChange={handleChange}
-                                            className="w-full px-4 py-3 border border-gray-300 text-sm focus:border-black focus:ring-1 focus:ring-black/5 outline-none resize-none transition-all"
+                                            id="description" name="description" rows="3" value={formData.description} onChange={handleChange} required
+                                            className={`w-full px-4 py-3 border text-sm focus:border-black focus:ring-1 focus:ring-black/5 outline-none resize-none transition-all ${formErrors.description ? 'border-red-400 bg-red-50 focus:border-red-500' : 'border-gray-300'}`}
                                             placeholder="Giới thiệu đôi nét về cá tính thương hiệu của bạn..."
                                         />
+                                        {formErrors.description && <p className="text-xs text-red-500">{formErrors.description}</p>}
                                     </div>
                                     <div className="md:col-span-2">
                                         <Field
                                             id="pickupAddress" label="Địa chỉ lấy hàng" required
-                                            name="pickupAddress" value={formData.pickupAddress} onChange={handleChange}
+                                            name="pickupAddress" value={formData.pickupAddress} onChange={handleChange} error={formErrors.pickupAddress}
                                             placeholder="Số nhà, đường, Quận/Huyện, Tỉnh/Thành phố..."
                                         />
                                     </div>
@@ -196,18 +311,18 @@ const SellerRegistration = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <Field
                                         id="bankName" label="Tên Ngân hàng" required
-                                        name="bank.bankName" value={formData.bankAccount.bankName} onChange={handleChange}
+                                        name="bank.bankName" value={formData.bankAccount.bankName} onChange={handleChange} error={formErrors['bank.bankName']}
                                         placeholder="VD: Vietcombank"
                                     />
                                     <Field
                                         id="ownerName" label="Tên chủ tài khoản" required
-                                        name="bank.ownerName" value={formData.bankAccount.ownerName} onChange={handleChange}
+                                        name="bank.ownerName" value={formData.bankAccount.ownerName} onChange={handleChange} error={formErrors['bank.ownerName']}
                                         placeholder="NGUYEN VAN A"
                                     />
                                     <div className="md:col-span-2">
                                         <Field
                                             id="accountNumber" label="Số tài khoản" required
-                                            name="bank.accountNumber" value={formData.bankAccount.accountNumber} onChange={handleChange}
+                                            name="bank.accountNumber" value={formData.bankAccount.accountNumber} onChange={handleChange} error={formErrors['bank.accountNumber']}
                                             placeholder="0071 0000 12345"
                                         />
                                     </div>

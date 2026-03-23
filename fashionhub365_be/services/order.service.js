@@ -1,7 +1,9 @@
 const httpStatus = require('http-status');
 const mongoose = require('mongoose');
 const config = require('../config/config');
-const { Cart, Order, Product, Return } = require('../models');
+const {
+    Cart, Order, Product, Return, Payment, Voucher, VoucherUsage,
+} = require('../models');
 const ApiError = require('../utils/ApiError');
 const { runWithTransaction } = require('../utils/transaction');
 const stockReservationService = require('./stockReservation.service');
@@ -64,7 +66,132 @@ const reserveOrDeductStock = async (cartItems, options = {}) => {
     }
 };
 
-const createOrderFromCart = async (userId, { shipping_address, payment_method = 'cod', note, voucher_code }) => {
+const clearUserCart = async (userId, options = {}) => {
+    const { session } = options;
+    const cartQuery = Cart.findOne({ user_id: userId });
+    if (session) {
+        cartQuery.session(session);
+    }
+
+    const cart = await cartQuery;
+    if (!cart) {
+        return false;
+    }
+
+    cart.items = [];
+    await cart.save({ session });
+    return true;
+};
+
+const rollbackVoucherUsageForOrders = async (orderIds, options = {}) => {
+    const { session } = options;
+    const usageQuery = VoucherUsage.find({ order_id: { $in: orderIds } });
+    if (session) {
+        usageQuery.session(session);
+    }
+
+    const usages = await usageQuery;
+    if (!usages.length) {
+        return 0;
+    }
+
+    const decrementMap = new Map();
+    usages.forEach((usage) => {
+        const voucherId = usage.voucher_id?.toString();
+        if (!voucherId) {
+            return;
+        }
+        decrementMap.set(voucherId, (decrementMap.get(voucherId) || 0) + 1);
+    });
+
+    for (const [voucherId, count] of decrementMap.entries()) {
+        await Voucher.updateOne(
+            { _id: voucherId },
+            { $inc: { used_count: -count } },
+            { session }
+        );
+    }
+
+    const deleteQuery = VoucherUsage.deleteMany({ _id: { $in: usages.map((usage) => usage._id) } });
+    if (session) {
+        deleteQuery.session(session);
+    }
+    await deleteQuery;
+
+    return usages.length;
+};
+
+const rollbackPendingOnlineOrders = async (userId, orderIds, options = {}) => {
+    const normalizedOrderIds = (orderIds || [])
+        .map((orderId) => toObjectId(orderId))
+        .filter(Boolean);
+
+    if (!normalizedOrderIds.length) {
+        return { rolledBackCount: 0 };
+    }
+
+    const reason = options.reason || 'Payment initialization failed';
+
+    return runWithTransaction(async (session) => {
+        const ordersQuery = Order.find({
+            _id: { $in: normalizedOrderIds },
+            user_id: userId,
+        });
+        if (session) {
+            ordersQuery.session(session);
+        }
+
+        const orders = await ordersQuery;
+        if (!orders.length) {
+            return { rolledBackCount: 0 };
+        }
+
+        const rolledBackOrderIds = [];
+        for (const order of orders) {
+            if (order.payment_status === 'paid' || !['pending_payment', 'created'].includes(order.status)) {
+                continue;
+            }
+
+            await stockReservationService.releaseReservationsForOrder(order._id, {
+                session,
+                reason: 'PAYMENT_INIT_FAILED',
+                nextStatus: 'RELEASED',
+            });
+
+            const oldStatus = order.status;
+            order.status = 'cancelled';
+            order.payment_status = 'failed';
+            order.status_history.push({
+                oldStatus,
+                newStatus: 'cancelled',
+                changedBy: 'system',
+                note: reason,
+            });
+            await order.save({ session });
+            rolledBackOrderIds.push(order._id);
+        }
+
+        if (rolledBackOrderIds.length > 0) {
+            const paymentDeleteQuery = Payment.deleteMany({
+                order_id: { $in: rolledBackOrderIds },
+                status: 'PENDING',
+            });
+            if (session) {
+                paymentDeleteQuery.session(session);
+            }
+            await paymentDeleteQuery;
+            await rollbackVoucherUsageForOrders(rolledBackOrderIds, { session });
+        }
+
+        return { rolledBackCount: rolledBackOrderIds.length };
+    });
+};
+
+const createOrderFromCart = async (userId, { shipping_address, payment_method = 'cod', note, voucher_code }, options = {}) => {
+    const {
+        clearCart = true,
+        emitOrderCreatedEvent = true,
+    } = options;
     const normalizedPaymentMethod = normalizePaymentMethod(payment_method);
     ensureSupportedPaymentMethod(normalizedPaymentMethod);
     const onlinePayment = isOnlinePaymentMethod(normalizedPaymentMethod);
@@ -197,23 +324,26 @@ const createOrderFromCart = async (userId, { shipping_address, payment_method = 
         }
 
         const itemCount = cart.items.length;
-        cart.items = [];
-        await cart.save({ session });
+        if (clearCart) {
+            await clearUserCart(userId, { session });
+        }
 
-        for (const order of orders) {
-            await outboxService.enqueueEventIfNotExists(
-                {
-                    aggregateType: 'ORDER',
-                    aggregateId: order._id.toString(),
-                    eventType: 'ORDER_CREATED',
-                    payload: {
-                        orderId: order._id.toString(),
-                        orderUuid: order.uuid,
-                        userId: userId.toString(),
+        if (emitOrderCreatedEvent) {
+            for (const order of orders) {
+                await outboxService.enqueueEventIfNotExists(
+                    {
+                        aggregateType: 'ORDER',
+                        aggregateId: order._id.toString(),
+                        eventType: 'ORDER_CREATED',
+                        payload: {
+                            orderId: order._id.toString(),
+                            orderUuid: order.uuid,
+                            userId: userId.toString(),
+                        },
                     },
-                },
-                { session }
-            );
+                    { session }
+                );
+            }
         }
 
         if (voucherId) {
@@ -348,6 +478,33 @@ const getMyOrders = async (userId, query = {}) => {
     };
 };
 
+const getMyOrderById = async (userId, orderId) => {
+    const order = await Order.findOne({ _id: orderId, user_id: userId })
+        .populate('store_id', 'name uuid avatar_url');
+
+    if (!order) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'Order not found');
+    }
+
+    return {
+        id: order._id,
+        uuid: order.uuid,
+        status: order.status,
+        payment_method: order.payment_method,
+        payment_status: order.payment_status,
+        store_id: order.store_id?._id || null,
+        store_uuid: order.store_id?.uuid || null,
+        store_name: order.store_id?.name || 'Unknown Store',
+        total_amount: order.total_amount,
+        shipping_fee: order.shipping_fee,
+        discount_total: order.discount_total,
+        shipping_address: order.shipping_address,
+        items: order.items,
+        status_history: order.status_history,
+        created_at: order.created_at,
+    };
+};
+
 const requestReturn = async (userId, orderId, reason) => {
     const order = await Order.findOne({ _id: orderId, user_id: userId });
     if (!order) throw new ApiError(httpStatus.NOT_FOUND, 'Order not found');
@@ -444,6 +601,9 @@ module.exports = {
     createOrderFromCart,
     cancelMyOrder,
     getMyOrders,
+    getMyOrderById,
+    clearUserCart,
+    rollbackPendingOnlineOrders,
     requestReturn,
     processReturn,
 };

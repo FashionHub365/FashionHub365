@@ -1,6 +1,6 @@
 const httpStatus = require('http-status');
 const catchAsync = require('../utils/catchAsync');
-const { storeService } = require('../services');
+const { storeService, fileUploadService } = require('../services');
 
 const listStores = catchAsync(async (req, res) => {
     const result = await storeService.listStores(req.query);
@@ -26,13 +26,26 @@ const createStore = catchAsync(async (req, res) => {
     });
 });
 
+
 const updateStore = catchAsync(async (req, res) => {
-    const store = await storeService.updateStore(req.params.storeId, req.user._id, req.body);
+    const updateBody = { ...req.body };
+
+    if (req.files) {
+        if (req.files.avatar) {
+            const uploadResult = await fileUploadService.uploadImage(req.files.avatar[0], 'stores/avatars');
+            updateBody.avatar_url = uploadResult.secure_url;
+        }
+        if (req.files.banner) {
+            const uploadResult = await fileUploadService.uploadImage(req.files.banner[0], 'stores/banners');
+            updateBody.banner_url = uploadResult.secure_url;
+        }
+    }
+
+    const store = await storeService.updateStore(req.params.storeId, req.user._id, updateBody);
+
     res.status(httpStatus.OK).send({
         success: true,
         data: { store },
-
-
     });
 });
 

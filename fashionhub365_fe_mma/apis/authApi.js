@@ -10,8 +10,8 @@ const authApi = {
     verifyOtp: (data) => {
         return axiosClient.post('/auth/verify-otp', data);
     },
-    googleLogin: (code) => {
-        return axiosClient.post('/auth/google', { code });
+    googleLogin: (payload) => {
+        return axiosClient.post('/auth/google', payload);
     },
     logout: () => {
         return axiosClient.post('/auth/logout', {});
@@ -25,6 +25,9 @@ const authApi = {
     },
     getMe: () => {
         return axiosClient.get('/auth/me');
+    },
+    changePassword: (data) => {
+        return axiosClient.post('/auth/change-password', data);
     },
     verifyEmail: (token) => {
         return axiosClient.post('/auth/verify-email', { token });

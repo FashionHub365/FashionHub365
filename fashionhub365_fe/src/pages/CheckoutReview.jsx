@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useCart } from "../contexts/CartContext";
+import { useAuth } from "../contexts/AuthContext";
 import checkoutApi from "../apis/checkoutApi";
-import paymentApi from "../apis/paymentApi";
 import voucherApi from "../apis/voucherApi";
+import { isPrivilegedCommerceUser } from "../utils/roleUtils";
 
 // ── Step indicator ──────────────────────────────────────────────────
 const StepBar = ({ step }) => (
@@ -15,13 +16,13 @@ const StepBar = ({ step }) => (
             return (
                 <React.Fragment key={label}>
                     <div className="flex flex-col items-center gap-1.5">
-                        <div className={`w - 8 h - 8 rounded - full flex items - center justify - center text - sm font - bold transition - all
-              ${done ? "bg-black text-white" : active ? "bg-x-600 text-white" : "bg-gray-200 text-gray-400"} `}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all
+              ${done ? "bg-black text-white" : active ? "bg-black text-white" : "bg-gray-200 text-gray-400"} `}>
                             {done ? <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg> : idx}
                         </div>
-                        <span className={`text - xs font - medium whitespace - nowrap ${active ? "text-x-600" : done ? "text-black" : "text-gray-400"} `}>{label}</span>
+                        <span className={`text-xs font-medium whitespace-nowrap ${active ? "text-black" : done ? "text-black" : "text-gray-400"} `}>{label}</span>
                     </div>
-                    {i < 2 && <div className={`h - 0.5 w - 16 mx - 1 mb - 5 transition - all ${done ? "bg-black" : "bg-gray-200"} `} />}
+                    {i < 2 && <div className={`h-0.5 w-16 mx-1 mb-5 transition-all ${done ? "bg-black" : "bg-gray-200"} `} />}
                 </React.Fragment>
             );
         })}
@@ -32,7 +33,7 @@ const StepBar = ({ step }) => (
 const PaymentCard = ({ id, selected, onSelect, icon, title, description }) => (
     <label
         htmlFor={id}
-        className={`flex items - start gap - 4 p - 4 border - 2 cursor - pointer transition - all rounded - sm
+        className={`flex items-start gap-4 p-4 border-2 cursor-pointer transition-all rounded-sm
       ${selected ? "border-black bg-gray-50" : "border-gray-200 hover:border-gray-400"} `}
     >
         <input type="radio" id={id} name="payment_method" value={id} checked={selected} onChange={() => onSelect(id)} className="mt-1 accent-black" />
@@ -71,6 +72,8 @@ const OrderItemRow = ({ item }) => (
 // ── Main Component ──────────────────────────────────────────────────
 export const CheckoutReview = () => {
     const { cartData, fetchCart } = useCart();
+    const { user } = useAuth();
+    const isBlockedBuyer = isPrivilegedCommerceUser(user);
     const navigate = useNavigate();
 
     const [shipping, setShipping] = useState(null);
@@ -84,15 +87,38 @@ export const CheckoutReview = () => {
     const [appliedVoucher, setAppliedVoucher] = useState(null);
     const [voucherError, setVoucherError] = useState("");
     const [voucherLoading, setVoucherLoading] = useState(false);
+    const [availableVouchers, setAvailableVouchers] = useState([]);
+    const [fetchingVouchers, setFetchingVouchers] = useState(false);
 
     useEffect(() => {
+        const fetchVouchers = async () => {
+            try {
+                setFetchingVouchers(true);
+                const res = await voucherApi.getActiveVouchers({ status: 'active' });
+                if (res.success) {
+                    setAvailableVouchers(res.data?.items || res.data || res.items || []);
+                }
+            } catch (err) {
+                console.error("Failed to fetch vouchers", err);
+            } finally {
+                setFetchingVouchers(false);
+            }
+        };
+        fetchVouchers();
+    }, []);
+
+    useEffect(() => {
+        if (isBlockedBuyer) {
+            navigate("/", { replace: true });
+            return;
+        }
         const saved = sessionStorage.getItem("checkout_shipping");
         if (!saved) {
             navigate("/checkout");
             return;
         }
         setShipping(JSON.parse(saved));
-    }, [navigate]);
+    }, [isBlockedBuyer, navigate]);
 
     const { items = [], totalItems = 0, totalAmount = 0 } = cartData;
     const shippingFee = totalAmount >= 1000000 ? 0 : 30000;
@@ -112,19 +138,21 @@ export const CheckoutReview = () => {
     const uniqueStoreCount = new Set(items.map((item) => item.storeId).filter(Boolean)).size;
     const isVnPayBlockedByMultiStore = paymentMethod === "vnpay" && uniqueStoreCount > 1;
 
-    const handleApplyVoucher = async () => {
-        if (!voucherCode.trim()) return;
+    const handleApplyVoucher = async (codeOverride) => {
+        const code = typeof codeOverride === 'string' ? codeOverride : voucherCode;
+        if (!code.trim()) return;
         setVoucherLoading(true);
         setVoucherError("");
         try {
-            const res = await voucherApi.applyVoucher(voucherCode, totalAmount);
-            if (res.data?.success) {
-                setAppliedVoucher(res.data.data.voucher);
+            const res = await voucherApi.applyVoucher(code, totalAmount);
+            if (res.success || res.data?.success) {
+                setAppliedVoucher(res.data?.voucher || res.data?.data?.voucher || res.data || res.voucher);
+                setVoucherCode(code);
                 setVoucherError("");
             }
         } catch (err) {
             setAppliedVoucher(null);
-            setVoucherError(err.response?.data?.message || "Invalid voucher code");
+            setVoucherError(err.response?.data?.message || err.message || "Invalid voucher code");
         } finally {
             setVoucherLoading(false);
         }
@@ -144,29 +172,14 @@ export const CheckoutReview = () => {
                 shipping_address: shipping,
                 payment_method: paymentMethod,
                 note: shipping.note || "",
-                voucher_code: appliedVoucher?.code || undefined
+                voucher_code: appliedVoucher?.code || undefined,
+                returnUrl: paymentMethod === "vnpay" ? `${window.location.origin}/payment-result` : undefined,
             });
             const createdOrders = orderRes?.data?.orders || [];
             const orderUuids = createdOrders.map((order) => order?.uuid).filter(Boolean);
 
             if (paymentMethod === "vnpay") {
-                const firstOrder = createdOrders[0];
-                const orderUuid = firstOrder?.uuid;
-                const orderAmount = Number(firstOrder?.total_amount);
-
-                if (!orderUuid || !(orderAmount > 0)) {
-                    throw new Error("Unable to initialize VNPAY payment.");
-                }
-
-                const paymentRes = await paymentApi.createVNPayPayment({
-                    orderId: orderUuid,
-                    amount: orderAmount,
-                    currency: firstOrder?.currency || "VND",
-                    locale: "vn",
-                    returnUrl: `${window.location.origin}/payment-result`,
-                });
-
-                const paymentUrl = paymentRes?.data?.paymentUrl;
+                const paymentUrl = orderRes?.data?.payment?.paymentUrl;
                 if (!paymentUrl) {
                     throw new Error("VNPAY payment URL is missing.");
                 }
@@ -182,18 +195,7 @@ export const CheckoutReview = () => {
                     throw new Error("Unable to initialize bank transfer payment.");
                 }
 
-                const paymentResponses = await Promise.all(
-                    createdOrders.map((order) =>
-                        paymentApi.createPayment({
-                            orderId: order.uuid,
-                            paymentMethodCode: "BANK_TRANSFER",
-                            amount: Number(order.total_amount || 0),
-                            currency: order?.currency || "VND",
-                        })
-                    )
-                );
-
-                const payments = paymentResponses.map((response) => response?.data).filter(Boolean);
+                const payments = Array.isArray(orderRes?.data?.payments) ? orderRes.data.payments : [];
                 if (payments.length !== createdOrders.length) {
                     throw new Error("Failed to create bank transfer payments.");
                 }
@@ -295,7 +297,7 @@ export const CheckoutReview = () => {
         );
     }
 
-    if (!shipping) return null;
+    if (isBlockedBuyer || !shipping) return null;
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -431,7 +433,7 @@ export const CheckoutReview = () => {
                                             disabled={appliedVoucher || voucherLoading}
                                         />
                                         <button
-                                            onClick={appliedVoucher ? () => { setAppliedVoucher(null); setVoucherCode(""); } : handleApplyVoucher}
+                                            onClick={appliedVoucher ? () => { setAppliedVoucher(null); setVoucherCode(""); } : () => handleApplyVoucher()}
                                             disabled={voucherLoading || (!voucherCode.trim() && !appliedVoucher)}
                                             className={`px-4 py-2 text-sm font-semibold text-white transition-colors ${appliedVoucher ? 'bg-red-600 hover:bg-red-700' : 'bg-black hover:bg-gray-800 disabled:bg-gray-400'}`}
                                         >
@@ -439,7 +441,52 @@ export const CheckoutReview = () => {
                                         </button>
                                     </div>
                                     {voucherError && <p className="text-red-500 text-xs mt-1">{voucherError}</p>}
-                                    {appliedVoucher && <p className="text-green-600 text-xs mt-1 font-medium">Voucher applied: {finalDiscount.toLocaleString("vi-VN")}₫ off</p>}
+                                    {appliedVoucher && (
+                                        <div className="flex justify-between items-center mt-1">
+                                            <p className="text-green-600 text-xs font-medium">Voucher applied: {finalDiscount.toLocaleString("vi-VN")}₫ off</p>
+                                            <button
+                                                onClick={() => { setAppliedVoucher(null); setVoucherCode(""); }}
+                                                className="text-xs font-bold text-red-500 hover:text-red-700 underline"
+                                            >
+                                                [ Xóa voucher ]
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Available Vouchers */}
+                                    {!appliedVoucher && availableVouchers.length > 0 && (
+                                        <div className="mt-4 pt-3 border-t border-dashed border-gray-200">
+                                            <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Available Vouchers</p>
+                                            <div className="flex flex-col gap-2">
+                                                {availableVouchers.map(v => {
+                                                    const isEligible = totalAmount >= (v.min_order_value || 0);
+                                                    return (
+                                                        <div key={v._id} className={`flex justify-between items-center p-3 border rounded-lg transition-all ${isEligible ? 'bg-white border-blue-200 hover:border-blue-400' : 'bg-gray-50 border-gray-200 opacity-70'}`}>
+                                                            <div className="flex flex-col">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-bold text-sm text-gray-900 border border-dashed border-gray-400 px-1.5 py-0.5 rounded bg-gray-50">{v.code}</span>
+                                                                    <span className="text-xs font-semibold text-blue-600">
+                                                                        {v.discount_type === 'percent' ? `${v.discount_value}% OFF` : `${(v.discount_value || 0).toLocaleString('vi-VN')}₫ OFF`}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-xs text-gray-500 mt-1 line-clamp-1">{v.description}</p>
+                                                                <p className={`text-[10px] mt-1 font-medium ${isEligible ? 'text-gray-400' : 'text-red-500'}`}>
+                                                                    Min. order: {(v.min_order_value || 0).toLocaleString('vi-VN')}₫
+                                                                </p>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => handleApplyVoucher(v.code)}
+                                                                disabled={!isEligible || voucherLoading}
+                                                                className={`px-3 py-1.5 ml-2 text-xs font-bold rounded-md transition-colors whitespace-nowrap ${isEligible ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                                                            >
+                                                                Apply
+                                                            </button>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="flex justify-between text-sm text-gray-600 border-t border-gray-200 pt-3">

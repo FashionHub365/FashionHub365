@@ -2,6 +2,7 @@ const httpStatus = require('http-status');
 const { Shipment, ShipmentEvent, Order } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { runWithTransaction } = require('../utils/transaction');
+const settlementService = require('./settlement.service');
 
 /**
  * Create a new shipment for an order
@@ -92,6 +93,8 @@ const addShipmentEvent = async (shipmentId, status, location, note) => {
                     note: 'Order delivered according to carrier tracking'
                 });
                 await order.save({ session });
+                await settlementService.createSettlementForPaidOrder(order._id, null, { session });
+                await settlementService.releaseSettlementToWallet(order._id, { session });
             }
         }
 

@@ -4,6 +4,8 @@ import { Heart } from "../Icons";
 import wishlistApi from "../../apis/wishlistApi";
 import { useAuth } from "../../contexts/AuthContext";
 import { useCart } from "../../contexts/CartContext";
+import { isPrivilegedCommerceUser } from "../../utils/roleUtils";
+import { showLoginRequired } from "../../utils/swalUtils";
 
 /**
  * ProductCard - Hiển thị thông tin 1 sản phẩm
@@ -18,6 +20,7 @@ export const ProductCard = ({ product, activeColor = "" }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const isBlockedBuyer = isPrivilegedCommerceUser(user);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
@@ -87,11 +90,16 @@ export const ProductCard = ({ product, activeColor = "" }) => {
   const handleQuickAdd = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isBlockedBuyer) return;
+    if (!user) {
+      showLoginRequired(navigate, "thêm sản phẩm vào giỏ hàng");
+      return;
+    }
     if (isAdding) return;
     setIsAdding(true);
 
     const variant = product.variants?.find(v => v.attributes?.color?.toLowerCase() === colorVariants[selectedColorIndex]?.name?.toLowerCase()) || product.variants?.[0];
-    
+
     if (!variant) {
       navigate(`/product/${product._id}`);
       return;
@@ -100,7 +108,7 @@ export const ProductCard = ({ product, activeColor = "" }) => {
     const result = await addToCart(product._id, variant._id, 1);
     setIsAdding(false);
     if (!result.success && result.message === "Unauthorized") {
-        navigate('/login');
+      navigate('/login');
     }
   };
 
@@ -109,7 +117,7 @@ export const ProductCard = ({ product, activeColor = "" }) => {
     e.stopPropagation();
 
     if (!user) {
-      navigate('/login');
+      showLoginRequired(navigate, "vào danh sách yêu thích");
       return;
     }
     if (!product?._id) return;
@@ -221,18 +229,20 @@ export const ProductCard = ({ product, activeColor = "" }) => {
         </button>
 
         {/* Quick Add Button */}
-        <button 
-           onClick={handleQuickAdd}
-           disabled={isAdding}
-           className="absolute bottom-0 left-0 w-full bg-black/90 backdrop-blur-sm text-white font-bold text-[11px] uppercase py-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300 text-center hover:bg-black flex items-center justify-center gap-2 z-10"
-        >
-           {isAdding ? (
-               <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
-                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-               </svg>
-           ) : "Add to Cart"}
-        </button>
+        {!isBlockedBuyer && (
+          <button
+            onClick={handleQuickAdd}
+            disabled={isAdding}
+            className="absolute bottom-0 left-0 w-full bg-black/90 backdrop-blur-sm text-white font-bold text-[11px] uppercase py-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300 text-center hover:bg-black flex items-center justify-center gap-2 z-10"
+          >
+            {isAdding ? (
+              <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : "Add to Cart"}
+          </button>
+        )}
       </Link>
 
       <div className="flex flex-col items-start gap-[3px] relative self-stretch w-full flex-[0_0_auto] px-1 pb-1">

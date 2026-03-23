@@ -4,7 +4,7 @@ const { Store, StoreFollower, StoreMember, Role } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { runWithTransaction } = require('../utils/transaction');
 
-const PUBLIC_STORE_SELECT = 'uuid name slug description email phone rating_summary information created_at updated_at';
+const PUBLIC_STORE_SELECT = 'uuid name slug avatar_url banner_url description email phone rating_summary information created_at updated_at';
 
 const normalizeSlug = (value = '') => {
     const normalized = String(value)
@@ -34,7 +34,8 @@ const buildUniqueSlug = async (baseSlug, excludeId = null) => {
         suffix += 1;
 
 
-        }};
+    }
+};
 
 const listStores = async (query = {}) => {
     const page = Math.max(parseInt(query.page, 10) || 1, 1);
@@ -94,7 +95,7 @@ const getPublicStoreById = async (storeId) => {
     const query = mongoose.Types.ObjectId.isValid(storeId)
         ? { _id: storeId }
         : { $or: [{ uuid: storeId }, { slug: storeId }] };
-    const store = await Store.findOne(query).select('uuid owner_user_id name slug description email phone status is_draft rating_summary information addresses created_at updated_at');
+    const store = await Store.findOne(query).select('uuid owner_user_id name slug avatar_url banner_url description email phone status is_draft rating_summary information addresses created_at updated_at');
     if (!store || store.status !== 'active' || store.is_draft) {
         throw new ApiError(httpStatus.NOT_FOUND, 'Store not found or unavailable');
     }
@@ -186,6 +187,8 @@ const updateStore = async (storeId, currentUserId, payload) => {
 
     const allowedFields = [
         'name',
+        'avatar_url',
+        'banner_url',
         'description',
         'email',
         'phone',

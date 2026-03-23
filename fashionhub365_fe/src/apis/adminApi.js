@@ -30,6 +30,12 @@ const adminApi = {
     approveSellerRequest: (storeId) => axiosInstance.patch(`/admin/seller-requests/${storeId}/approve`),
     rejectSellerRequest: (storeId, reason) => axiosInstance.patch(`/admin/seller-requests/${storeId}/reject`, { reason }),
 
+    // Categories
+    getCategories: (params) => axiosInstance.get('/admin/categories', { params }),
+    createCategory: (data) => axiosInstance.post('/admin/categories', data),
+    updateCategory: (id, data) => axiosInstance.put(`/admin/categories/${id}`, data),
+    deleteCategory: (id) => axiosInstance.delete(`/admin/categories/${id}`),
+
     // Brands
     getBrands: (params) => axiosInstance.get('/admin/brands', { params }),
     createBrand: (data) => axiosInstance.post('/admin/brands', data),

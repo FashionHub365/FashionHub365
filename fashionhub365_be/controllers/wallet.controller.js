@@ -14,7 +14,7 @@ const getTransactions = catchAsync(async (req, res) => {
 
 const requestPayout = catchAsync(async (req, res) => {
     const { storeId, amount } = req.body;
-    const result = await walletService.requestPayout(storeId, amount);
+    const result = await walletService.requestPayout(req.user._id, storeId, amount);
     res.status(httpStatus.CREATED).send({ success: true, data: result });
 });
 

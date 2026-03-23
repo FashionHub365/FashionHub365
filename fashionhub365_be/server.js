@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const http = require('http');
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -49,6 +50,16 @@ app.use(cors({
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
 }));
+
+// Rate Limiting - Giới hạn 1000 requests mỗi 15 phút cho mỗi IP trong môi trường dev
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: env === 'development' ? 1000 : 100,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: 'Too many requests from this IP, please try again after 15 minutes'
+});
+app.use('/api', limiter);
 
 // Ghi log request (Chỉ chạy ở môi trường development)
 if (env === 'development') {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, Suspense } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 
@@ -393,7 +393,17 @@ const AdminShell = () => {
         </header>
 
         <main className="p-4 sm:p-6 lg:p-8 flex-1 overflow-x-hidden">
-          <Outlet />
+          <Suspense fallback={
+            <div className="flex flex-col items-center justify-center min-h-[50vh] animate-pulse text-center px-4">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center mb-4">
+                <div className="w-6 h-6 rounded-full border-t-2 border-indigo-600 animate-spin"></div>
+              </div>
+              <p className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">Cấu hình trang...</p>
+              <p className="text-[11px] text-slate-400 mt-1 font-medium">Đang chuẩn bị không gian làm việc cho Admin</p>
+            </div>
+          }>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

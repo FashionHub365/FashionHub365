@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, FlatList, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, FlatList, Dimensions, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, router } from 'expo-router';
-import { IconSymbol } from '../../components/ui/icon-symbol';
+import { useLocalSearchParams, router, Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import storeApi from '../../apis/store.api';
 import listingApi from '../../apis/listingApi';
 import { getProductMainImage } from '../../utils/helpers';
+import Skeleton from '../../components/ui/Skeleton';
 
 const { width } = Dimensions.get('window');
 
@@ -17,7 +18,7 @@ export default function StoreDetailScreen() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
 
@@ -30,7 +31,7 @@ export default function StoreDetailScreen() {
         const storeRes = await listingApi.getStoreById(id as string);
         if (storeRes && (storeRes as any).success) {
           setStore((storeRes as any).data);
-          
+
           // Fetch products for this store
           const prodRes = await listingApi.getProducts({ store: (storeRes as any).data._id, limit: 10, sort: 'newest' });
           if (prodRes && (prodRes as any).success) {
@@ -50,9 +51,9 @@ export default function StoreDetailScreen() {
 
   useEffect(() => {
     if (store?._id) {
-       storeApi.getFollowingStatus(store._id).then(res => {
-         if (res && (res as any).success) setIsFollowing((res as any).data.isFollowing);
-       }).catch(() => {});
+      storeApi.getFollowingStatus(store._id).then(res => {
+        if (res && (res as any).success) setIsFollowing((res as any).data.isFollowing);
+      }).catch(() => { });
     }
   }, [store?._id]);
 
@@ -76,9 +77,47 @@ export default function StoreDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#000" />
-      </View>
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" />
+        <View style={styles.header}>
+          <Skeleton width={40} height={40} borderRadius={20} />
+          <Skeleton width="40%" height={20} style={{ marginHorizontal: 10 }} />
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.bannerContainer}>
+          <Skeleton width="100%" height={180} />
+          <View style={[styles.profileOverlay, { zIndex: 10 }]}>
+            <Skeleton width={80} height={80} borderRadius={40} style={{ borderWidth: 4, borderColor: '#fff' }} />
+            <View style={[styles.profileInfo, { marginTop: 40 }]}>
+              <Skeleton width={150} height={24} style={{ marginBottom: 4 }} />
+              <Skeleton width={100} height={16} />
+            </View>
+          </View>
+        </View>
+        <View style={styles.detailsContainer}>
+          <View style={styles.actionsRow}>
+            <Skeleton width={100} height={36} borderRadius={20} />
+          </View>
+          <Skeleton width="100%" height={16} style={{ marginBottom: 8 }} />
+          <Skeleton width="80%" height={16} />
+        </View>
+        <View style={styles.divider} />
+        <View style={{ padding: 20 }}>
+          <Skeleton width={150} height={24} style={{ marginBottom: 20 }} />
+          <View style={styles.productRow}>
+            <View style={styles.card}>
+              <Skeleton width="100%" height={(width * 0.48) * 1.25} borderRadius={8} />
+              <Skeleton width="80%" height={14} style={{ marginTop: 8, marginBottom: 4 }} />
+              <Skeleton width="50%" height={16} />
+            </View>
+            <View style={styles.card}>
+              <Skeleton width="100%" height={(width * 0.48) * 1.25} borderRadius={8} />
+              <Skeleton width="80%" height={14} style={{ marginTop: 8, marginBottom: 4 }} />
+              <Skeleton width="50%" height={16} />
+            </View>
+          </View>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -94,15 +133,15 @@ export default function StoreDetailScreen() {
   }
 
   const storeName = store.name || store.owner_user_id?.profile?.full_name || 'Store';
-  const bannerImg = store.information?.banner || store.information?.coverImage || FALLBACK_BANNER;
-  const logoImg = store.information?.logo || null;
-  const description = store.information?.description || "Welcome to our store!";
-  
+  const bannerImg = store.banner_url || FALLBACK_BANNER;
+  const logoImg = store.avatar_url || null;
+  const description = store.description || "Welcome to our store!";
+
   const renderProduct = ({ item }: { item: any }) => {
     const defaultImage = getProductMainImage(item);
     return (
-      <TouchableOpacity 
-        style={styles.card} 
+      <TouchableOpacity
+        style={styles.card}
         onPress={() => router.push(`/product/${item._id || item.uuid}`)}
       >
         <Image source={{ uri: defaultImage }} style={styles.cardImage} />
@@ -116,13 +155,16 @@ export default function StoreDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header Over Banner */}
+      <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar barStyle="dark-content" />
+
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerBackBtn}>
-          <IconSymbol name="chevron.left" size={24} color="#000" />
+          <Ionicons name="chevron-back" size={22} color="#111" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{storeName}</Text>
-        <View style={{ width: 34 }} />
+        <View style={{ width: 40 }} />
       </View>
 
       <FlatList
@@ -151,8 +193,8 @@ export default function StoreDetailScreen() {
             {/* Actions & Description */}
             <View style={styles.detailsContainer}>
               <View style={styles.actionsRow}>
-                <TouchableOpacity 
-                  style={[styles.followBtn, isFollowing && styles.followBtnActive]} 
+                <TouchableOpacity
+                  style={[styles.followBtn, isFollowing && styles.followBtnActive]}
                   onPress={handleToggleFollow}
                   disabled={followLoading}
                 >
@@ -176,7 +218,7 @@ export default function StoreDetailScreen() {
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-           <Text style={styles.emptyProducts}>This store hasn't posted any products yet.</Text>
+          <Text style={styles.emptyProducts}>This store hasn't posted any products yet.</Text>
         }
       />
     </SafeAreaView>
@@ -214,14 +256,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
   headerBackBtn: {
-    padding: 5,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 16,
@@ -300,7 +347,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   followBtn: {
-    backgroundColor: '#e74c3c',
+    backgroundColor: '#111',
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 20,

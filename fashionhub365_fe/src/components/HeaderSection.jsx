@@ -5,7 +5,7 @@ import { ArrowRight, MagnifyingGlass, ShoppingCartSimple, User } from "./Icons";
 import { SearchOverlay } from "./SearchOverlay";
 import { useCart } from "../contexts/CartContext";
 import { CartSidebar } from "./CartPage/CartSidebar";
-import { getUserRoleSlugs } from "../utils/roleUtils";
+import { getUserRoleSlugs, isPrivilegedCommerceUser } from "../utils/roleUtils";
 import notificationApi from "../apis/notificationApi";
 import NotificationDropdown from "./NotificationDropdown";
 
@@ -16,6 +16,7 @@ export const HeaderSection = () => {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const { isAuthenticated, user, logout } = useAuth();
+  const isBlockedBuyer = isPrivilegedCommerceUser(user);
   const navigate = useNavigate();
   const userMenuRef = useRef(null);
   const notifRef = useRef(null);
@@ -277,7 +278,7 @@ export const HeaderSection = () => {
             )}
 
             {/* My Orders icon */}
-            {isAuthenticated && (
+            {isAuthenticated && !isBlockedBuyer && (
               <button
                 className="inline-flex items-center justify-center gap-2.5 p-3 relative flex-[0_0_auto]"
                 aria-label="My Orders"
@@ -290,20 +291,22 @@ export const HeaderSection = () => {
               </button>
             )}
 
-            <button
-              className="inline-flex items-center justify-center gap-2.5 p-3 relative flex-[0_0_auto]"
-              aria-label={`Shopping cart${cartData.totalItems > 0 ? `, ${cartData.totalItems} items` : ''}`}
-              onClick={() => setIsCartOpen(true)}
-            >
-              <div className="relative">
-                <ShoppingCartSimple className="!relative !w-4 !h-4" />
-                {cartData.totalItems > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-[#ef4444] text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
-                    {cartData.totalItems > 9 ? '9+' : cartData.totalItems}
-                  </span>
-                )}
-              </div>
-            </button>
+            {!isBlockedBuyer && (
+              <button
+                className="inline-flex items-center justify-center gap-2.5 p-3 relative flex-[0_0_auto]"
+                aria-label={`Shopping cart${cartData.totalItems > 0 ? `, ${cartData.totalItems} items` : ''}`}
+                onClick={() => setIsCartOpen(true)}
+              >
+                <div className="relative">
+                  <ShoppingCartSimple className="!relative !w-4 !h-4" />
+                  {cartData.totalItems > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-[#ef4444] text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                      {cartData.totalItems > 9 ? '9+' : cartData.totalItems}
+                    </span>
+                  )}
+                </div>
+              </button>
+            )}
           </div>
 
           <Link to="/" className="md:absolute md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-32 md:w-48 block cursor-pointer z-10 order-1 md:order-none">

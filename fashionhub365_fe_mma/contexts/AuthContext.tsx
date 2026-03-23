@@ -2,6 +2,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { getStorageItem, setStorageItem, removeStorageItem } from '../utils/storage';
 import authApi from '../apis/authApi';
+import userApi from '../apis/userApi';
 
 const AuthContext = createContext<any>(null);
 
@@ -21,7 +22,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 if (storedTokensStr && storedUserStr) {
                     setUser(JSON.parse(storedUserStr));
                     setIsAuthenticated(true);
-                    
+
                     try {
                         const response = await authApi.getMe();
                         if (response && response.success) {
@@ -89,9 +90,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const googleLogin = async (code: string) => {
+    const googleLogin = async (idToken: string) => {
         try {
-            const response = await authApi.googleLogin(code);
+            const response = await authApi.googleLogin({ idToken });
             if (response && response.success) {
                 const { user, tokens } = response.data;
                 await setStorageItem('tokens', JSON.stringify(tokens));
@@ -111,7 +112,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const register = async (data: any) => {
         try {
             const response = await authApi.register(data);
-            return response; 
+            return response;
         } catch (error: any) {
             return {
                 success: false,
@@ -144,6 +145,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
+    const updateProfile = async (data: any) => {
+        try {
+            const response = await userApi.updateProfile(data);
+            if (response && response.success) {
+                // Fetch fresh user data
+                const meRes = await authApi.getMe();
+                if (meRes && meRes.success) {
+                    setUser(meRes.data.user);
+                    await setStorageItem('user', JSON.stringify(meRes.data.user));
+                }
+                return { success: true };
+            }
+        } catch (error: any) {
+            return {
+                success: false,
+                message: error.response?.data?.error?.message || error.response?.data?.message || 'Failed to update profile'
+            };
+        }
+    };
+
+    const changePassword = async (data: { oldPassword: string, newPassword: string }) => {
+        try {
+            const response = await authApi.changePassword(data);
+            return response;
+        } catch (error: any) {
+            return {
+                success: false,
+                message: error.response?.data?.error?.message || error.response?.data?.message || 'Failed to change password'
+            };
+        }
+    };
+
     const logout = async () => {
         try {
             await authApi.logout();
@@ -157,7 +190,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated, loading, login, verifyOtpLogin, googleLogin, register, forgotPassword, resetPassword, logout }}>
+        <AuthContext.Provider value={{ user, isAuthenticated, loading, login, verifyOtpLogin, googleLogin, register, forgotPassword, resetPassword, updateProfile, changePassword, logout }}>
             {children}
         </AuthContext.Provider>
     );

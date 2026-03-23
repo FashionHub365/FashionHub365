@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { HeaderSection } from "../components/HeaderSection";
 import { FooterSection } from "../components/FooterSection";
 import { FilterSidebar } from "../components/ListingPage/FilterSidebar";
@@ -7,11 +7,15 @@ import { StoreProductCard } from "../components/StorePage/StoreProductCard";
 import { StoreHeader } from "../components/StorePage/StoreHeader";
 import listingApi from "../apis/listingApi";
 import storeApi from "../apis/store.api";
+import { useAuth } from "../contexts/AuthContext";
+import { getUserRoleSlugs } from "../utils/roleUtils";
 
 const isObjectId = (value = "") => /^[a-fA-F0-9]{24}$/.test(String(value));
 
 export const StoreProfile = () => {
   const { storeId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [store, setStore] = useState(null);
   const [products, setProducts] = useState([]);
   const [total, setTotal] = useState(0);
@@ -33,6 +37,46 @@ export const StoreProfile = () => {
   const moreMenuRef = useRef(null);
   const [searchInput, setSearchInput] = useState("");
   const debounceTimer = useRef(null);
+  const [canAccessStore, setCanAccessStore] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    const enforceSellerStoreScope = async () => {
+      const roleSlugs = getUserRoleSlugs(user);
+      const isSellerOnly = roleSlugs.includes("seller") && !roleSlugs.includes("admin");
+
+      if (!isSellerOnly) {
+        if (active) setCanAccessStore(true);
+        return;
+      }
+
+      try {
+        const response = await storeApi.getMyStore();
+        const myStore = response?.data?.store || response?.store || response?.data || response;
+        const allowedRefs = new Set(
+          [myStore?._id, myStore?.uuid, myStore?.slug].filter(Boolean).map((value) => String(value))
+        );
+
+        if (!allowedRefs.has(String(storeId))) {
+          const fallbackStoreRef = myStore?.uuid || myStore?._id || myStore?.slug;
+          navigate(fallbackStoreRef ? `/stores/${fallbackStoreRef}` : "/seller/dashboard", { replace: true });
+          return;
+        }
+
+        if (active) setCanAccessStore(true);
+      } catch (err) {
+        if (active) setCanAccessStore(false);
+        navigate("/seller/dashboard", { replace: true });
+      }
+    };
+
+    enforceSellerStoreScope();
+
+    return () => {
+      active = false;
+    };
+  }, [navigate, storeId, user]);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -177,6 +221,10 @@ export const StoreProfile = () => {
   const moreCategories = categories.slice(5);
   const activeCategoryName =
     categories.find((cat) => cat.slug === filters.category)?.name || filters.category;
+
+  if (!canAccessStore) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col items-center relative bg-[#f5f5f5] min-h-screen">

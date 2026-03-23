@@ -83,8 +83,11 @@ export const adminOverviewService = {
       const payload = response?.data || response || {};
       return {
         summary: payload?.summary || {},
+        trend: payload?.trend || {},
+        recentOrders: Array.isArray(payload?.recentOrders) ? payload.recentOrders : [],
         ordersByStatus: Array.isArray(payload?.ordersByStatus) ? payload.ordersByStatus : [],
         monthlyStats: Array.isArray(payload?.monthlyStats) ? payload.monthlyStats : [],
+        monthlyPlatformStats: Array.isArray(payload?.monthlyPlatformStats) ? payload.monthlyPlatformStats : [],
         monthlyUsers: Array.isArray(payload?.monthlyUsers) ? payload.monthlyUsers : [],
       };
     } catch (error) {

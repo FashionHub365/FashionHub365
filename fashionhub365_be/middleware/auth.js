@@ -157,7 +157,45 @@ const authorize = (requiredPermissions = [], options = {}) => async (req, res, n
     }
 };
 
+const getUserRoleSlugs = (user) => {
+    const roles = new Set();
+
+    const directRole = String(user?.role || '').trim().toLowerCase();
+    if (directRole) {
+        roles.add(directRole);
+    }
+
+    (user?.global_role_ids || []).forEach((roleLike) => {
+        if (!roleLike) return;
+        if (typeof roleLike === 'string') {
+            roles.add(roleLike.trim().toLowerCase());
+            return;
+        }
+
+        const slug = String(roleLike.slug || roleLike.name || roleLike.code || '').trim().toLowerCase();
+        if (slug) {
+            roles.add(slug);
+        }
+    });
+
+    return Array.from(roles);
+};
+
+const denyRoles = (disallowedRoles = [], message = 'Forbidden') => (req, res, next) => {
+    const blockedRoles = new Set(
+        (disallowedRoles || []).map((role) => String(role || '').trim().toLowerCase()).filter(Boolean)
+    );
+    const userRoles = getUserRoleSlugs(req.user);
+
+    if (userRoles.some((role) => blockedRoles.has(role))) {
+        return next(new ApiError(httpStatus.FORBIDDEN, message));
+    }
+
+    return next();
+};
+
 module.exports = {
     auth,
     authorize,
+    denyRoles,
 };

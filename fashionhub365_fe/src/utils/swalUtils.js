@@ -87,7 +87,25 @@ export const showError = (message) => {
         timer: 5000,
         showConfirmButton: true,
         customClass: {
-            confirmButton: 'px-6 py-2 rounded-xl font-bold text-white bg-rose-600'
         }
     });
+};
+
+/**
+ * Thông báo yêu cầu đăng nhập
+ */
+export const showLoginRequired = async (navigate, message = 'vào giỏ hàng') => {
+    const isConfirmed = await confirmAction({
+        title: 'Yêu cầu đăng nhập',
+        text: `Bạn cần đăng nhập để thực hiện hành động ${message}.`,
+        icon: 'info',
+        confirmButtonText: 'Đăng nhập ngay',
+        cancelButtonText: 'Để sau',
+        confirmButtonColor: '#000000',
+    });
+
+    if (isConfirmed) {
+        navigate('/login');
+    }
+    return isConfirmed;
 };

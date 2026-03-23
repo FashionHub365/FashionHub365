@@ -1,10 +1,48 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useCart } from '../../contexts/CartContext';
+
+function CartBadgeIcon({ color }: { color: string }) {
+  const { cartData } = useCart();
+  const count = cartData?.totalItems || 0;
+
+  return (
+    <View>
+      <IconSymbol size={28} name="cart.fill" color={color} />
+      {count > 0 && (
+        <View style={badgeStyles.badge}>
+          <Text style={badgeStyles.badgeText}>{count > 9 ? '9+' : count}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const badgeStyles = StyleSheet.create({
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    backgroundColor: '#111',
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+});
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -24,17 +62,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="stores"
+        name="explore"
         options={{
-          title: 'Stores',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="storefront.fill" color={color} />,
+          title: 'Explore',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="magnifyingglass" color={color} />,
         }}
       />
       <Tabs.Screen
         name="cart"
         options={{
           title: 'Cart',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="cart.fill" color={color} />,
+          tabBarIcon: ({ color }) => <CartBadgeIcon color={color} />,
         }}
       />
       <Tabs.Screen
@@ -42,6 +80,12 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="stores"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

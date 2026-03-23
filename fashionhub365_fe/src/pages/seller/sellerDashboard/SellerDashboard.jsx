@@ -17,8 +17,8 @@ const SellerDashboard = () => {
             try {
                 const data = await getStoreStats();
                 setStats(data);
-            } catch {
-                setError('Could not load data. Please check backend connection.');
+            } catch (err) {
+                setError(err.response?.data?.message || 'Could not load seller dashboard data.');
             } finally {
                 setLoading(false);
             }
@@ -39,7 +39,7 @@ const SellerDashboard = () => {
             <div className="bg-red-50 border border-red-100 rounded-2xl p-8 text-center max-w-sm">
                 <div className="text-3xl mb-3">⚠️</div>
                 <p className="text-red-600 font-semibold text-sm">{error}</p>
-                <p className="text-xs text-red-400 mt-1">Restart the backend and try again</p>
+                <p className="text-xs text-red-400 mt-1">Please check your seller account permissions and store access.</p>
             </div>
         </div>
     );

@@ -21,6 +21,7 @@ const MAPPING = {
   'storefront.fill': 'storefront',
   'cart.fill': 'shopping-cart',
   'person.fill': 'person',
+  'magnifyingglass': 'search',
 } as IconMapping;
 
 /**

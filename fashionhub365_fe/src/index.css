@@ -282,3 +282,22 @@
     transform: translateY(calc(-100% - var(--gap)));
   }
 }
+
+/* Custom Toastify Styles for Project Matching */
+:root {
+  --toastify-color-success: #111827; 
+  --toastify-color-error: var(--red);
+  --toastify-color-info: #1f2937;
+  --toastify-color-warning: #f59e0b;
+  --toastify-icon-color-success: #111827;
+  --toastify-icon-color-error: var(--red);
+  --toastify-icon-color-info: #1f2937;
+  --toastify-icon-color-warning: #f59e0b;
+  --toastify-toast-bd-radius: 8px;
+  --toastify-font-family: var(--text-400-font-family, sans-serif);
+}
+
+.Toastify__toast {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid #e5e7eb;
+}

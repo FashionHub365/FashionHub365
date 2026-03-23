@@ -1,4 +1,6 @@
 const express = require('express');
+const validate = require('../middleware/validate');
+const affiliateValidation = require('../validations/affiliate.validation');
 const { auth } = require('../middleware/auth');
 const affiliateController = require('../controllers/affiliate.controller');
 
@@ -11,8 +13,8 @@ router.get('/programs', affiliateController.getPrograms);
 router.use(auth());
 
 // Programs (admin)
-router.post('/programs', affiliateController.createProgram);
-router.put('/programs/:id', affiliateController.updateProgram);
+router.post('/programs', validate(affiliateValidation.createProgram), affiliateController.createProgram);
+router.put('/programs/:id', validate(affiliateValidation.createProgram), affiliateController.updateProgram);
 router.delete('/programs/:id', affiliateController.deleteProgram);
 
 // Links (user)

@@ -10,6 +10,35 @@ const LOCK_DURATION_MINUTES = 5;
 const ADMIN_ROLE_SLUGS = ['admin', 'super-admin', 'staff', 'operator', 'finance', 'cs'];
 const LOCKED_ROLE_SLUGS = [...ADMIN_ROLE_SLUGS, 'seller'];
 
+const getGlobalRoleBySlug = async (slug) => {
+    return Role.findOne({ slug, scope: 'GLOBAL', deleted_at: null }).select('_id slug');
+};
+
+const ensureDefaultUserRole = async (user) => {
+    const userRole = await getGlobalRoleBySlug('user');
+    if (!userRole) {
+        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'User role is not configured. Please run RBAC seed.');
+    }
+
+    const customerRole = await getGlobalRoleBySlug('customer');
+    const currentRoleIds = (user.global_role_ids || []).map((role) => (role?._id || role).toString());
+    const nextRoleIds = currentRoleIds.filter((roleId) => roleId !== customerRole?._id?.toString());
+
+    if (!nextRoleIds.includes(userRole._id.toString())) {
+        nextRoleIds.push(userRole._id.toString());
+    }
+
+    const changed =
+        nextRoleIds.length !== currentRoleIds.length ||
+        nextRoleIds.some((roleId, index) => roleId !== currentRoleIds[index]);
+
+    if (changed) {
+        user.global_role_ids = nextRoleIds;
+    }
+
+    return { userRole, changed };
+};
+
 const loginUserWithEmailAndPassword = async (identifier, password, ipAddress, userAgent) => {
     const normalizedIdentifier = identifier.trim().toLowerCase();
     const user = normalizedIdentifier.includes('@')
@@ -217,9 +246,10 @@ const loginWithGoogle = async (googlePayload, ipAddress, userAgent) => {
     let user = await User.findOne({ email });
 
     if (!user) {
-        // Create new user -> require getting default user role
-        const userRole = await Role.findOne({ slug: 'user' }) || await Role.findOne({ slug: 'customer' });
-        const global_role_ids = userRole ? [userRole._id] : [];
+        const userRole = await getGlobalRoleBySlug('user');
+        if (!userRole) {
+            throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'User role is not configured. Please run RBAC seed.');
+        }
 
         user = await User.create({
             email,
@@ -228,7 +258,7 @@ const loginWithGoogle = async (googlePayload, ipAddress, userAgent) => {
             google_id: googleId,
             is_email_verified: true,
             status: 'ACTIVE',
-            global_role_ids,
+            global_role_ids: [userRole._id],
             profile: { full_name: name, avatar_url: picture }
         });
 
@@ -264,6 +294,7 @@ const loginWithGoogle = async (googlePayload, ipAddress, userAgent) => {
         user.auth_provider = 'GOOGLE';
         user.last_login_at = new Date();
         user.login_attempts = 0;
+        await ensureDefaultUserRole(user);
         await user.save();
     }
 
@@ -275,4 +306,5 @@ module.exports = {
     refreshAuth,
     logout,
     loginWithGoogle,
+    ensureDefaultUserRole,
 };

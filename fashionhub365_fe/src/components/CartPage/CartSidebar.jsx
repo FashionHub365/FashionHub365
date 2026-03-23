@@ -14,14 +14,14 @@ export const CartSidebar = () => {
       {/* Overlay */}
       {isCartOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 backdrop-blur-[2px]"
+          className="fixed inset-0 bg-black/40 z-[70] transition-opacity duration-300 backdrop-blur-[2px]"
           onClick={() => setIsCartOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 right-0 h-full w-full md:w-[480px] bg-white z-50 transform transition-transform duration-300 ease-in-out shadow-2xl flex flex-col ${isCartOpen ? "translate-x-0" : "translate-x-full"
+        className={`fixed top-0 right-0 h-full w-full md:w-[480px] bg-white z-[80] transform transition-transform duration-300 ease-in-out shadow-2xl flex flex-col ${isCartOpen ? "translate-x-0" : "translate-x-full"
           }`}
       >
         {/* Header */}

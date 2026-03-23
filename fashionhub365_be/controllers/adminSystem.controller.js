@@ -1,8 +1,9 @@
 const catchAsync = require('../utils/catchAsync');
 const httpStatus = require('http-status');
 const ApiError = require('../utils/ApiError');
-const { Order, User, Product, AuditLog, Category, Role, StoreMember } = require('../models');
+const { Order, User, Product, AuditLog, Category, Role, StoreMember, Settlement } = require('../models');
 const { buildSort, buildPaginationMeta, ensurePrivilegedAdminActor } = require('./adminUtils');
+const platformLedgerService = require('../services/platformLedger.service');
 
 const getSystemStats = catchAsync(async (req, res) => {
     const now = new Date();
@@ -10,7 +11,7 @@ const getSystemStats = catchAsync(async (req, res) => {
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-    const [orderSummary, totalUsers, totalProducts, recentOrdersRaw] = await Promise.all([
+    const [orderSummary, settlementSummary, platformSummary, totalUsers, totalProducts, recentOrdersRaw] = await Promise.all([
         Order.aggregate([
             {
                 $group: {
@@ -25,6 +26,30 @@ const getSystemStats = catchAsync(async (req, res) => {
                 },
             },
         ]),
+        Settlement.aggregate([
+            {
+                $match: {
+                    status: { $in: ['pending', 'available'] },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    platformRevenue: { $sum: '$platform_fee_amount' },
+                    sellerPayablePending: {
+                        $sum: {
+                            $cond: [{ $eq: ['$status', 'pending'] }, '$net_amount', 0],
+                        },
+                    },
+                    sellerReleased: {
+                        $sum: {
+                            $cond: [{ $eq: ['$status', 'available'] }, '$net_amount', 0],
+                        },
+                    },
+                },
+            },
+        ]),
+        platformLedgerService.getPlatformLedgerSummary(),
         User.countDocuments(),
         Product.countDocuments(),
         Order.find()
@@ -34,7 +59,7 @@ const getSystemStats = catchAsync(async (req, res) => {
     ]);
 
     // Calculate trends (Current Month vs Last Month)
-    const [currentMonthData, lastMonthData] = await Promise.all([
+    const [currentMonthData, lastMonthData, currentMonthPlatformLedger, lastMonthPlatformLedger] = await Promise.all([
         Order.aggregate([
             { $match: { created_at: { $gte: currentMonthStart } } },
             {
@@ -55,6 +80,8 @@ const getSystemStats = catchAsync(async (req, res) => {
                 },
             },
         ]),
+        platformLedgerService.getPlatformLedgerSummary({ from: currentMonthStart }),
+        platformLedgerService.getPlatformLedgerSummary({ from: lastMonthStart, to: lastMonthEnd }),
     ]);
 
     const [currentMonthUsers, lastMonthUsers] = await Promise.all([
@@ -71,7 +98,18 @@ const getSystemStats = catchAsync(async (req, res) => {
         revenue: calculateGrowth(currentMonthData[0]?.revenue || 0, lastMonthData[0]?.revenue || 0),
         orders: calculateGrowth(currentMonthData[0]?.orders || 0, lastMonthData[0]?.orders || 0),
         users: calculateGrowth(currentMonthUsers, lastMonthUsers),
+        platformRevenue: calculateGrowth(
+            currentMonthPlatformLedger?.netRevenue || 0,
+            lastMonthPlatformLedger?.netRevenue || 0
+        ),
     };
+
+    const recentOrderIds = recentOrdersRaw.map((order) => order._id);
+    const recentSettlements = await Settlement.find({ order_id: { $in: recentOrderIds } })
+        .select('order_id platform_fee_amount net_amount status');
+    const settlementMap = new Map(
+        recentSettlements.map((settlement) => [settlement.order_id.toString(), settlement])
+    );
 
     const recentOrders = recentOrdersRaw.map(order => ({
         id: order._id,
@@ -79,6 +117,9 @@ const getSystemStats = catchAsync(async (req, res) => {
         customer: order.user_id?.profile?.full_name || order.user_id?.username || 'Guest',
         initials: (order.user_id?.profile?.full_name || order.user_id?.username || 'G').charAt(0).toUpperCase(),
         total: order.total_amount,
+        platformFee: settlementMap.get(order._id.toString())?.platform_fee_amount || 0,
+        sellerNet: settlementMap.get(order._id.toString())?.net_amount || 0,
+        settlementStatus: settlementMap.get(order._id.toString())?.status || null,
         status: order.status.toUpperCase(),
         time: new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     }));
@@ -107,6 +148,10 @@ const getSystemStats = catchAsync(async (req, res) => {
         { $sort: { '_id.year': 1, '_id.month': 1 } },
     ]);
 
+    const monthlyPlatformStats = await platformLedgerService.getMonthlyPlatformLedgerSummary({
+        from: twelveMonthsAgo,
+    });
+
     const monthlyUsers = await User.aggregate([
         { $match: { created_at: { $gte: twelveMonthsAgo } } },
         {
@@ -127,6 +172,11 @@ const getSystemStats = catchAsync(async (req, res) => {
             summary: {
                 totalRevenue: orderSummary[0]?.totalRevenue || 0,
                 paidRevenue: orderSummary[0]?.paidRevenue || 0,
+                platformRevenue: platformSummary?.netRevenue || 0,
+                platformRevenueRecognized: platformSummary?.recognizedRevenue || 0,
+                platformRevenueReversed: platformSummary?.reversedRevenue || 0,
+                sellerPayablePending: settlementSummary[0]?.sellerPayablePending || 0,
+                sellerReleased: settlementSummary[0]?.sellerReleased || 0,
                 totalOrders: orderSummary[0]?.totalOrders || 0,
                 totalUsers,
                 totalProducts,
@@ -135,6 +185,7 @@ const getSystemStats = catchAsync(async (req, res) => {
             recentOrders,
             ordersByStatus,
             monthlyStats,
+            monthlyPlatformStats,
             monthlyUsers,
         },
     });

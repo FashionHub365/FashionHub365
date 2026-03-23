@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import authApi from '../apis/authApi';
+import { toast } from 'react-toastify';
 
 const AuthContext = createContext();
 
@@ -26,8 +27,6 @@ export const AuthProvider = ({ children }) => {
                     }
                 } catch (error) {
                     console.error("Auth check failed", error);
-                    // If check fails (e.g. token expired and refresh failed), logout
-                    // logout(); 
                 }
             }
             setLoading(false);
@@ -45,6 +44,7 @@ export const AuthProvider = ({ children }) => {
                     localStorage.setItem('user', JSON.stringify(user));
                     setUser(user);
                     setIsAuthenticated(true);
+                    toast.success('Login successful!');
                     return { success: true, requiresOtp: false, user };
                 }
 
@@ -73,6 +73,7 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('user', JSON.stringify(user));
                 setUser(user);
                 setIsAuthenticated(true);
+                toast.success('OTP verification successful!');
                 return { success: true, user };
             }
         } catch (error) {
@@ -92,6 +93,7 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('user', JSON.stringify(user));
                 setUser(user);
                 setIsAuthenticated(true);
+                toast.success('Google login successful!');
                 return { success: true, user };
             }
         } catch (error) {
@@ -105,7 +107,7 @@ export const AuthProvider = ({ children }) => {
     const register = async (data) => {
         try {
             const response = await authApi.register(data);
-            return response; // Expecting { success: true, ... }
+            return response;
         } catch (error) {
             return {
                 success: false,
@@ -148,10 +150,30 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('user');
         setUser(null);
         setIsAuthenticated(false);
+        toast.info('Logged out successfully.');
+    };
+
+    const updateUserProfile = (updatedUser) => {
+        if (updatedUser) {
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+        }
     };
 
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated, loading, login, googleLogin, register, forgotPassword, resetPassword, logout }}>
+        <AuthContext.Provider value={{
+            user,
+            isAuthenticated,
+            loading,
+            login,
+            verifyOtpLogin,
+            googleLogin,
+            register,
+            forgotPassword,
+            resetPassword,
+            logout,
+            updateUserProfile
+        }}>
             {children}
         </AuthContext.Provider>
     );

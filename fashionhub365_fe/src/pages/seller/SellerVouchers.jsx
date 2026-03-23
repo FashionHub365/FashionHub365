@@ -25,8 +25,8 @@ const SellerVouchers = () => {
         try {
             setLoading(true);
             const res = await voucherApi.getVouchers();
-            if (res.data?.success) {
-                setVouchers(res.data.data.items);
+            if (res.success) {
+                setVouchers(res.data?.items || res.data || res.items || []);
             }
         } catch (err) {
             setError('Failed to load vouchers');
@@ -84,7 +84,7 @@ const SellerVouchers = () => {
             showSuccess('Đã xóa Voucher thành công.');
             fetchVouchers();
         } catch (err) {
-            showError('Không thể xóa Voucher.');
+            showError('Lỗi xóa Voucher: ' + (err.response?.data?.message || err.message));
         }
     };
 
@@ -131,13 +131,13 @@ const SellerVouchers = () => {
                                 </span>
                             </div>
                             <h4 className="text-lg font-bold text-gray-900 mt-2">
-                                {v.discount_type === 'percent' ? `${v.discount_value}% OFF` : `${v.discount_value.toLocaleString('vi-VN')}₫ OFF`}
+                                {v.discount_type === 'percent' ? `${v.discount_value || 0}% OFF` : `${(v.discount_value || 0).toLocaleString('vi-VN')}₫ OFF`}
                             </h4>
                             <p className="text-sm text-gray-500 mt-1 line-clamp-2">{v.description}</p>
 
                             <div className="mt-4 pt-4 border-t border-gray-100 space-y-2 text-xs text-gray-500">
-                                <p>Min order: {v.min_order_value.toLocaleString('vi-VN')}₫</p>
-                                <p>Valid: {new Date(v.start_date).toLocaleDateString()} - {new Date(v.end_date).toLocaleDateString()}</p>
+                                <p>Min order: {(v.min_order_value || 0).toLocaleString('vi-VN')}₫</p>
+                                <p>Valid: {new Date(v.start_date || new Date()).toLocaleDateString()} - {new Date(v.end_date || new Date()).toLocaleDateString()}</p>
                                 <p>Usage: {v.used_count || 0} / {v.usage_limit}</p>
                             </div>
 

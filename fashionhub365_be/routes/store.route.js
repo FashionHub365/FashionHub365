@@ -1,5 +1,6 @@
 const express = require('express');
 const auth = require('../middleware/auth');
+const upload = require('../middleware/upload');
 const validate = require('../middleware/validate');
 const storeValidation = require('../validations/store.validation');
 const storeController = require('../controllers/store.controller');
@@ -19,7 +20,13 @@ router.get('/following', auth.auth(), storeController.getFollowingStores);
 router
     .route('/:storeId')
     .get(validate(storeValidation.getStoreDetail), storeController.getStoreDetail)
-    .put(auth.auth(), auth.authorize(['STORE.UPDATE']), validate(storeValidation.updateStore), storeController.updateStore);
+    .put(
+        auth.auth(),
+        auth.authorize(['STORE.UPDATE']),
+        upload.fields([{ name: 'avatar', maxCount: 1 }, { name: 'banner', maxCount: 1 }]),
+        validate(storeValidation.updateStore),
+        storeController.updateStore
+    );
 
 // Public routes
 router.get('/:storeId/follower-count', storeController.getStoreFollowerCount);

@@ -29,8 +29,8 @@ const AdminVouchersPage = () => {
         try {
             setLoading(true);
             const res = await voucherApi.getVouchers();
-            if (res.data?.success) {
-                setVouchers(res.data.data.results || res.data.data || []);
+            if (res.success || res.data?.success) {
+                setVouchers(res.data?.items || res.data?.results || res.data?.data || res.data || res.items || []);
             }
         } catch (err) {
             setError('Failed to load vouchers');

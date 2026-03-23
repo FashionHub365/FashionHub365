@@ -6,9 +6,14 @@ import wishlistApi from "../../apis/wishlistApi";
 import { useAuth } from "../../contexts/AuthContext";
 import Skeleton from "../common/Skeleton";
 import { useCart } from "../../contexts/CartContext";
+import { isPrivilegedCommerceUser } from "../../utils/roleUtils";
+import { SizeGuideModal } from "./SizeGuideModal";
+import { FitFinder } from "./FitFinder";
+import { showLoginRequired } from "../../utils/swalUtils";
 
 export const ProductDetailsSection = ({ product, loading = false }) => {
   const { user } = useAuth();
+  const isBlockedBuyer = isPrivilegedCommerceUser(user);
   const navigate = useNavigate();
 
   // ── STATE ─────────────────────────────────────────────────────────
@@ -20,6 +25,7 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const { addToCart, loading: cartLoading } = useCart();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
 
   // ── FETCH WISHLIST STATUS ─────────────────────────────────────────────
   useEffect(() => {
@@ -42,7 +48,7 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
 
   const handleToggleWishlist = async () => {
     if (!user) {
-      navigate('/login');
+      showLoginRequired(navigate, "vào danh sách yêu thích");
       return;
     }
     if (!product?._id) return;
@@ -103,6 +109,26 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
     ? [...new Set(product.variants.filter((v) => v.attributes?.size).map((v) => v.attributes.size))]
     : staticSizes;
 
+  const getColorImageIndex = (colorIndex) => {
+    if (!productImages.length || colorVariants.length <= 1) {
+      return 0;
+    }
+
+    const selectedColor = colorVariants[colorIndex]?.name;
+    const variantWithImage = product?.variants?.find(
+      (v) => v.attributes?.color === selectedColor && v.image_url
+    );
+
+    if (variantWithImage && variantWithImage.image_url) {
+      const imgIdx = productImages.findIndex(img => img.src === variantWithImage.image_url);
+      if (imgIdx !== -1) return imgIdx;
+    }
+
+    // Heuristic fallback for older products or unmapped colors
+    const imagesPerColor = Math.max(1, Math.floor(productImages.length / colorVariants.length));
+    return Math.min(colorIndex * imagesPerColor, productImages.length - 1);
+  };
+
   const features = [
     { id: 1, icon: "/textures/productdetailpage/ship.jpg", title: "Free Shipping", description: "On all orders over 1.000.000₫" },
     { id: 2, icon: "/textures/productdetailpage/return.jpg", title: "Easy Returns", description: "Extended returns within 30 days" },
@@ -116,7 +142,7 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
       setCurrentImageIndex((prev) => (prev + 1) % productImages.length);
     }, 4000);
     return () => clearInterval(interval);
-  }, [productImages.length]);
+  }, [productImages]);
 
   // ── VARIANT & STOCK ──────────────────────────────────────
   const selectedColor = colorVariants[selectedColorIndex]?.name;
@@ -134,6 +160,10 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
   useEffect(() => {
     setQuantity(1);
   }, [selectedSize, selectedColorIndex]);
+
+  useEffect(() => {
+    setCurrentImageIndex(getColorImageIndex(selectedColorIndex));
+  }, [selectedColorIndex]);
 
   const originalPrice = product?.base_price || 238;
   const salePrice = matchedVariant?.price || originalPrice;
@@ -153,6 +183,15 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
   // ── ADD TO BAG (via CartContext) ──────────────────────────────────
   const handleAddToCart = async () => {
     if (!product) return;
+    if (!user) {
+      showLoginRequired(navigate, "thêm sản phẩm vào giỏ hàng");
+      return;
+    }
+    if (isBlockedBuyer) {
+      setCartMessage({ type: "error", text: "Admin và seller không thể mua hàng." });
+      setTimeout(() => setCartMessage(null), 3000);
+      return;
+    }
     if (!selectedSize) {
       setCartMessage({ type: "error", text: "Please select a size first." });
       setTimeout(() => setCartMessage(null), 3000);
@@ -251,7 +290,7 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
         </div>
 
         {/* Thumbnail Carousels */}
-        {productImages.length > 1 && (
+        {productImages.length > 0 && (
           <div className="w-full relative mt-2 group/carousel">
             <div className="flex gap-3 w-full overflow-x-auto snap-x scroll-smooth sm:justify-center [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {productImages.map((img, idx) => (
@@ -267,21 +306,25 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
             </div>
 
             {/* Left/Right Overlaid Arrows */}
-            <button
-              className="absolute left-0 top-1/2 -translate-y-1/2 h-[50px] w-7 bg-black/40 hover:bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity z-10"
-              onClick={() => setCurrentImageIndex(prev => prev === 0 ? productImages.length - 1 : prev - 1)}
-              aria-label="Previous image"
-            >
-              <CaretLeft className="w-5 h-5" />
-            </button>
+            {productImages.length > 1 && (
+              <>
+                <button
+                  className="absolute left-0 top-1/2 -translate-y-1/2 h-[50px] w-7 bg-black/40 hover:bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity z-10"
+                  onClick={() => setCurrentImageIndex(prev => prev === 0 ? productImages.length - 1 : prev - 1)}
+                  aria-label="Previous image"
+                >
+                  <CaretLeft className="w-5 h-5" />
+                </button>
 
-            <button
-              className="absolute right-0 top-1/2 -translate-y-1/2 h-[50px] w-7 bg-black/40 hover:bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity z-10"
-              onClick={() => setCurrentImageIndex(prev => (prev + 1) % productImages.length)}
-              aria-label="Next image"
-            >
-              <CaretRight className="w-5 h-5" />
-            </button>
+                <button
+                  className="absolute right-0 top-1/2 -translate-y-1/2 h-[50px] w-7 bg-black/40 hover:bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity z-10"
+                  onClick={() => setCurrentImageIndex(prev => (prev + 1) % productImages.length)}
+                  aria-label="Next image"
+                >
+                  <CaretRight className="w-5 h-5" />
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -402,9 +445,19 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
         {/* Chọn size */}
         <div className="flex flex-col items-start gap-2.5 px-0 py-[18px] relative self-stretch w-full flex-[0_0_auto]">
           <div className="flex items-start justify-between relative self-stretch w-full flex-[0_0_auto]">
-            <span className="font-text-200">Size</span>
-            <span className="font-text-200 underline cursor-pointer">Size Guide</span>
+            <span className="font-text-200 uppercase tracking-widest font-bold text-gray-400">Chọn Kích Cỡ</span>
+            <button
+              onClick={() => setIsSizeGuideOpen(true)}
+              className="font-text-200 underline cursor-pointer hover:text-blue-600 transition-colors"
+            >
+              Bảng Size (Size Guide)
+            </button>
           </div>
+          <SizeGuideModal
+            isOpen={isSizeGuideOpen}
+            onClose={() => setIsSizeGuideOpen(false)}
+            productType={product?.primary_category_id?.name?.includes("Bottom") ? "Bottom" : "Top"}
+          />
           <fieldset className="flex items-start gap-2 flex-wrap relative self-stretch w-full flex-[0_0_auto]">
             <legend className="sr-only">Select size</legend>
             {sizeVariants.map(s => {
@@ -524,21 +577,23 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
             </p>
           )}
           <div className="flex gap-2 w-full">
-            <button
-              type="button"
-              onClick={handleAddToCart}
-              disabled={cartLoading || isOutOfStock}
-              className={`flex-1 flex items-center justify-center gap-2.5 px-4 py-4 sm:py-5 transition-transform active:scale-[0.98] shadow-sm select-none
-                ${isOutOfStock
-                  ? "bg-gray-400 text-white cursor-not-allowed"
-                  : "bg-black text-white cursor-pointer hover:bg-gray-900 hover:shadow-md"
-                } disabled:opacity-80`}
-              aria-label={isOutOfStock ? "Out of stock" : "Add to bag"}
-            >
-              <span className="font-bold text-[15px] sm:text-[16px] text-center tracking-[0.1em] uppercase">
-                {cartLoading ? "Adding..." : isOutOfStock ? "Out Of Stock" : "Add To Bag"}
-              </span>
-            </button>
+            {!isBlockedBuyer && (
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={cartLoading || isOutOfStock}
+                className={`flex-1 flex items-center justify-center gap-2.5 px-4 py-4 sm:py-5 transition-transform active:scale-[0.98] shadow-sm select-none
+                  ${isOutOfStock
+                    ? "bg-gray-400 text-white cursor-not-allowed"
+                    : "bg-black text-white cursor-pointer hover:bg-gray-900 hover:shadow-md"
+                  } disabled:opacity-80`}
+                aria-label={isOutOfStock ? "Out of stock" : "Add to bag"}
+              >
+                <span className="font-bold text-[15px] sm:text-[16px] text-center tracking-[0.1em] uppercase">
+                  {cartLoading ? "Adding..." : isOutOfStock ? "Out Of Stock" : "Add To Bag"}
+                </span>
+              </button>
+            )}
             <button
               onClick={handleToggleWishlist}
               disabled={wishlistLoading}
@@ -583,6 +638,11 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
         <div className="flex flex-col items-start px-0 py-5 relative self-stretch w-full flex-[0_0_auto] mb-[-1.00px] ml-[-1.00px] mr-[-1.00px] border-b [border-bottom-style:solid] border-x-200">
           <span className="font-text-200 font-bold">Sustainability</span>
           <img src="/textures/productdetailpage/Sustainability.jpg" alt="Sustainability" className="mt-2 w-full object-contain" />
+        </div>
+
+        {/* Fit Finder Tool */}
+        <div className="w-full">
+          <FitFinder categoryName={categoryName} />
         </div>
       </aside>
     </section>

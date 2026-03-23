@@ -1,8 +1,22 @@
 const Joi = require('joi');
 
+const bankAccountSchema = Joi.object().keys({
+    account_name: Joi.string().trim().min(2).required(),
+    account_number: Joi.string().trim().min(6).required(),
+    bank_name: Joi.string().trim().min(2).required(),
+}).unknown(true);
+
+const informationSchema = Joi.object().keys({
+    addressesText: Joi.string().trim().min(5).required(),
+}).unknown(true);
+
 const storePayload = {
     name: Joi.string().trim().min(2).max(200),
     slug: Joi.string().trim().min(2).max(200),
+    avatar_url: Joi.string().allow(''),
+    banner_url: Joi.string().allow(''),
+    avatar: Joi.any(),
+    banner: Joi.any(),
     description: Joi.string().allow(''),
     email: Joi.string().email().allow(''),
     phone: Joi.string().allow(''),
@@ -26,6 +40,11 @@ const createStore = {
     body: Joi.object().keys({
         ...storePayload,
         name: storePayload.name.required(),
+        description: Joi.string().trim().min(10).required(),
+        email: Joi.string().email().required(),
+        phone: Joi.string().trim().min(8).required(),
+        information: informationSchema.required(),
+        bank_accounts: Joi.array().items(bankAccountSchema).min(1).required(),
     }),
 };
 

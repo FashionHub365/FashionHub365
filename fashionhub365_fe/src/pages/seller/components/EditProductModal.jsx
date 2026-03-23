@@ -3,33 +3,33 @@ import { getCategories, uploadImage } from '../../../services/productService';
 import listingApi from '../../../apis/listingApi';
 
 const COLOR_MAP = {
-  black: "#1a1a1a",
-  white: "#ffffff",
-  blue: "#21558d",
-  brown: "#925c37",
-  green: "#585b45",
-  grey: "#e1e1e3",
-  gray: "#e1e1e3",
-  orange: "#d38632",
-  pink: "#efcec9",
-  red: "#bd2830",
-  tan: "#b3a695",
-  navy: "#1b2a4a",
-  beige: "#f5e6c8",
-  yellow: "#f5c842",
-  purple: "#6b2fa0",
-  "đen": "#1a1a1a",
-  "trắng": "#ffffff",
-  "xám": "#e1e1e3",
-  "be": "#f5e6c8",
-  "collegiate green": "#1b4f23",
-  "black/white": "linear-gradient(135deg, #1a1a1a 50%, #ffffff 50%)",
-  "white/green": "linear-gradient(135deg, #ffffff 50%, #585b45 50%)",
+    black: "#1a1a1a",
+    white: "#ffffff",
+    blue: "#21558d",
+    brown: "#925c37",
+    green: "#585b45",
+    grey: "#e1e1e3",
+    gray: "#e1e1e3",
+    orange: "#d38632",
+    pink: "#efcec9",
+    red: "#bd2830",
+    tan: "#b3a695",
+    navy: "#1b2a4a",
+    beige: "#f5e6c8",
+    yellow: "#f5c842",
+    purple: "#6b2fa0",
+    "đen": "#1a1a1a",
+    "trắng": "#ffffff",
+    "xám": "#e1e1e3",
+    "be": "#f5e6c8",
+    "collegiate green": "#1b4f23",
+    "black/white": "linear-gradient(135deg, #1a1a1a 50%, #ffffff 50%)",
+    "white/green": "linear-gradient(135deg, #ffffff 50%, #585b45 50%)",
 };
 
 function getColorHex(colorName) {
-  if (!colorName) return "#cccccc";
-  return COLOR_MAP[colorName.toLowerCase()] || "#cccccc";
+    if (!colorName) return "#cccccc";
+    return COLOR_MAP[colorName.toLowerCase()] || "#cccccc";
 }
 
 const STATUS_LABELS = {
@@ -49,6 +49,7 @@ const EditProductModal = ({ product, onClose, onSave, storeStatus }) => {
         media: product.media || [],
         variants: product.variants || []
     });
+    const [colorImageMap, setColorImageMap] = useState({}); // { 'Red': 'url' }
 
     const [selectedColors, setSelectedColors] = useState([]);
     const [selectedSizes, setSelectedSizes] = useState([]);
@@ -68,12 +69,12 @@ const EditProductModal = ({ product, onClose, onSave, storeStatus }) => {
                     getCategories(),
                     listingApi.getFilterOptions()
                 ]);
-                
+
                 setCategories(catRes.data || catRes || []);
-                
+
                 if (optRes.success) {
                     setColorOptions(optRes.data.colors.map(name => ({ name, hex: getColorHex(name) })));
-                    
+
                     const sizes = optRes.data.sizes || [];
                     setWaistSizes(sizes.filter(s => !isNaN(parseInt(s))));
                     setClothingSizes(sizes.filter(s => isNaN(parseInt(s))));
@@ -104,6 +105,15 @@ const EditProductModal = ({ product, onClose, onSave, storeStatus }) => {
             setSelectedColors(Array.from(colors));
             setSelectedSizes(Array.from(sizes));
             setSizeType(detectedType);
+
+            // Initialize colorImageMap from existing variants
+            const initialMap = {};
+            product.variants.forEach(v => {
+                if (v.attributes?.color && v.image_url) {
+                    initialMap[v.attributes.color] = v.image_url;
+                }
+            });
+            setColorImageMap(initialMap);
         }
     }, [product]);
 
@@ -149,13 +159,13 @@ const EditProductModal = ({ product, onClose, onSave, storeStatus }) => {
     }, [selectedColors, selectedSizes, form.base_price]);
 
     const toggleColor = (colorName) => {
-        setSelectedColors(prev => 
+        setSelectedColors(prev =>
             prev.includes(colorName) ? prev.filter(c => c !== colorName) : [...prev, colorName]
         );
     };
 
     const toggleSize = (size) => {
-        setSelectedSizes(prev => 
+        setSelectedSizes(prev =>
             prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
         );
     };
@@ -176,6 +186,16 @@ const EditProductModal = ({ product, onClose, onSave, storeStatus }) => {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
+
+        // Auto-switch size type based on selected category
+        if (name === 'primary_category_id' && value) {
+            const selectedCat = categories.find(c => (c._id === value || c.id === value));
+            if (selectedCat) {
+                const catName = selectedCat.name.toLowerCase();
+                const isShoe = ['giày', 'dép', 'shoes', 'shoe', 'footwear'].some(kw => catName.includes(kw));
+                handleSizeTypeChange(isShoe ? 'shoe' : 'clothing');
+            }
+        }
     };
 
     const handleFileChange = async (e) => {
@@ -213,13 +233,13 @@ const EditProductModal = ({ product, onClose, onSave, storeStatus }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!form.name.trim()) { setError('Tên sản phẩm không được để trống'); return; }
         if (!form.primary_category_id) { setError('Vui lòng chọn danh mục'); return; }
         if (!form.base_price || Number(form.base_price) <= 0) { setError('Giá niêm yết phải lớn hơn 0'); return; }
         if (selectedColors.length === 0) { setError('Vui lòng chọn ít nhất một màu sắc'); return; }
         if (selectedSizes.length === 0) { setError('Vui lòng chọn ít nhất một kích cỡ'); return; }
-        
+
         const missingStock = form.variants.some(v => v.stock === '' || v.stock === null || v.stock < 0);
         if (missingStock) { setError('Vui lòng nhập số lượng tồn kho hợp lệ'); return; }
 
@@ -230,8 +250,14 @@ const EditProductModal = ({ product, onClose, onSave, storeStatus }) => {
         setLoading(true);
         setError('');
         try {
+            const finalVariants = form.variants.map(v => ({
+                ...v,
+                image_url: colorImageMap[v.attributes?.color] || (form.media.find(m => m.isPrimary)?.url || form.media[0]?.url)
+            }));
+
             await onSave(product._id, {
                 ...form,
+                variants: finalVariants,
                 base_price: Number(form.base_price) * 1000,
             });
             onClose();
@@ -275,7 +301,7 @@ const EditProductModal = ({ product, onClose, onSave, storeStatus }) => {
                             <div className="border-l-2 border-black pl-4">
                                 <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest">Thông tin cơ bản</h3>
                             </div>
-                            
+
                             <div className="space-y-5">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tên sản phẩm *</label>
@@ -323,13 +349,12 @@ const EditProductModal = ({ product, onClose, onSave, storeStatus }) => {
                                         <div className="relative">
                                             <select
                                                 name="status" value={form.status} onChange={handleChange}
-                                                className={`w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:border-black transition-all outline-none text-sm cursor-pointer appearance-none shadow-sm font-bold ${
-                                                    storeStatus !== 'active' && form.status === 'active' ? 'text-amber-600' : ''
-                                                }`}
+                                                className={`w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:border-black transition-all outline-none text-sm cursor-pointer appearance-none shadow-sm font-bold ${storeStatus !== 'active' && form.status === 'active' ? 'text-amber-600' : ''
+                                                    }`}
                                             >
                                                 {Object.entries(STATUS_LABELS).map(([val, { label }]) => (
-                                                    <option 
-                                                        key={val} 
+                                                    <option
+                                                        key={val}
                                                         value={val}
                                                         disabled={val === 'active' && storeStatus !== 'active'}
                                                     >
@@ -348,7 +373,58 @@ const EditProductModal = ({ product, onClose, onSave, storeStatus }) => {
                             </div>
                         </div>
 
-                        {/* Section 2: Colors & Sizes */}
+                        {/* Section 2: Images - Moved up and upgraded */}
+                        <div className="space-y-6 pt-2">
+                            <div className="flex items-center justify-between border-l-2 border-black pl-4">
+                                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest">Hình ảnh sản phẩm *</h3>
+                                <span className="text-[9px] text-gray-400 font-medium">Tối đa 5 ảnh. Ảnh số 1 sẽ làm ảnh đại diện.</span>
+                            </div>
+
+                            <div className="flex flex-wrap gap-4 bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                                {form.media.map((img, idx) => (
+                                    <div key={img.publicId} className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-100 bg-white group shadow-sm transition-transform hover:scale-105">
+                                        <img src={img.url} alt="product" className="w-full h-full object-cover" />
+
+                                        {/* Index Badge */}
+                                        <div className="absolute top-1 left-1 bg-black/70 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold backdrop-blur-sm border border-white/20">
+                                            {idx + 1}
+                                        </div>
+
+                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <button
+                                                type="button" onClick={() => removeImage(img.publicId)}
+                                                className="bg-white/20 hover:bg-white/40 p-2 rounded-full text-white backdrop-blur-sm transition-all"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        {img.isPrimary && (
+                                            <div className="absolute bottom-0 inset-x-0 bg-black text-white text-[8px] py-1 text-center font-bold uppercase tracking-widest">Main</div>
+                                        )}
+                                    </div>
+                                ))}
+
+                                {form.media.length < 5 && (
+                                    <label className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:border-black hover:bg-gray-50 transition-all group">
+                                        {uploading ? (
+                                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-black border-t-transparent"></div>
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-1 text-gray-400 group">
+                                                <svg className="w-5 h-5 text-gray-300 group-hover:text-black transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                </svg>
+                                                <span className="text-[9px] font-bold uppercase tracking-tighter">Thêm ảnh</span>
+                                            </div>
+                                        )}
+                                        <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={uploading} multiple />
+                                    </label>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Section 3: Colors & Sizes */}
                         <div className="space-y-6 pt-2">
                             <div className="border-l-2 border-black pl-4">
                                 <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest">Size & Màu sắc</h3>
@@ -364,15 +440,85 @@ const EditProductModal = ({ product, onClose, onSave, storeStatus }) => {
                                         ) : colorOptions.map(color => (
                                             <button
                                                 key={color.name} type="button" onClick={() => toggleColor(color.name)}
-                                                className={`group flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg border transition-all ${
-                                                    selectedColors.includes(color.name) ? 'border-black bg-black text-white shadow-md' : 'border-gray-100 bg-gray-50 hover:border-gray-300'
-                                                }`}
+                                                className={`group flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg border transition-all ${selectedColors.includes(color.name) ? 'border-black bg-black text-white shadow-md' : 'border-gray-100 bg-gray-50 hover:border-gray-300'
+                                                    }`}
                                             >
                                                 <div className="w-3 h-3 rounded-full border border-black/5" style={{ background: color.hex }}></div>
                                                 <span className="text-[11px] font-bold">{color.name}</span>
                                             </button>
                                         ))}
                                     </div>
+
+                                    {/* Selected Colors with Image Assignment */}
+                                    {selectedColors.length > 0 && (
+                                        <div className="w-full mt-6 space-y-4">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block text-center">Gán ảnh cho màu sắc</label>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                {selectedColors.map(colorName => (
+                                                    <div key={colorName} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-4 h-4 rounded-full border border-gray-200" style={{ background: getColorHex(colorName) }}></div>
+                                                            <span className="text-xs font-bold text-gray-700">{colorName}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            {colorImageMap[colorName] ? (
+                                                                <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-gray-200">
+                                                                    <img src={colorImageMap[colorName]} alt="" className="w-full h-full object-cover" />
+                                                                    <button
+                                                                        type="button" onClick={() => setColorImageMap(prev => ({ ...prev, [colorName]: null }))}
+                                                                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-sm"
+                                                                    >
+                                                                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="w-10 h-10 rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center">
+                                                                    <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                                                </div>
+                                                            )}
+
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {form.media.length > 0 ? (
+                                                                    form.media.map((img, i) => (
+                                                                        <button
+                                                                            key={img.publicId}
+                                                                            type="button"
+                                                                            onClick={() => setColorImageMap(prev => ({
+                                                                                ...prev,
+                                                                                [colorName]: prev[colorName] === img.url ? null : img.url
+                                                                            }))}
+                                                                            className={`relative w-10 h-10 rounded-lg overflow-hidden border-2 transition-all ${colorImageMap[colorName] === img.url
+                                                                                ? 'border-black scale-110 shadow-md ring-2 ring-black/5'
+                                                                                : 'border-transparent opacity-40 hover:opacity-100 hover:scale-105'
+                                                                                }`}
+                                                                            title={`Ảnh ${i + 1}`}
+                                                                        >
+                                                                            <img src={img.url} alt="" className="w-full h-full object-cover" />
+                                                                            <div className="absolute top-0.5 left-0.5 bg-black/60 text-white min-w-[14px] h-[14px] px-1 rounded-full flex items-center justify-center text-[8px] font-bold backdrop-blur-sm">
+                                                                                {i + 1}
+                                                                            </div>
+                                                                            {colorImageMap[colorName] === img.url && (
+                                                                                <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
+                                                                                    <svg className="w-4 h-4 text-white drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                                                    </svg>
+                                                                                </div>
+                                                                            )}
+                                                                        </button>
+                                                                    ))
+                                                                ) : (
+                                                                    <span className="text-[10px] text-gray-400 italic font-medium bg-gray-100 px-3 py-1.5 rounded-lg border border-dashed border-gray-200">Chưa có ảnh</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {form.media.length === 0 && (
+                                                <p className="text-[9px] text-red-400 text-center font-medium">(!) Vui lòng tải ảnh lên ở phần "HÌNH ẢNH SẢN PHẨM *" phía trên trước khi gán cho màu sắc.</p>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Sizes - Centered Layout */}
@@ -381,9 +527,8 @@ const EditProductModal = ({ product, onClose, onSave, storeStatus }) => {
                                         <button
                                             type="button"
                                             onClick={() => handleSizeTypeChange('clothing')}
-                                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                                                sizeType === 'clothing' ? 'bg-white shadow-sm text-black' : 'text-gray-400 hover:text-gray-600'
-                                            }`}
+                                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${sizeType === 'clothing' ? 'bg-white shadow-sm text-black' : 'text-gray-400 hover:text-gray-600'
+                                                }`}
                                         >
                                             <input type="radio" checked={sizeType === 'clothing'} readOnly className="hidden" />
                                             Kích thước Quần áo
@@ -391,9 +536,8 @@ const EditProductModal = ({ product, onClose, onSave, storeStatus }) => {
                                         <button
                                             type="button"
                                             onClick={() => handleSizeTypeChange('shoe')}
-                                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                                                sizeType === 'shoe' ? 'bg-white shadow-sm text-black' : 'text-gray-400 hover:text-gray-600'
-                                            }`}
+                                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${sizeType === 'shoe' ? 'bg-white shadow-sm text-black' : 'text-gray-400 hover:text-gray-600'
+                                                }`}
                                         >
                                             <input type="radio" checked={sizeType === 'shoe'} readOnly className="hidden" />
                                             Kích thước Giày
@@ -409,9 +553,8 @@ const EditProductModal = ({ product, onClose, onSave, storeStatus }) => {
                                                 ) : clothingSizes.map(size => (
                                                     <button
                                                         key={size} type="button" onClick={() => toggleSize(size)}
-                                                        className={`w-11 h-11 flex items-center justify-center text-[11px] font-bold rounded-lg border transition-all ${
-                                                            selectedSizes.includes(size) ? 'bg-black border-black text-white shadow-md scale-105' : 'bg-white border-gray-200 text-gray-600 hover:border-black'
-                                                        }`}
+                                                        className={`w-11 h-11 flex items-center justify-center text-[11px] font-bold rounded-lg border transition-all ${selectedSizes.includes(size) ? 'bg-black border-black text-white shadow-md scale-105' : 'bg-white border-gray-200 text-gray-600 hover:border-black'
+                                                            }`}
                                                     >
                                                         {size}
                                                     </button>
@@ -427,9 +570,8 @@ const EditProductModal = ({ product, onClose, onSave, storeStatus }) => {
                                                 ) : waistSizes.map(size => (
                                                     <button
                                                         key={size} type="button" onClick={() => toggleSize(size)}
-                                                        className={`w-11 h-11 flex items-center justify-center text-[11px] font-bold rounded-lg border transition-all ${
-                                                            selectedSizes.includes(size) ? 'bg-black border-black text-white shadow-md scale-105' : 'bg-white border-gray-200 text-gray-600 hover:border-black'
-                                                        }`}
+                                                        className={`w-11 h-11 flex items-center justify-center text-[11px] font-bold rounded-lg border transition-all ${selectedSizes.includes(size) ? 'bg-black border-black text-white shadow-md scale-105' : 'bg-white border-gray-200 text-gray-600 hover:border-black'
+                                                            }`}
                                                     >
                                                         {size}
                                                     </button>
@@ -475,33 +617,6 @@ const EditProductModal = ({ product, onClose, onSave, storeStatus }) => {
                             </div>
                         </div>
 
-                        {/* Section 3: Images */}
-                        <div className="space-y-6 pt-2">
-                            <div className="flex items-center justify-between border-l-2 border-black pl-4">
-                                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest">Hình ảnh *</h3>
-                            </div>
-                            <div className="flex flex-wrap gap-4">
-                                {form.media.map((img) => (
-                                    <div key={img.publicId} className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-100 bg-white group">
-                                        <img src={img.url} alt="product" className="w-full h-full object-cover" />
-                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <button type="button" onClick={() => removeImage(img.publicId)} className="bg-white/20 p-2 rounded-full text-white">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                                {form.media.length < 5 && (
-                                    <label className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:border-black">
-                                        <span className="text-[9px] font-bold text-gray-400">THÊM ẢNH</span>
-                                        <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={uploading} multiple />
-                                    </label>
-                                )}
-                            </div>
-                        </div>
-
                         {/* Section 4: Description */}
                         <div className="space-y-6 pt-2">
                             <div className="border-l-2 border-black pl-4">
@@ -529,7 +644,7 @@ const EditProductModal = ({ product, onClose, onSave, storeStatus }) => {
 
                 <div className="px-8 py-6 border-t border-gray-100 flex gap-4 bg-white flex-none">
                     <button onClick={onClose} className="px-8 py-3.5 text-gray-400 font-bold text-[10px] uppercase tracking-widest">Hủy bỏ</button>
-                    <button 
+                    <button
                         onClick={(e) => handleSubmit(e)} disabled={loading || uploading}
                         className="flex-1 px-8 py-3.5 bg-black text-white rounded-lg font-bold text-[10px] uppercase tracking-widest shadow-lg"
                     >

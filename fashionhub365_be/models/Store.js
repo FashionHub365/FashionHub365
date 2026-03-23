@@ -17,6 +17,12 @@ const storeSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    avatar_url: {
+        type: String
+    },
+    banner_url: {
+        type: String
+    },
     slug: {
         type: String,
         unique: true,

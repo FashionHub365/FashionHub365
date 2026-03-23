@@ -89,7 +89,7 @@ const SellerProducts = () => {
             setSearchInput('');
             setStatusFilter('all');
             setCategoryFilter('all');
-            // State updates will trigger useEffect -> loadProducts
+            await loadProducts();
         } catch (err) {
             console.error('Error creating product:', err);
             throw err;
