@@ -29,7 +29,7 @@ export const StoreProfile = () => {
     search: "",
     sort: "newest",
     page: 1,
-    limit: 12, // More products per page for store view
+    limit: 8, // Tối đa 8 sản phẩm 1 trang
   });
 
   const [categories, setCategories] = useState([]);
@@ -217,6 +217,15 @@ export const StoreProfile = () => {
     setFilters((prev) => ({ ...prev, sort: e.target.value, page: 1 }));
   };
 
+  const totalPages = Math.ceil(total / filters.limit);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setFilters(prev => ({ ...prev, page: newPage }));
+      window.scrollTo({ top: 300, behavior: "smooth" });
+    }
+  };
+
   const visibleCategories = categories.slice(0, 5);
   const moreCategories = categories.slice(5);
   const activeCategoryName =
@@ -326,8 +335,8 @@ export const StoreProfile = () => {
 
         <main className="w-full">
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-              {[...Array(12)].map((_, i) => (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {[...Array(8)].map((_, i) => (
                 <div key={i} className="bg-white p-2 rounded-sm shadow-sm animate-pulse">
                   <div className="bg-gray-100 aspect-square rounded-sm mb-2"></div>
                   <div className="h-3 bg-gray-100 rounded-sm w-full mb-2"></div>
@@ -344,12 +353,52 @@ export const StoreProfile = () => {
               <button onClick={handleClearSearch} className="mt-4 text-[#ee4d2d] text-xs font-bold hover:underline">Xóa bộ lọc</button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-              {products.map((product) => (
-                <div key={product._id} className="bg-white hover:border-[#ee4d2d] border border-transparent transition-all hover:shadow-lg rounded-sm overflow-hidden h-full">
-                  <StoreProductCard product={product} activeColor={filters.color} />
+            <div className="flex flex-col gap-8 w-full">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {products.map((product) => (
+                  <div key={product._id} className="bg-white hover:border-[#ee4d2d] border border-transparent transition-all hover:shadow-lg rounded-sm overflow-hidden h-full">
+                    <StoreProductCard product={product} activeColor={filters.color} />
+                  </div>
+                ))}
+              </div>
+              
+              {/* Pagination controls */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center mt-4 gap-2 pb-8">
+                  <button 
+                    onClick={() => handlePageChange(filters.page - 1)}
+                    disabled={filters.page === 1}
+                    className="h-10 px-4 flex items-center justify-center border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed bg-white font-medium text-gray-500 transition-colors"
+                  >
+                    Previous
+                  </button>
+                  
+                  {[...Array(totalPages)].map((_, idx) => {
+                    const pageNum = idx + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`w-10 h-10 flex items-center justify-center border transition-colors font-medium text-[15px] ${
+                          filters.page === pageNum
+                            ? "bg-black text-white border-black"
+                            : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+
+                  <button 
+                    onClick={() => handlePageChange(filters.page + 1)}
+                    disabled={filters.page === totalPages}
+                    className="h-10 px-4 flex items-center justify-center border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed bg-white font-medium text-gray-800 transition-colors"
+                  >
+                    Next
+                  </button>
                 </div>
-              ))}
+              )}
             </div>
           )}
         </main>
