@@ -90,8 +90,10 @@ const chatService = {
      */
     saveMessageForAI: async ({ userId, role, text }) => {
         try {
+            // Lưu sender_user_id = userId cho cả 2 role 'user' và 'model' 
+            // để phân định rõ ràng đoạn chat này thuộc về user nào, tránh query nhầm chéo qua user khác
             const message = await ChatMessage.create({
-                sender_user_id: role === 'user' ? userId : null,
+                sender_user_id: userId, 
                 role,
                 message: text,
                 sent_at: new Date()
@@ -108,11 +110,10 @@ const chatService = {
     getHistory: async (userId) => {
         try {
             if (!userId) return [];
+            // Chỉ query chính xác những tin nhắn thuộc về userId này
             const messages = await ChatMessage.find({
-                $or: [
-                    { sender_user_id: userId },
-                    { role: 'model' }
-                ]
+                sender_user_id: userId,
+                role: { $in: ['user', 'model'] }
             })
                 .sort({ sent_at: -1 })
                 .limit(20)
