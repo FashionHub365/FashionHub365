@@ -22,6 +22,14 @@ const MAPPING = {
   'cart.fill': 'shopping-cart',
   'person.fill': 'person',
   'magnifyingglass': 'search',
+  'pencil.circle': 'edit',
+  'trash.circle': 'delete',
+  'list.bullet.rectangle.portrait': 'list-alt',
+  'tag.fill': 'local-offer',
+  'timer': 'timer',
+  'cube.box.fill': 'inventory-2',
+  'dollarsign.circle.fill': 'account-balance-wallet',
+  'bell.fill': 'notifications',
 } as IconMapping;
 
 /**
