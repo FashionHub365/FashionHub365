@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { getUserRoleSlugs } from '../../utils/roleUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -117,11 +118,11 @@ export default function ProfileScreen() {
             <View style={styles.profileNameArea}>
               <Text style={styles.profileName}>{displayName}</Text>
               <Text style={styles.profileEmail}>{userEmail}</Text>
-              {user?.role && user.role !== 'user' && (
-                <View style={styles.rolePill}>
-                  <Text style={styles.rolePillText}>{user.role.toUpperCase()}</Text>
+              {getUserRoleSlugs(user).filter(r => r !== 'user').map(role => (
+                <View key={role} style={styles.rolePill}>
+                  <Text style={styles.rolePillText}>{role.toUpperCase()}</Text>
                 </View>
-              )}
+              ))}
             </View>
 
             <TouchableOpacity style={styles.editProfileBtn}>
@@ -167,27 +168,37 @@ export default function ProfileScreen() {
         </View>
 
         {/* ── ADMIN / SELLER SHORTCUTS ── */}
-        {(user?.role === 'admin' || user?.role === 'seller') && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Quản Lý</Text>
-            {user?.role === 'admin' && (
-              <MenuItem
-                icon="shield-checkmark-outline"
-                iconBg="#e5f0ff"
-                iconColor="#1a73e8"
-                label="Admin Dashboard"
-                onPress={() => router.push('/(admin)/categories')}
-              />
-            )}
-            <MenuItem
-              icon="storefront-outline"
-              iconBg="#f5f5f5"
-              iconColor="#111"
-              label="Seller Dashboard"
-              onPress={() => router.push('/(seller)/dashboard')}
-            />
-          </View>
-        )}
+        {(() => {
+          const roles = getUserRoleSlugs(user);
+          const isAdmin = roles.includes('admin');
+          const isSeller = roles.includes('seller');
+
+          if (!isAdmin && !isSeller) return null;
+
+          return (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Quản Lý</Text>
+              {isAdmin && (
+                <MenuItem
+                  icon="shield-checkmark-outline"
+                  iconBg="#e5f0ff"
+                  iconColor="#1a73e8"
+                  label="Admin Dashboard"
+                  onPress={() => router.push('/(admin)/dashboard')}
+                />
+              )}
+              {isSeller && (
+                <MenuItem
+                  icon="storefront-outline"
+                  iconBg="#f5f5f5"
+                  iconColor="#111"
+                  label="Seller Dashboard"
+                  onPress={() => router.push('/(seller)/dashboard')}
+                />
+              )}
+            </View>
+          );
+        })()}
 
         {/* ── MY ACCOUNT ── */}
         <View style={styles.card}>
