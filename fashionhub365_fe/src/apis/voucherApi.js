@@ -34,6 +34,28 @@ const voucherApi = {
     // ADMIN: Delete voucher
     deleteVoucher(id) {
         return axiosInstance.delete(`/vouchers/${id}`);
+    },
+
+    // ── SELLER ──────────────────────────────────────
+
+    // SELLER: Get store vouchers
+    getSellerVouchers(params) {
+        return axiosInstance.get('/vouchers/seller', { params });
+    },
+
+    // SELLER: Create store voucher
+    createSellerVoucher(data) {
+        return axiosInstance.post('/vouchers/seller', data);
+    },
+
+    // SELLER: Update store voucher
+    updateSellerVoucher(id, data) {
+        return axiosInstance.put(`/vouchers/seller/${id}`, data);
+    },
+
+    // SELLER: Delete store voucher
+    deleteSellerVoucher(id) {
+        return axiosInstance.delete(`/vouchers/seller/${id}`);
     }
 };
 

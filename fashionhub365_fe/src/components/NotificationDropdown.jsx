@@ -25,8 +25,8 @@ const NotificationDropdown = ({ onClose }) => {
         setLoading(true);
         try {
             const res = await notificationApi.getNotifications({ limit: 10 });
-            if (res.data?.success) {
-                setNotifications(res.data.data.items || []);
+            if (res?.success) {
+                setNotifications(res?.data?.items || res?.items || []);
             }
         } catch (error) {
             console.error('Failed to load notifications:', error);

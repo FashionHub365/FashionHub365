@@ -1,84 +1,126 @@
-import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import chatApi from '../apis/chatApi';
 
 const ChatContext = createContext();
+
 export const useChat = () => useContext(ChatContext);
 
-const SOCKET_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
+
+const getSocketUrl = (apiUrl) => {
+    try {
+        return new URL(apiUrl).origin;
+    } catch {
+        return apiUrl.replace(/\/api\/v\d+\/?$/, '').replace(/\/api\/?$/, '') || 'http://localhost:5000';
+    }
+};
+
+const SOCKET_URL = getSocketUrl(API_URL);
 
 export const ChatProvider = ({ children }) => {
     const { user, isAuthenticated } = useAuth();
     const socketRef = useRef(null);
+    const sessionsRef = useRef([]);
+    const activeSessionRef = useRef(null);
 
     const [sessions, setSessions] = useState([]);
-    const [activeSession, setActiveSession] = useState(null); // { _id, store, ... }
+    const [activeSession, setActiveSession] = useState(null);
     const [messages, setMessages] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
 
-    // Tổng số tin chưa đọc
-    const unreadCount = sessions.reduce((sum, s) => sum + (s.unreadCount || 0), 0);
+    useEffect(() => {
+        sessionsRef.current = sessions;
+    }, [sessions]);
 
-    // ── Load danh sách sessions ─────────────────────────────────────────
+    useEffect(() => {
+        activeSessionRef.current = activeSession;
+    }, [activeSession]);
+
+    const unreadCount = sessions.reduce((sum, session) => sum + (session.unreadCount || 0), 0);
+
+    const joinKnownRooms = useCallback((socket, sessionsToJoin = sessionsRef.current, currentActiveSession = activeSessionRef.current) => {
+        if (!socket?.connected) return;
+
+        sessionsToJoin.forEach((session) => {
+            if (session?._id) {
+                socket.emit('join_session', { sessionId: session._id });
+            }
+        });
+
+        if (currentActiveSession?._id) {
+            socket.emit('join_session', { sessionId: currentActiveSession._id });
+        }
+    }, []);
+
     const loadSessions = useCallback(async () => {
         if (!isAuthenticated) return;
+
         try {
             const res = await chatApi.getMySessions();
-            if (res.success) {
-                setSessions(res.data);
-                // Tự động join tất cả các room để nhận tin nhắn realtime cho các chat chưa mở
-                res.data.forEach(s => {
-                    socketRef.current?.emit('join_session', { sessionId: s._id });
-                });
-            }
-        } catch { /* ignore */ }
-    }, [isAuthenticated]);
+            if (!res.success) return;
 
-    useEffect(() => { loadSessions(); }, [loadSessions]);
+            setSessions(res.data);
+            joinKnownRooms(socketRef.current, res.data, activeSessionRef.current);
+        } catch {
+            // Ignore chat sidebar refresh errors for now.
+        }
+    }, [isAuthenticated, joinKnownRooms]);
 
-    // ── Khởi tạo socket khi user đăng nhập ─────────────────────────────
     useEffect(() => {
-        if (!isAuthenticated || !user) return;
+        loadSessions();
+    }, [loadSessions]);
+
+    useEffect(() => {
+        if (!isAuthenticated || !user) return undefined;
 
         const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
         socketRef.current = socket;
 
-        // Nhận tin nhắn realtime
+        socket.on('connect', () => {
+            joinKnownRooms(socket);
+        });
+
         socket.on('new_message', (msg) => {
             setMessages((prev) => {
-                // Tránh duplicate
-                if (prev.find((m) => m._id === msg._id)) return prev;
+                if (prev.some((message) => message._id === msg._id)) return prev;
+
+                const isForActiveSession = activeSessionRef.current && String(activeSessionRef.current._id) === String(msg.chat_session_id);
+                if (!isForActiveSession) return prev;
+
                 return [...prev, msg];
             });
 
-            // Cập nhật lastMessage + unreadCount trong sessions
             setSessions((prev) => {
-                const sessionExists = prev.find(s => String(s._id) === String(msg.chat_session_id));
-                
+                const sessionExists = prev.some((session) => String(session._id) === String(msg.chat_session_id));
+
                 if (!sessionExists) {
-                    // Nếu session chưa có trong list (ví dụ khách mới chat lần đầu), load lại list
                     loadSessions();
                     return prev;
                 }
 
-                return prev.map((s) => {
-                    if (String(s._id) !== String(msg.chat_session_id)) return s;
-                    // Quan trọng: Phải so sánh nhạy bén với activeSessionRef
+                return prev.map((session) => {
+                    if (String(session._id) !== String(msg.chat_session_id)) return session;
+
                     const isActive = activeSessionRef.current && String(activeSessionRef.current._id) === String(msg.chat_session_id);
+
                     return {
-                        ...s,
+                        ...session,
                         lastMessage: msg,
-                        unreadCount: isActive ? 0 : (s.unreadCount || 0) + 1,
+                        unreadCount: isActive ? 0 : (session.unreadCount || 0) + 1,
                     };
                 });
             });
         });
 
-        // Đầu kia đã đọc → reset unread cho session đó
         socket.on('messages_read', ({ sessionId }) => {
             setSessions((prev) =>
-                prev.map((s) => (String(s._id) === sessionId ? { ...s, unreadCount: 0 } : s))
+                prev.map((session) => (
+                    String(session._id) === String(sessionId)
+                        ? { ...session, unreadCount: 0 }
+                        : session
+                ))
             );
         });
 
@@ -86,57 +128,53 @@ export const ChatProvider = ({ children }) => {
             socket.disconnect();
             socketRef.current = null;
         };
-    }, [isAuthenticated, user, loadSessions]);
+    }, [isAuthenticated, joinKnownRooms, loadSessions, user]);
 
-    // Ref để event listener 'new_message' có thể truy cập activeSession
-    const activeSessionRef = useRef(activeSession);
-    useEffect(() => { activeSessionRef.current = activeSession; }, [activeSession]);
-
-    // ── Mở chat với 1 store ─────────────────────────────────────────────
     const openChat = useCallback(async (storeId, storeInfo = null) => {
         if (!isAuthenticated) return;
+
         try {
             const res = await chatApi.getOrCreateSession(storeId);
             if (!res.success) return;
+
             const session = { ...res.data, store: storeInfo };
             setActiveSession(session);
             setIsOpen(true);
 
-            // Load lịch sử
             const msgRes = await chatApi.getMessages(session._id);
-            if (msgRes.success) setMessages(msgRes.data);
+            if (msgRes.success) {
+                setMessages(msgRes.data);
+            }
 
-            // Join socket room
             socketRef.current?.emit('join_session', { sessionId: session._id });
 
-            // Đánh dấu đã đọc
             await chatApi.markRead(session._id);
-            socketRef.current?.emit('mark_read', { sessionId: session._id, readerUserId: user._id || user.id });
+            socketRef.current?.emit('mark_read', { sessionId: session._id, readerUserId: user?._id || user?.id });
 
-            // Cập nhật sessions list
             await loadSessions();
         } catch (err) {
             console.error('[ChatContext] openChat error:', err);
         }
-    }, [isAuthenticated, user, loadSessions]);
+    }, [isAuthenticated, loadSessions, user]);
 
-    // ── Mở session từ danh sách (dành cho seller hoặc user) ────────────
     const openSession = useCallback(async (session) => {
         setActiveSession(session);
         setIsOpen(true);
 
         const msgRes = await chatApi.getMessages(session._id);
-        if (msgRes.success) setMessages(msgRes.data);
+        if (msgRes.success) {
+            setMessages(msgRes.data);
+        }
 
         socketRef.current?.emit('join_session', { sessionId: session._id });
         await chatApi.markRead(session._id);
         socketRef.current?.emit('mark_read', { sessionId: session._id, readerUserId: user?._id || user?.id });
         await loadSessions();
-    }, [user, loadSessions]);
+    }, [loadSessions, user]);
 
-    // ── Gửi tin nhắn ───────────────────────────────────────────────────
     const sendMessage = useCallback((message) => {
         if (!activeSession || !message.trim() || !socketRef.current) return;
+
         socketRef.current.emit('send_message', {
             sessionId: activeSession._id,
             message: message.trim(),
@@ -144,7 +182,6 @@ export const ChatProvider = ({ children }) => {
         });
     }, [activeSession, user]);
 
-    // ── Đóng chat ──────────────────────────────────────────────────────
     const closeChat = useCallback(() => {
         setIsOpen(false);
         setActiveSession(null);
@@ -152,10 +189,20 @@ export const ChatProvider = ({ children }) => {
     }, []);
 
     return (
-        <ChatContext.Provider value={{
-            sessions, activeSession, messages, isOpen, unreadCount,
-            openChat, openSession, sendMessage, closeChat, loadSessions,
-        }}>
+        <ChatContext.Provider
+            value={{
+                sessions,
+                activeSession,
+                messages,
+                isOpen,
+                unreadCount,
+                openChat,
+                openSession,
+                sendMessage,
+                closeChat,
+                loadSessions,
+            }}
+        >
             {children}
         </ChatContext.Provider>
     );

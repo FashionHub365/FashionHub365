@@ -43,6 +43,25 @@ const applyVoucher = catchAsync(async (req, res) => {
     res.status(httpStatus.OK).send({ success: true, data: result });
 });
 
+// ── Seller-specific handlers ────────────────────────────────────
+
+const createSellerVoucher = catchAsync(async (req, res) => {
+    const data = { ...req.body, store_id: req.storeId };
+    const result = await voucherService.createVoucher(data);
+    res.status(httpStatus.CREATED).send({ success: true, data: result });
+});
+
+const getSellerVouchers = catchAsync(async (req, res) => {
+    const query = { ...req.query, store_id: req.storeId };
+    const result = await voucherService.getVouchers(query);
+    res.status(httpStatus.OK).send({ success: true, data: result });
+});
+
+const updateSellerVoucher = catchAsync(async (req, res) => {
+    const result = await voucherService.updateVoucher(req.params.id, req.body, req.storeId);
+    res.status(httpStatus.OK).send({ success: true, data: result });
+});
+
 module.exports = {
     createVoucher,
     getVouchers,
@@ -51,5 +70,8 @@ module.exports = {
     deleteVoucher,
     claimVoucher,
     getMyVouchers,
-    applyVoucher
+    applyVoucher,
+    createSellerVoucher,
+    getSellerVouchers,
+    updateSellerVoucher
 };

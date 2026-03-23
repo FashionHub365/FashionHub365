@@ -2,6 +2,21 @@ import React, { useState, useEffect } from 'react';
 import voucherApi from '../../../apis/voucherApi';
 import { confirmAction, showSuccess, showError } from '../../../utils/swalUtils';
 
+const toInputDate = (value) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return localDate.toISOString().split('T')[0];
+};
+
+const toBoundaryIsoString = (value, boundary) => {
+    if (!value) return null;
+    const time = boundary === 'end' ? '23:59:59.999' : '00:00:00.000';
+    const localDate = new Date(`${value}T${time}`);
+    return Number.isNaN(localDate.getTime()) ? null : localDate.toISOString();
+};
+
 const AdminVouchersPage = () => {
     const [vouchers, setVouchers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -12,9 +27,11 @@ const AdminVouchersPage = () => {
     // Form state
     const [formData, setFormData] = useState({
         code: '',
+        name: '',
         description: '',
         discount_type: 'percent',
         discount_value: '',
+        max_discount: '',
         min_order_amount: '',
         start_date: '',
         end_date: '',
@@ -50,21 +67,25 @@ const AdminVouchersPage = () => {
             setEditingVoucher(voucher);
             setFormData({
                 code: voucher.code,
+                name: voucher.name || '',
                 description: voucher.description || '',
                 discount_type: voucher.discount_type,
                 discount_value: voucher.discount_value,
+                max_discount: voucher.max_discount || '',
                 min_order_amount: voucher.min_order_amount || 0,
-                start_date: voucher.start_date ? new Date(voucher.start_date).toISOString().split('T')[0] : '',
-                end_date: voucher.end_date ? new Date(voucher.end_date).toISOString().split('T')[0] : '',
+                start_date: toInputDate(voucher.start_date),
+                end_date: toInputDate(voucher.end_date),
                 usage_limit: voucher.usage_limit || 1
             });
         } else {
             setEditingVoucher(null);
             setFormData({
                 code: '',
+                name: '',
                 description: '',
                 discount_type: 'percent',
                 discount_value: '',
+                max_discount: '',
                 min_order_amount: '',
                 start_date: '',
                 end_date: '',
@@ -82,10 +103,22 @@ const AdminVouchersPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            const payload = {
+                ...formData,
+                discount_value: Number(formData.discount_value),
+                min_order_amount: Number(formData.min_order_amount || 0),
+                usage_limit: Number(formData.usage_limit || 1),
+                max_discount: formData.discount_type === 'percent' && formData.max_discount !== ''
+                    ? Number(formData.max_discount)
+                    : null,
+                start_date: toBoundaryIsoString(formData.start_date, 'start'),
+                end_date: toBoundaryIsoString(formData.end_date, 'end'),
+            };
+
             if (editingVoucher) {
-                await voucherApi.updateVoucher(editingVoucher._id, formData);
+                await voucherApi.updateVoucher(editingVoucher._id, payload);
             } else {
-                await voucherApi.createVoucher(formData);
+                await voucherApi.createVoucher(payload);
             }
             closeModal();
             showSuccess('Thông tin Voucher đã được lưu thành công.');
@@ -213,13 +246,23 @@ const AdminVouchersPage = () => {
                         </div>
                         <div className="p-6">
                             <form onSubmit={handleSubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Voucher Code</label>
-                                    <input
-                                        type="text" name="code" value={formData.code} onChange={handleInputChange} required
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none uppercase"
-                                        placeholder="E.g., SUMMER50"
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="col-span-1">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Voucher Name</label>
+                                        <input
+                                            type="text" name="name" value={formData.name} onChange={handleInputChange} required
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                            placeholder="E.g., Summer Sale"
+                                        />
+                                    </div>
+                                    <div className="col-span-1">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Voucher Code</label>
+                                        <input
+                                            type="text" name="code" value={formData.code} onChange={handleInputChange} required
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none uppercase"
+                                            placeholder="E.g., SUMMER50"
+                                        />
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Description</label>
@@ -248,6 +291,15 @@ const AdminVouchersPage = () => {
                                         />
                                     </div>
                                 </div>
+                                {formData.discount_type === 'percent' && (
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Max Discount (â‚«)</label>
+                                        <input
+                                            type="number" name="max_discount" value={formData.max_discount} onChange={handleInputChange} min="0"
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                        />
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-1">Min Order Amount (₫)</label>

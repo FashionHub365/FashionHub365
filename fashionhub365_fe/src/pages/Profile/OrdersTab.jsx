@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 const STATUS_LABELS = {
     pending_payment: "Pending Payment",
-    created: "Awaiting Delivery",
+    created: "Awaiting Confirmation",
     confirmed: "Awaiting Delivery",
     shipped: "Shipped",
     delivered: "Delivered",
@@ -14,8 +14,9 @@ const STATUS_LABELS = {
 const ORDER_STATUS_TABS = [
     { id: "all", label: "All", match: () => true },
     { id: "pending_payment", label: "Pending Payment", match: (order) => order.status === "pending_payment" },
+    { id: "awaiting_confirmation", label: "Awaiting Confirmation", match: (order) => order.status === "created" },
+    { id: "awaiting_delivery", label: "Awaiting Delivery", match: (order) => order.status === "confirmed" },
     { id: "shipped", label: "Shipped", match: (order) => order.status === "shipped" },
-    { id: "awaiting_delivery", label: "Awaiting Delivery", match: (order) => ["created", "confirmed"].includes(order.status) },
     { id: "delivered", label: "Delivered", match: (order) => order.status === "delivered" },
     { id: "cancelled", label: "Cancelled", match: (order) => order.status === "cancelled" },
     { id: "refunded", label: "Refunded", match: (order) => order.status === "refunded" },
@@ -23,8 +24,8 @@ const ORDER_STATUS_TABS = [
 
 const ORDER_STATUS_META = {
     pending_payment: { note: "Order pending payment", textColor: "text-gray-700", finalLabel: "PENDING PAYMENT", finalColor: "text-gray-900" },
-    created: { note: "Order is being prepared", textColor: "text-gray-700", finalLabel: "AWAITING DELIVERY", finalColor: "text-gray-900" },
-    confirmed: { note: "Order is being prepared", textColor: "text-gray-700", finalLabel: "AWAITING DELIVERY", finalColor: "text-gray-900" },
+    created: { note: "Waiting for seller confirmation", textColor: "text-gray-700", finalLabel: "AWAITING CONFIRMATION", finalColor: "text-gray-900" },
+    confirmed: { note: "Seller confirmed the order", textColor: "text-gray-700", finalLabel: "AWAITING DELIVERY", finalColor: "text-gray-900" },
     shipped: { note: "Order is shipping", textColor: "text-gray-700", finalLabel: "SHIPPED", finalColor: "text-gray-900" },
     delivered: { note: "Delivered successfully", textColor: "text-gray-700", finalLabel: "DELIVERED", finalColor: "text-gray-900" },
     cancelled: { note: "Order cancelled", textColor: "text-gray-700", finalLabel: "CANCELLED", finalColor: "text-gray-900" },

@@ -2,7 +2,7 @@ import React from "react";
 
 const STATUS_LABELS = {
     pending_payment: "Pending Payment",
-    created: "Awaiting Delivery",
+    created: "Awaiting Confirmation",
     confirmed: "Awaiting Delivery",
     shipped: "Shipped",
     delivered: "Delivered",

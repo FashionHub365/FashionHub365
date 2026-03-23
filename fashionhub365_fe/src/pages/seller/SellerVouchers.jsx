@@ -11,6 +11,7 @@ const SellerVouchers = () => {
     // New Voucher Form State
     const [formData, setFormData] = useState({
         code: '',
+        name: '',
         description: '',
         discount_type: 'percent', // 'percent' | 'fixed'
         discount_value: 0,
@@ -24,7 +25,7 @@ const SellerVouchers = () => {
     const fetchVouchers = async () => {
         try {
             setLoading(true);
-            const res = await voucherApi.getVouchers();
+            const res = await voucherApi.getSellerVouchers();
             if (res.success) {
                 setVouchers(res.data?.items || res.data || res.items || []);
             }
@@ -51,13 +52,14 @@ const SellerVouchers = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await voucherApi.createVoucher(formData);
+            await voucherApi.createSellerVoucher(formData);
             showSuccess('Voucher đã được tạo thành công!');
             setShowModal(false);
             fetchVouchers();
             // Reset form
             setFormData({
                 code: '',
+                name: '',
                 description: '',
                 discount_type: 'percent',
                 discount_value: 0,
@@ -80,7 +82,7 @@ const SellerVouchers = () => {
         });
         if (!isConfirmed) return;
         try {
-            await voucherApi.deleteVoucher(id);
+            await voucherApi.deleteSellerVoucher(id);
             showSuccess('Đã xóa Voucher thành công.');
             fetchVouchers();
         } catch (err) {
@@ -171,6 +173,12 @@ const SellerVouchers = () => {
                         <div className="p-6 overflow-y-auto">
                             <form id="voucherForm" onSubmit={handleSubmit} className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Voucher Name</label>
+                                        <input type="text" name="name" value={formData.name} onChange={handleChange} required
+                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            placeholder="E.g., Grand Opening" />
+                                    </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700">Code</label>
                                         <input type="text" name="code" value={formData.code} onChange={handleChange} required

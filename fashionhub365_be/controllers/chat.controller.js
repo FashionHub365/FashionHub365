@@ -37,10 +37,10 @@ const getMySessions = catchAsync(async (req, res) => {
     const ownedStores = await Store.find({ owner_user_id: userId }).select('_id').lean();
     const memberStores = await StoreMember.find({ user_id: userId }).select('store_id').lean();
     
-    const storeIds = [
+    const storeIds = Array.from(new Set([
         ...ownedStores.map(s => s._id),
         ...memberStores.map(m => m.store_id)
-    ];
+    ].map(id => id?.toString()).filter(Boolean)));
     
     if (storeIds.length > 0) {
         const allSessions = await Promise.all(

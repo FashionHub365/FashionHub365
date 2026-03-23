@@ -88,20 +88,35 @@ export const CheckoutReview = () => {
     const [voucherError, setVoucherError] = useState("");
     const [voucherLoading, setVoucherLoading] = useState(false);
     const [availableVouchers, setAvailableVouchers] = useState([]);
-    const [fetchingVouchers, setFetchingVouchers] = useState(false);
+
+    const getVoucherDiscount = (voucher, amount) => {
+        if (!voucher) return 0;
+
+        if (typeof voucher._discountAmount === "number") {
+            return voucher._discountAmount;
+        }
+
+        const rawDiscount = voucher.discount_type === 'percent'
+            ? (amount * voucher.discount_value / 100)
+            : voucher.discount_value;
+
+        const cappedDiscount = voucher.discount_type === 'percent' && voucher.max_discount
+            ? Math.min(rawDiscount, voucher.max_discount)
+            : rawDiscount;
+
+        return Math.min(cappedDiscount, amount);
+    };
 
     useEffect(() => {
         const fetchVouchers = async () => {
             try {
-                setFetchingVouchers(true);
                 const res = await voucherApi.getActiveVouchers({ status: 'active' });
                 if (res.success) {
-                    setAvailableVouchers(res.data?.items || res.data || res.items || []);
+                    const items = res.data?.items || res.data || res.items || [];
+                    setAvailableVouchers(Array.isArray(items) ? items : []);
                 }
             } catch (err) {
                 console.error("Failed to fetch vouchers", err);
-            } finally {
-                setFetchingVouchers(false);
             }
         };
         fetchVouchers();
@@ -123,16 +138,7 @@ export const CheckoutReview = () => {
     const { items = [], totalItems = 0, totalAmount = 0 } = cartData;
     const shippingFee = totalAmount >= 1000000 ? 0 : 30000;
 
-    // Calculate final total after voucher
-    const discountAmount = appliedVoucher ? (
-        appliedVoucher.discount_type === 'percent'
-            ? (totalAmount * appliedVoucher.discount_value / 100)
-            : appliedVoucher.discount_value
-    ) : 0;
-    // Cap discount at max_discount if percentage
-    const finalDiscount = appliedVoucher?.discount_type === 'percent' && appliedVoucher.max_discount
-        ? Math.min(discountAmount, appliedVoucher.max_discount)
-        : discountAmount;
+    const finalDiscount = getVoucherDiscount(appliedVoucher, totalAmount);
 
     const grandTotal = Math.max(0, totalAmount + shippingFee - finalDiscount);
     const uniqueStoreCount = new Set(items.map((item) => item.storeId).filter(Boolean)).size;
@@ -146,7 +152,9 @@ export const CheckoutReview = () => {
         try {
             const res = await voucherApi.applyVoucher(code, totalAmount);
             if (res.success || res.data?.success) {
-                setAppliedVoucher(res.data?.voucher || res.data?.data?.voucher || res.data || res.voucher);
+                const payload = res.data?.data || res.data || res;
+                const voucher = payload?.voucher || res.voucher;
+                setAppliedVoucher(voucher ? { ...voucher, _discountAmount: payload?.discount } : null);
                 setVoucherCode(code);
                 setVoucherError("");
             }
@@ -459,7 +467,8 @@ export const CheckoutReview = () => {
                                             <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Available Vouchers</p>
                                             <div className="flex flex-col gap-2">
                                                 {availableVouchers.map(v => {
-                                                    const isEligible = totalAmount >= (v.min_order_value || 0);
+                                                    const minOrderAmount = v.min_order_amount || v.min_order_value || 0;
+                                                    const isEligible = totalAmount >= minOrderAmount;
                                                     return (
                                                         <div key={v._id} className={`flex justify-between items-center p-3 border rounded-lg transition-all ${isEligible ? 'bg-white border-blue-200 hover:border-blue-400' : 'bg-gray-50 border-gray-200 opacity-70'}`}>
                                                             <div className="flex flex-col">
@@ -471,7 +480,7 @@ export const CheckoutReview = () => {
                                                                 </div>
                                                                 <p className="text-xs text-gray-500 mt-1 line-clamp-1">{v.description}</p>
                                                                 <p className={`text-[10px] mt-1 font-medium ${isEligible ? 'text-gray-400' : 'text-red-500'}`}>
-                                                                    Min. order: {(v.min_order_value || 0).toLocaleString('vi-VN')}₫
+                                                                    Min. order: {minOrderAmount.toLocaleString('vi-VN')}₫
                                                                 </p>
                                                             </div>
                                                             <button

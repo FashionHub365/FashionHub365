@@ -41,6 +41,7 @@ const SellerVouchers = lazy(() => import("./pages/seller/SellerVouchers"));
 const SellerChat = lazy(() => import("./pages/seller/sellerChat/SellerChat"));
 const SellerProfile = lazy(() => import("./pages/seller/SellerProfile"));
 const SellerStoreSettings = lazy(() => import("./pages/seller/SellerStoreSettings"));
+const SellerNotifications = lazy(() => import("./pages/seller/SellerNotifications"));
 const SellerLayout = lazy(() => import("./pages/seller/components/SellerLayout"));
 const SellerRegistration = lazy(() => import("./pages/seller/SellerRegistration"));
 
@@ -103,6 +104,7 @@ function App() {
                       <Route path="products" element={<SellerProducts />} />
                       <Route path="inventory" element={<SellerInventory />} />
                       <Route path="wallet" element={<SellerWallet />} />
+                      <Route path="notifications" element={<SellerNotifications />} />
                       <Route path="vouchers" element={<SellerVouchers />} />
                       <Route path="chat" element={<SellerChat />} />
                       <Route path="profile" element={<SellerProfile />} />
