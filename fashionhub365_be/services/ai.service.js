@@ -12,14 +12,11 @@ const generateResponse = async (prompt, history = []) => {
         throw new ApiError(httpStatus.BAD_REQUEST, "OpenRouter API Key is missing in .env");
     }
 
-    // List of models to try. Free models on OpenRouter are stable for basic use.
+    // Chỉ giữ lại những mô hình cực kỳ nhanh và ổn định để tránh việc phải đợi timeout từ các mô hình lỗi/chậm
     const modelsToTry = [
-        "google/gemini-2.0-flash-lite-preview-02-05:free",
-        "huggingfaceh4/zephyr-7b-beta:free",
-        "mistralai/mistral-7b-instruct:free",
-        "google/gemini-2.0-pro-exp-02-05:free",
-        "liquid/lfm-40b:free",
-        "openrouter/auto"
+        "google/gemini-2.0-flash-lite-preview-02-05:free", // Rất nhanh, phù hợp cho Chatbot
+        "huggingfaceh4/zephyr-7b-beta:free",               // Dự phòng ổn định
+        "openrouter/auto"                                  // Fallback an toàn nhất
     ];
 
     let lastError = null;
@@ -29,23 +26,19 @@ const generateResponse = async (prompt, history = []) => {
     console.log(`[AI] Context retrieved (${dbContext.length} chars)`);
 
     // 2. Build the system prompt with context
-    const systemPrompt = `Bạn là trợ lý ảo chính thức của sàn thương mại điện tử FashionHub365. 
-Hãy trả lời thân thiện, chuyên nghiệp bằng tiếng Việt. 
+    const systemPrompt = `Bạn là trợ lý bán hàng bằng TIẾNG VIỆT, tập trung cao độ và siêu ngắn gọn.
 
-YÊU CẦU QUAN TRỌNG: 
-- Bạn CHỈ ĐƯỢC PHÉP dùng thông tin từ "CƠ SỞ DỮ LIỆU" bên dưới để trả lời về sản phẩm, giá cả và cửa hàng.
-- Tuyệt đối KHÔNG tự bịa ra thông tin không có trong dữ liệu được cung cấp.
-- Trả lời NGẮN GỌN, ĐÚNG TRỌNG TÂM câu hỏi. 
-- Không giải thích dài dòng, không lặp lại thông tin không cần thiết.
-- Nếu cung cấp danh sách sản phẩm, hãy LUÔN chèn thẻ sản phẩm ở cuối câu trả lời theo định dạng: {{PRODUCT_CARD|Tên|Giá|productId|Link_Ảnh}}.
-- productId trong định dạng thẻ sản phẩm phải là giá trị "ID" có trong dữ liệu (dạng ObjectId như  6819...).
-- Bạn được phép chèn tối đa 3 thẻ sản phẩm trong một câu trả lời.
+QUY TẮC KHẮT KHE:
+1. KHÔNG LẠC ĐỀ: Chỉ tư vấn ĐÚNG loại sản phẩm khách tìm. Nếu KHÁCH HỎI "ÁO" mà dữ liệu (Sản phẩm nổi bật / Liên quan) toàn QUẦN hoặc GIÀY -> TUYỆT ĐỐI KHÔNG GỢI Ý. Chỉ được đáp: "Hiện shop chưa có mẫu này, bạn có thể xem các món đồ khác nhé".
+2. TÌM KIẾM THÔNG MINH: Đọc Tên và Mô tả. Biết cách suy luận (Sơ mi, T-shirt, Polo = Áo). Nếu khớp yêu cầu thì mới chèn thẻ sản phẩm.
+3. SIÊU NGẮN GỌN: Trả lời ngắn nhất có thể rẽ thẳng vào vấn đề. Cấm lan man. Mặc định dùng tiếng Việt. Cấm dùng lời hoa mỹ/chào kết.
+4. KHÔNG DÙNG HASHTAG: Tuyệt đối không có dấu # ở bất kỳ đâu.
+5. THẺ SẢN PHẨM: Khi cần gợi ý, gửi kèm HTML thẻ: 
+   {{PRODUCT_CARD|Tên|Giá|productId|Link_Ảnh}}
+   (Mã productId lấy từ giá trị ID trong dữ liệu. Tối đa 3 thẻ).
 
-${dbContext}
-
-Dựa trên dữ liệu trên và lịch sử hội thoại, hãy trả lời câu hỏi của người dùng ngắn gọn nhất có thể. 
-Hãy dùng dữ liệu thực tế. Nếu giới thiệu sản phẩm, ĐỪNG quên dùng định dạng thẻ {{PRODUCT_CARD|Tên|Giá|productId|Link_Ảnh}} ở cuối. productId là giá trị "ID" trong dữ liệu.
-Nếu hỏi về giá, chỉ trả lời giá và kèm thẻ sản phẩm.`;
+[CƠ SỞ DỮ LIỆU]:
+${dbContext}`;
 
     for (const modelName of modelsToTry) {
         try {
@@ -73,7 +66,7 @@ Nếu hỏi về giá, chỉ trả lời giá và kèm thẻ sản phẩm.`;
                         "Authorization": `Bearer ${apiKey}`,
                         "Content-Type": "application/json"
                     },
-                    timeout: 20000 // 20s timeout
+                    timeout: 8000 // Giảm timeout từ 20s xuống 8s để nếu mô hình đầu bị lỗi/lag thì nhanh chóng chuyển qua mô hình dự phòng
                 }
             );
 

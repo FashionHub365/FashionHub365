@@ -14,17 +14,38 @@ const dataRetrievalService = {
             console.log(`[DataRetrieval] Searching for: ${query}`);
             if (!query) return "";
 
-            // 1. Search for products matching the query
-            // Sort by sold_count descending to get best-selling products first as requested
+            // 1. Phân tích ngữ cảnh: Lọc bỏ các từ stop-words phổ biến trong tiếng Việt để ra từ khóa tìm kiếm
             const isTopRequest = query.toLowerCase().includes('bán chạy') || query.toLowerCase().includes('hot');
-            const productQuery = isTopRequest ? { status: 'active' } : {
-                $or: [
-                    { name: { $regex: query, $options: 'i' } },
-                    { short_description: { $regex: query, $options: 'i' } },
-                    { description: { $regex: query, $options: 'i' } }
-                ],
-                status: 'active'
-            };
+            
+            // Lọc từ khóa
+            const stopWords = ['có', 'không', 'cho', 'hỏi', 'tôi', 'bạn', 'muốn', 'mua', 'anh', 'em', 'nhé', 'ạ', 'shop', 'ơi', 'tìm', 'cái', 'những', 'một', 'vài', 'đang', 'cần'];
+            const searchWords = query.toLowerCase().replace(/[?,.!]/g, '').split(' ')
+                .filter(w => w.length >= 2 && !stopWords.includes(w));
+
+            let productQuery = { status: 'active' };
+            
+            if (isTopRequest) {
+                // Khách hỏi đồ bán chạy
+                productQuery = { status: 'active' };
+            } else if (searchWords.length > 0) {
+                // Khách tìm món đồ cụ thể (ví dụ: "áo", "quần", "y2k")
+                const regexQueries = searchWords.map(w => ({
+                    $or: [
+                        { name: { $regex: w, $options: 'i' } },
+                        { short_description: { $regex: w, $options: 'i' } },
+                        { description: { $regex: w, $options: 'i' } }
+                    ]
+                }));
+                productQuery = { $or: regexQueries, status: 'active' };
+            } else {
+                productQuery = {
+                    $or: [
+                        { name: { $regex: query, $options: 'i' } },
+                        { description: { $regex: query, $options: 'i' } }
+                    ],
+                    status: 'active'
+                };
+            }
 
             const products = await Product.find(productQuery)
                 .sort({ sold_count: -1 })

@@ -16,6 +16,9 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
   const isBlockedBuyer = isPrivilegedCommerceUser(user);
   const navigate = useNavigate();
 
+  // ── REFS ──────────────────────────────────────────────────────────
+  const fitFinderRef = React.useRef(null);
+
   // ── STATE ─────────────────────────────────────────────────────────
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState(null);
@@ -26,6 +29,11 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
   const { addToCart, loading: cartLoading } = useCart();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+
+  // ── SCROLL TO FIT FINDER ──────────────────────────────────────────
+  const scrollToFitFinder = () => {
+    fitFinderRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   // ── FETCH WISHLIST STATUS ─────────────────────────────────────────────
   useEffect(() => {
@@ -146,6 +154,16 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
 
   // ── VARIANT & STOCK ──────────────────────────────────────
   const selectedColor = colorVariants[selectedColorIndex]?.name;
+
+  // Chỉ lấy những size còn hàng thực sự của màu đang được chọn
+  const inStockSizeVariants = product?.variants
+    ? [...new Set(
+        product.variants
+          .filter((v) => v.attributes?.size && v.attributes?.color === selectedColor && v.stock > 0)
+          .map((v) => v.attributes.size)
+      )]
+    : sizeVariants;
+
   const matchedVariant = product?.variants?.find(
     (v) =>
       v.attributes?.color === selectedColor &&
@@ -447,7 +465,7 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
           <div className="flex items-start justify-between relative self-stretch w-full flex-[0_0_auto]">
             <span className="font-text-200 uppercase tracking-widest font-bold text-gray-400">Chọn Kích Cỡ</span>
             <button
-              onClick={() => setIsSizeGuideOpen(true)}
+              onClick={scrollToFitFinder}
               className="font-text-200 underline cursor-pointer hover:text-blue-600 transition-colors"
             >
               Bảng Size (Size Guide)
@@ -577,23 +595,24 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
             </p>
           )}
           <div className="flex gap-2 w-full">
-            {!isBlockedBuyer && (
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                disabled={cartLoading || isOutOfStock}
-                className={`flex-1 flex items-center justify-center gap-2.5 px-4 py-4 sm:py-5 transition-transform active:scale-[0.98] shadow-sm select-none
-                  ${isOutOfStock
+            <button
+              type="button"
+              onClick={isBlockedBuyer ? undefined : handleAddToCart}
+              disabled={cartLoading || isOutOfStock || isBlockedBuyer}
+              title={isBlockedBuyer ? "Tài khoản Admin/Seller không thể mua hàng" : ""}
+              className={`flex-1 flex items-center justify-center gap-2.5 px-4 py-4 sm:py-5 transition-transform shadow-sm select-none
+                ${isBlockedBuyer
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : isOutOfStock
                     ? "bg-gray-400 text-white cursor-not-allowed"
-                    : "bg-black text-white cursor-pointer hover:bg-gray-900 hover:shadow-md"
-                  } disabled:opacity-80`}
-                aria-label={isOutOfStock ? "Out of stock" : "Add to bag"}
-              >
-                <span className="font-bold text-[15px] sm:text-[16px] text-center tracking-[0.1em] uppercase">
-                  {cartLoading ? "Adding..." : isOutOfStock ? "Out Of Stock" : "Add To Bag"}
-                </span>
-              </button>
-            )}
+                    : "bg-black text-white cursor-pointer hover:bg-gray-900 hover:shadow-md active:scale-[0.98]"
+                } disabled:opacity-80`}
+              aria-label={isBlockedBuyer ? "Không khả dụng với tài khoản này" : isOutOfStock ? "Out of stock" : "Add to bag"}
+            >
+              <span className="font-bold text-[15px] sm:text-[16px] text-center tracking-[0.1em] uppercase">
+                {isBlockedBuyer ? "Chỉ dành cho Khách Hàng" : cartLoading ? "Adding..." : isOutOfStock ? "Out Of Stock" : "Add To Bag"}
+              </span>
+            </button>
             <button
               onClick={handleToggleWishlist}
               disabled={wishlistLoading}
@@ -641,8 +660,8 @@ export const ProductDetailsSection = ({ product, loading = false }) => {
         </div>
 
         {/* Fit Finder Tool */}
-        <div className="w-full">
-          <FitFinder categoryName={categoryName} />
+        <div className="w-full" ref={fitFinderRef}>
+          <FitFinder categoryName={categoryName} availableSizes={inStockSizeVariants} />
         </div>
       </aside>
     </section>
