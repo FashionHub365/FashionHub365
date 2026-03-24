@@ -15,11 +15,13 @@ const NotificationsPage = () => {
                 type: filter === 'all' || filter === 'unread' ? undefined : filter.toUpperCase(),
                 is_read: filter === 'unread' ? false : undefined
             });
-            if (res.data?.success) {
-                setNotifications(res.data.data.items || []);
+            if (res?.success) {
+                const data = res?.data || {};
+                const pagination = data?.pagination || {};
+                setNotifications(data?.items || res?.items || []);
                 setStats({
-                    unread: res.data.data.unreadCount || 0,
-                    total: res.data.data.totalCount || 0
+                    unread: data?.unreadCount || 0,
+                    total: pagination?.total || data?.items?.length || 0
                 });
             }
         } catch (error) {

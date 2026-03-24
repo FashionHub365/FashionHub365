@@ -25,12 +25,18 @@ const createBulkNotifications = async (userIds, type, message) => {
  * Get notifications for a user
  */
 const getUserNotifications = async (userId, query = {}) => {
-    const { page = 1, limit = 20, is_read } = query;
+    const { page = 1, limit = 20, is_read, type, type_prefix } = query;
     const skip = (page - 1) * limit;
 
     const filter = { user_id: userId };
     if (is_read !== undefined) {
         filter.is_read = is_read === 'true' || is_read === true;
+    }
+    if (type) {
+        filter.type = type;
+    }
+    if (type_prefix) {
+        filter.type = { $regex: `^${type_prefix}` };
     }
 
     const [items, total, unreadCount] = await Promise.all([
@@ -39,7 +45,7 @@ const getUserNotifications = async (userId, query = {}) => {
             .skip(skip)
             .limit(parseInt(limit)),
         Notification.countDocuments(filter),
-        Notification.countDocuments({ user_id: userId, is_read: false }),
+        Notification.countDocuments({ ...filter, is_read: false }),
     ]);
 
     return {
@@ -72,11 +78,19 @@ const markAsRead = async (notificationId, userId) => {
 /**
  * Mark all notifications as read
  */
-const markAllAsRead = async (userId) => {
-    await Notification.updateMany(
-        { user_id: userId, is_read: false },
-        { $set: { is_read: true } }
-    );
+const markAllAsRead = async (userId, query = {}) => {
+    const { type, type_prefix } = query;
+    const filter = { user_id: userId, is_read: false };
+
+    if (type) {
+        filter.type = type;
+    }
+
+    if (type_prefix) {
+        filter.type = { $regex: `^${type_prefix}` };
+    }
+
+    await Notification.updateMany(filter, { $set: { is_read: true } });
 };
 
 /**
@@ -96,6 +110,21 @@ const getUnreadCount = async (userId) => {
     return Notification.countDocuments({ user_id: userId, is_read: false });
 };
 
+const getUnreadCountByQuery = async (userId, query = {}) => {
+    const { type, type_prefix } = query;
+    const filter = { user_id: userId, is_read: false };
+
+    if (type) {
+        filter.type = type;
+    }
+
+    if (type_prefix) {
+        filter.type = { $regex: `^${type_prefix}` };
+    }
+
+    return Notification.countDocuments(filter);
+};
+
 module.exports = {
     createNotification,
     createBulkNotifications,
@@ -104,4 +133,5 @@ module.exports = {
     markAllAsRead,
     deleteNotification,
     getUnreadCount,
+    getUnreadCountByQuery,
 };

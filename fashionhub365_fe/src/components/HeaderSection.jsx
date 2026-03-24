@@ -21,11 +21,17 @@ export const HeaderSection = () => {
   const userMenuRef = useRef(null);
   const notifRef = useRef(null);
 
+  const loadUnreadCount = () => {
+    notificationApi.getUnreadCount()
+      .then((res) => setUnreadCount(res?.data?.count || res?.count || 0))
+      .catch((err) => console.error("Notif Error:", err));
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
-      notificationApi.getUnreadCount()
-        .then(res => setUnreadCount(res.data?.data?.count || 0))
-        .catch(err => console.error("Notif Error:", err));
+      loadUnreadCount();
+    } else {
+      setUnreadCount(0);
     }
   }, [isAuthenticated]);
 
@@ -268,9 +274,7 @@ export const HeaderSection = () => {
                   <NotificationDropdown
                     onClose={() => {
                       setIsNotifOpen(false);
-                      // Update unread count after closing
-                      notificationApi.getUnreadCount()
-                        .then(res => setUnreadCount(res.data?.data?.count || 0));
+                      loadUnreadCount();
                     }}
                   />
                 )}

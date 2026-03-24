@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { OutboxEvent, Order, User, Notification } = require('../models');
+const { OutboxEvent, Order, User, Notification, Store, StoreMember } = require('../models');
 const emailService = require('./email.service');
 
 const DEFAULT_MAX_RETRY = config.outbox?.maxRetry || 10;
@@ -38,6 +38,39 @@ const enqueueEventIfNotExists = async (event, options = {}) => {
         return existing;
     }
     return enqueueEvent(event, options);
+};
+
+const createNotificationsForRecipients = async (userIds, payload) => {
+    const dedupedUserIds = Array.from(
+        new Set((userIds || []).filter(Boolean).map((userId) => userId.toString()))
+    );
+
+    if (!dedupedUserIds.length) {
+        return;
+    }
+
+    await Notification.insertMany(
+        dedupedUserIds.map((userId) => ({
+            user_id: userId,
+            ...payload,
+        }))
+    );
+};
+
+const getStoreRecipientIds = async (storeId) => {
+    if (!storeId) {
+        return [];
+    }
+
+    const [store, members] = await Promise.all([
+        Store.findById(storeId).select('owner_user_id').lean(),
+        StoreMember.find({ store_id: storeId, status: 'ACTIVE' }).select('user_id').lean(),
+    ]);
+
+    return [
+        store?.owner_user_id,
+        ...members.map((member) => member.user_id),
+    ].filter(Boolean);
 };
 
 const handleOrderConfirmedEvent = async (event) => {
@@ -88,6 +121,12 @@ const handleOrderCreatedEvent = async (event) => {
         type: 'ORDER_STATUS',
         message: `Your order ${order.uuid} has been successfully placed.`,
     });
+
+    const sellerRecipientIds = await getStoreRecipientIds(order.store_id);
+    await createNotificationsForRecipients(sellerRecipientIds, {
+        type: 'SELLER_ORDER_CREATED',
+        message: `New order ${order.uuid} has been placed and is waiting for your action.`,
+    });
 };
 
 const STATUS_LABELS = {
@@ -104,7 +143,10 @@ const handleOrderStatusChangedEvent = async (event) => {
     const { orderId, orderUuid, userId, oldStatus, newStatus, changedBy } = event.payload || {};
     if (!orderId || !userId) return;
 
-    const user = await User.findById(userId);
+    const [user, order] = await Promise.all([
+        User.findById(userId),
+        Order.findById(orderId).select('store_id uuid'),
+    ]);
     if (!user) return;
 
     const statusLabel = STATUS_LABELS[newStatus] || newStatus;
@@ -120,6 +162,37 @@ const handleOrderStatusChangedEvent = async (event) => {
         const subject = `Đơn hàng ${orderUuid} - ${statusLabel}`;
         await emailService.sendEmail(user.email, subject, message);
     }
+    if (order && changedBy !== 'seller') {
+        const sellerRecipientIds = await getStoreRecipientIds(order.store_id);
+        let sellerMessage = `Order ${order.uuid} changed to status: ${statusLabel}.`;
+
+        if (newStatus === 'cancelled' && changedBy === 'customer') {
+            sellerMessage = `Buyer cancelled order ${order.uuid}. Please review inventory and related operations.`;
+        } else if (newStatus === 'confirmed' && changedBy === 'system' && oldStatus === 'pending_payment') {
+            sellerMessage = `Order ${order.uuid} has been paid successfully and is ready for fulfillment.`;
+        } else if (newStatus === 'cancelled' && changedBy === 'system') {
+            sellerMessage = `Order ${order.uuid} was cancelled automatically by the system.`;
+        }
+
+        await createNotificationsForRecipients(sellerRecipientIds, {
+            type: 'SELLER_ORDER_STATUS',
+            message: sellerMessage,
+        });
+    }
+};
+
+const handleOrderReturnRequestedEvent = async (event) => {
+    const { orderId } = event.payload || {};
+    if (!orderId) return;
+
+    const order = await Order.findById(orderId).select('store_id uuid');
+    if (!order) return;
+
+    const sellerRecipientIds = await getStoreRecipientIds(order.store_id);
+    await createNotificationsForRecipients(sellerRecipientIds, {
+        type: 'SELLER_RETURN_REQUESTED',
+        message: `Buyer requested a return for order ${order.uuid}. Please review and process it soon.`,
+    });
 };
 
 const dispatchOutboxEvent = async (event) => {
@@ -132,6 +205,9 @@ const dispatchOutboxEvent = async (event) => {
             return;
         case 'ORDER_STATUS_CHANGED':
             await handleOrderStatusChangedEvent(event);
+            return;
+        case 'ORDER_RETURN_REQUESTED':
+            await handleOrderReturnRequestedEvent(event);
             return;
         default:
             return;

@@ -108,7 +108,7 @@ export default function CheckoutScreen() {
 
     // Calculate discount
     let discount = 0;
-    if (voucher.discount_type === 'percentage') {
+    if (voucher.discount_type === 'percent') {
       discount = (totalAmount * voucher.discount_value) / 100;
       if (voucher.max_discount_amount) {
         discount = Math.min(discount, voucher.max_discount_amount);

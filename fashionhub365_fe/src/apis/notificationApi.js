@@ -7,8 +7,8 @@ const notificationApi = {
     },
 
     // Get count of unread notifications
-    getUnreadCount() {
-        return axiosInstance.get('/notifications/unread-count');
+    getUnreadCount(params) {
+        return axiosInstance.get('/notifications/unread-count', { params });
     },
 
     // Mark single notification as read
@@ -17,8 +17,8 @@ const notificationApi = {
     },
 
     // Mark all notifications as read
-    markAllAsRead() {
-        return axiosInstance.put('/notifications/read-all');
+    markAllAsRead(params) {
+        return axiosInstance.put('/notifications/read-all', null, { params });
     },
 
     // Delete a notification

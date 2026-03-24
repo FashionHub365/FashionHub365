@@ -33,6 +33,10 @@ const voucherSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    max_discount: {
+        type: Number,
+        default: null
+    },
     min_order_amount: {
         type: Number,
         default: 0

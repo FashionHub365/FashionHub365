@@ -3,10 +3,12 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useChat } from '../../../contexts/ChatContext';
 import storeApi from '../../../apis/store.api';
+import notificationApi from '../../../apis/notificationApi';
 
 const menuItems = [
     { to: '/seller/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { to: '/seller/orders', label: 'Orders', icon: 'orders' },
+    { to: '/seller/notifications', label: 'Notifications', icon: 'notifications' },
     { to: '/seller/products', label: 'Products', icon: 'products' },
     { to: '/seller/inventory', label: 'Inventory', icon: 'inventory' },
     { to: '/seller/wallet', label: 'Wallet', icon: 'wallet' },
@@ -25,6 +27,11 @@ const routeMeta = {
         eyebrow: 'Seller Workspace',
         title: 'Order Operations',
         description: 'Review, filter and update order progress for your store.'
+    },
+    '/seller/notifications': {
+        eyebrow: 'Seller Workspace',
+        title: 'Notifications',
+        description: 'Track new orders, return requests and important updates for your store.'
     },
     '/seller/products': {
         eyebrow: 'Seller Workspace',
@@ -77,6 +84,12 @@ const renderIcon = (name, isActive) => {
             return (
                 <svg className={baseClass} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+            );
+        case 'notifications':
+            return (
+                <svg className={baseClass} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
             );
         case 'products':
@@ -132,6 +145,7 @@ const SellerLayout = () => {
     const [accountOpen, setAccountOpen] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const [storeRef, setStoreRef] = useState('');
+    const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
 
     const unreadCount = sessions
         .filter((session) => typeof session.user_id === 'object' && session.user_id !== null)
@@ -166,6 +180,30 @@ const SellerLayout = () => {
             ignore = true;
         };
     }, []);
+
+    useEffect(() => {
+        let ignore = false;
+
+        const loadUnreadNotifications = async () => {
+            try {
+                const response = await notificationApi.getUnreadCount({ type_prefix: 'SELLER_' });
+                const count = response?.data?.count ?? response?.count ?? 0;
+                if (!ignore) {
+                    setNotificationUnreadCount(count);
+                }
+            } catch (error) {
+                if (!ignore) {
+                    setNotificationUnreadCount(0);
+                }
+            }
+        };
+
+        loadUnreadNotifications();
+
+        return () => {
+            ignore = true;
+        };
+    }, [location.pathname]);
 
     const sellerName = user?.profile?.full_name || user?.username || user?.email || 'Seller';
     const sellerInitial = `${sellerName}`.trim().charAt(0).toUpperCase() || 'S';
@@ -206,6 +244,7 @@ const SellerLayout = () => {
                         {menuItems.map((item) => {
                             const isActive = location.pathname.startsWith(item.to);
                             const isChatItem = item.to === '/seller/chat';
+                            const isNotificationItem = item.to === '/seller/notifications';
 
                             return (
                                 <NavLink
@@ -222,6 +261,11 @@ const SellerLayout = () => {
                                         {isChatItem && unreadCount > 0 && (
                                             <span className={`absolute -top-1 flex min-w-[16px] h-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white ring-2 ring-white ${isHovered ? '-right-1' : '-right-2'}`}>
                                                 {unreadCount > 99 ? '99+' : unreadCount}
+                                            </span>
+                                        )}
+                                        {isNotificationItem && notificationUnreadCount > 0 && (
+                                            <span className={`absolute -top-1 flex min-w-[16px] h-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white ring-2 ring-white ${isHovered ? '-right-1' : '-right-2'}`}>
+                                                {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
                                             </span>
                                         )}
                                     </div>
@@ -306,6 +350,21 @@ const SellerLayout = () => {
                         </div>
 
                         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                            <button
+                                onClick={() => navigate('/seller/notifications')}
+                                className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors rounded-full hover:bg-slate-100"
+                                aria-label="Open seller notifications"
+                            >
+                                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V5a2 2 0 1 0-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9" />
+                                </svg>
+                                {notificationUnreadCount > 0 && (
+                                    <span className="absolute top-1 right-1 flex min-w-[16px] h-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
+                                        {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
+                                    </span>
+                                )}
+                            </button>
+
                             <button
                                 onClick={() => navigate('/seller/chat')}
                                 className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors rounded-full hover:bg-slate-100"
