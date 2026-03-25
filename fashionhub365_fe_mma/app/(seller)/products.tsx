@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 // @ts-ignore
 import { getSellerProducts, toggleStockStatus, deleteProduct } from '../../services/productService';
@@ -27,7 +28,7 @@ export default function SellerProducts() {
       setTotal(result.total || 0);
     } catch (err: any) {
       console.error('Error loading products:', err);
-      Alert.alert('Error', err.response?.data?.message || err.message || 'Cannot load products');
+      Alert.alert('Lỗi', err.response?.data?.message || err.message || 'Không thể tải danh sách sản phẩm');
     } finally {
       setLoading(false);
     }
@@ -43,19 +44,20 @@ export default function SellerProducts() {
 
   const confirmDelete = (product: any) => {
     Alert.alert(
-      "Delete Product?",
-      `Are you sure you want to delete "${product.name}"? This cannot be undone.`,
+      "Xóa sản phẩm?",
+      `Bạn có chắc chắn muốn xóa "${product.name}"? Hành động này không thể hoàn tác.`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Hủy", style: "cancel" },
         { 
-          text: "Delete", 
+          text: "Xác nhận xóa", 
           style: "destructive",
           onPress: async () => {
             try {
               await deleteProduct(product._id);
+              Alert.alert('Thành công', 'Đã xóa sản phẩm.');
               loadProducts();
             } catch (err: any) {
-              Alert.alert('Error', err?.response?.data?.message || 'Failed to delete');
+              Alert.alert('Lỗi', err?.response?.data?.message || 'Không thể xóa sản phẩm');
             }
           }
         }
@@ -69,7 +71,7 @@ export default function SellerProducts() {
       await toggleStockStatus(product._id);
       loadProducts();
     } catch (err: any) {
-      Alert.alert('Error', 'Error toggling status: ' + err.message);
+      Alert.alert('Lỗi', 'Lỗi khi cập nhật trạng thái: ' + err.message);
     } finally {
       setTogglingId(null);
     }
@@ -87,6 +89,16 @@ export default function SellerProducts() {
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    switch(status) {
+      case 'active': return 'ĐANG BÁN';
+      case 'inactive': return 'ĐÃ ẨN';
+      case 'draft': return 'NHÁP';
+      case 'blocked': return 'BỊ KHÓA';
+      default: return status.toUpperCase();
+    }
+  };
+
   const renderProduct = ({ item }: { item: any }) => {
     const isToggling = togglingId === item._id;
     const isActive = item.status === 'active';
@@ -100,7 +112,7 @@ export default function SellerProducts() {
             <Text style={styles.uuid}>#{item.uuid?.substring(0, 8)}</Text>
             <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
                <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-                 {item.status.toUpperCase()}
+                 {getStatusLabel(item.status)}
                </Text>
             </View>
           </View>
@@ -108,27 +120,30 @@ export default function SellerProducts() {
 
         <View style={styles.detailsRow}>
           <View style={styles.detailItem}>
-            <Text style={styles.label}>Price</Text>
+            <Text style={styles.label}>Giá bán</Text>
             <Text style={styles.value}>{item.base_price?.toLocaleString('vi-VN')}₫</Text>
           </View>
           <View style={styles.detailItem}>
-            <Text style={styles.label}>Variants</Text>
+            <Text style={styles.label}>Phân loại</Text>
             <Text style={styles.value}>{item.variants?.length || 0}</Text>
           </View>
           <View style={styles.detailItem}>
-            <Text style={styles.label}>In Stock</Text>
+            <Text style={styles.label}>Còn hàng</Text>
             <TouchableOpacity 
               onPress={() => handleToggleStock(item)}
               disabled={isToggling || item.status === 'blocked'}
               style={[styles.toggleBtn, isActive ? styles.toggleActive : styles.toggleInactive]}
             >
-              <Text style={styles.toggleText}>{isActive ? 'YES' : 'NO'}</Text>
+              <Text style={styles.toggleText}>{isActive ? 'CÓ' : 'KHÔNG'}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => Alert.alert('Info', 'Edit feature coming soon')}>
+          <TouchableOpacity 
+            style={styles.actionBtn} 
+            onPress={() => router.push({ pathname: '/(seller)/product-form', params: { id: item._id } })}
+          >
             <IconSymbol name="pencil.circle" size={24} color="#4a90e2" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={() => confirmDelete(item)}>
@@ -143,10 +158,10 @@ export default function SellerProducts() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Products ({total})</Text>
+          <Text style={styles.headerTitle}>Sản phẩm ({total})</Text>
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={() => Alert.alert('Info', 'Create feature coming soon')}>
-          <Text style={styles.addBtnText}>+ New</Text>
+        <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/(seller)/product-form')}>
+          <Text style={styles.addBtnText}>+ Thêm mới</Text>
         </TouchableOpacity>
       </View>
 
@@ -154,14 +169,14 @@ export default function SellerProducts() {
         <IconSymbol name="magnifyingglass" size={20} color="#888" style={styles.searchIcon} />
         <TextInput 
           style={styles.searchInput}
-          placeholder="Search products..."
+          placeholder="Tìm kiếm sản phẩm..."
           value={searchInput}
           onChangeText={setSearchInput}
           onSubmitEditing={handleSearch}
           returnKeyType="search"
         />
         <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
-          <Text style={styles.searchBtnText}>Search</Text>
+          <Text style={styles.searchBtnText}>Tìm kiếm</Text>
         </TouchableOpacity>
       </View>
 
@@ -171,7 +186,7 @@ export default function SellerProducts() {
         </View>
       ) : products.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Text style={styles.emptyText}>No products found.</Text>
+          <Text style={styles.emptyText}>Không tìm thấy sản phẩm nào.</Text>
         </View>
       ) : (
         <FlatList
