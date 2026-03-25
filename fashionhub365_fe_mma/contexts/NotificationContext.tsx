@@ -26,10 +26,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             if (res && typeof res === 'number') {
                 setUnreadCount(res);
             } else if (res && (res as any).data !== undefined) {
-                setUnreadCount((res as any).data);
+                const data = (res as any).data;
+                setUnreadCount(typeof data === 'number' ? data : (data.count || 0));
             }
-        } catch (error) {
-            console.error('Fetch unread count error:', error);
+        } catch (error: any) {
+            // Only log if it's not a 401 error (which is handled by axiosClient refresh/redirect)
+            if (error.response?.status !== 401) {
+                console.error('Fetch unread count error:', error);
+            }
         }
     }, [user]);
 

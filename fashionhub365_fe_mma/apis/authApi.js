@@ -13,8 +13,8 @@ const authApi = {
     googleLogin: (payload) => {
         return axiosClient.post('/auth/google', payload);
     },
-    logout: () => {
-        return axiosClient.post('/auth/logout', {});
+    logout: (refreshToken) => {
+        return axiosClient.post('/auth/logout', { refreshToken });
     },
     forgotPassword: (email) => {
         return axiosClient.post('/auth/forgot-password', { email });

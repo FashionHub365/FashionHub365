@@ -303,11 +303,11 @@ const revokeGlobalRole = catchAsync(async (req, res) => {
     if (!user) throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
     assertActorCanAccessTarget(actor, user);
 
-    const hasRole = (user.global_role_ids || []).some((id) => id.toString() === roleId);
+    const hasRole = (user.global_role_ids || []).some((r) => (r._id || r).toString() === roleId);
     if (!hasRole) throw new ApiError(httpStatus.NOT_FOUND, 'Role is not assigned to this user');
 
     const oldRoleIds = [...user.global_role_ids];
-    user.global_role_ids = user.global_role_ids.filter((id) => id.toString() !== roleId);
+    user.global_role_ids = user.global_role_ids.filter((r) => (r._id || r).toString() !== roleId);
     await user.save();
 
     await AuditLog.create({

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Link } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import { getUserRoleSlugs } from '../../utils/roleUtils';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -27,7 +28,16 @@ export default function LoginScreen() {
         // Navigate to OTP verification if required
         router.push({ pathname: '/(auth)/verify-otp' as any, params: { email } });
       } else {
-        router.replace('/(tabs)/profile');
+        const user = (result as any).user;
+        const roles = getUserRoleSlugs(user);
+
+        if (roles.includes('admin')) {
+          router.replace('/(admin)/dashboard' as any);
+        } else if (roles.includes('seller')) {
+          router.replace('/(seller)/dashboard' as any);
+        } else {
+          router.replace('/(tabs)/profile');
+        }
       }
     } else {
       Alert.alert('Đăng nhập thất bại', result?.message || 'Thông tin không hợp lệ');

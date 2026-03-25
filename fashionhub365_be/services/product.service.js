@@ -57,17 +57,19 @@ const getPublicProducts = async (query) => {
         search,
         storeId,
         store: storeParam,
+        adminMode,
         sort = 'newest',
         page = 1,
         limit = 20,
     } = query;
 
     const effectiveStoreId = storeId || storeParam;
+    const isShowingAll = String(adminMode) === 'true';
     const parsedPage = Math.max(parseInt(page, 10) || 1, 1);
     const parsedLimit = Math.max(parseInt(limit, 10) || 20, 1);
 
     // 1. Build filter
-    const filter = { status: 'active' };
+    const filter = isShowingAll ? {} : { status: 'active' };
 
     // Filter theo storeId (ho tro ca ObjectId va UUID)
     if (effectiveStoreId) {

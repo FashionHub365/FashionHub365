@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -41,6 +41,61 @@ export default function StoreManagement() {
     fetchRequests();
   };
 
+  const handleApprove = (item: any) => {
+    Alert.alert(
+      "Duyệt cửa hàng",
+      `Bạn có chắc chắn muốn duyệt cửa hàng "${item.name}"?`,
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Duyệt",
+          style: "default",
+          onPress: async () => {
+            try {
+              const res = await adminApi.approveSellerRequest(item._id || item.id);
+              if ((res as any).success) {
+                Alert.alert("Thành công", "Đã duyệt cửa hàng.");
+                fetchRequests();
+              }
+            } catch (error: any) {
+              Alert.alert("Lỗi", error.response?.data?.message || "Không thể duyệt cửa hàng.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleReject = (item: any) => {
+    Alert.prompt(
+      "Từ chối cửa hàng",
+      "Vui lòng nhập lý do từ chối (bắt buộc):",
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Từ chối",
+          style: "destructive",
+          onPress: async (reason?: string) => {
+            if (!reason?.trim()) {
+              Alert.alert("Lỗi", "Lý do từ chối không được để trống.");
+              return;
+            }
+            try {
+              const res = await adminApi.rejectSellerRequest(item._id || item.id, { reason });
+              if ((res as any).success) {
+                Alert.alert("Thành công", "Đã từ chối cửa hàng.");
+                fetchRequests();
+              }
+            } catch (error: any) {
+              Alert.alert("Lỗi", error.response?.data?.message || "Không thể từ chối cửa hàng.");
+            }
+          }
+        }
+      ],
+      "plain-text"
+    );
+  };
+
   const renderRequest = ({ item }: { item: any }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -57,23 +112,56 @@ export default function StoreManagement() {
         </View>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(activeTab) + '15' }]}>
           <Text style={[styles.statusText, { color: getStatusColor(activeTab) }]}>
-            {activeTab === 'pending' ? 'Pending' : activeTab === 'approved' ? 'Active' : 'Rejected'}
+            {activeTab === 'pending' ? 'Chờ duyệt' : activeTab === 'approved' ? 'Hoạt động' : 'Từ chối'}
           </Text>
         </View>
       </View>
+
+      <View style={styles.cardBody}>
+        {item.description && (
+          <Text style={styles.description} numberOfLines={2}>
+            {item.description}
+          </Text>
+        )}
+        <View style={styles.contactItem}>
+          <Ionicons name="location-outline" size={14} color="#666" />
+          <Text style={styles.contactText} numberOfLines={1}>
+            {item.addresses?.[0]?.detail_address || item.information?.addressesText || 'Chưa có địa chỉ'}
+          </Text>
+        </View>
+      </View>
+
       <View style={styles.cardFooter}>
         <View style={styles.contactItem}>
           <Ionicons name="mail-outline" size={14} color="#666" />
           <Text style={styles.contactText}>{item.email || item.owner_user_id?.email}</Text>
         </View>
-        {item.phone && (
-          <View style={styles.contactItem}>
-            <Ionicons name="call-outline" size={14} color="#666" />
-            <Text style={styles.contactText}>{item.phone}</Text>
-          </View>
-        )}
+        <View style={styles.contactItem}>
+          <Ionicons name="call-outline" size={14} color="#666" />
+          <Text style={styles.contactText}>{item.phone || 'N/A'}</Text>
+        </View>
       </View>
-    </View>
+
+      {/* Thêm các nút hành động nếu đang ở tab Chờ duyệt */}
+      {
+        activeTab === 'pending' && (
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={[styles.btn, styles.rejectBtn]}
+              onPress={() => handleReject(item)}
+            >
+              <Text style={styles.rejectBtnText}>Từ chối</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.btn, styles.approveBtn]}
+              onPress={() => handleApprove(item)}
+            >
+              <Text style={styles.approveBtnText}>Duyệt cửa hàng</Text>
+            </TouchableOpacity>
+          </View>
+        )
+      }
+    </View >
   );
 
   const getStatusColor = (tab: string) => {
@@ -95,15 +183,15 @@ export default function StoreManagement() {
 
       <View style={styles.tabContainer}>
         {TABS.map(tab => (
-          <TouchableOpacity 
-            key={tab.id} 
+          <TouchableOpacity
+            key={tab.id}
             style={[styles.tab, activeTab === tab.id && styles.activeTab]}
             onPress={() => setActiveTab(tab.id)}
           >
-            <Ionicons 
-              name={tab.icon as any} 
-              size={18} 
-              color={activeTab === tab.id ? '#1a73e8' : '#888'} 
+            <Ionicons
+              name={tab.icon as any}
+              size={18}
+              color={activeTab === tab.id ? '#1a73e8' : '#888'}
               style={{ marginBottom: 4 }}
             />
             <Text style={[styles.tabLabel, activeTab === tab.id && styles.activeTabLabel]}>
@@ -240,6 +328,16 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
   },
+  cardBody: {
+    paddingVertical: 8,
+    gap: 4,
+  },
+  description: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 18,
+    marginBottom: 4,
+  },
   cardFooter: {
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
@@ -273,5 +371,37 @@ const styles = StyleSheet.create({
     marginTop: 16,
     color: '#888',
     fontSize: 14,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    paddingTop: 12,
+    marginTop: 12,
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  btn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    minWidth: 90,
+    alignItems: 'center',
+  },
+  rejectBtn: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#f44336',
+  },
+  rejectBtnText: {
+    color: '#f44336',
+    fontWeight: 'bold',
+  },
+  approveBtn: {
+    backgroundColor: '#4caf50',
+  },
+  approveBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
   }
 });

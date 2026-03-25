@@ -9,7 +9,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import listingApi from '../../apis/listingApi';
 import wishlistApi from '../../apis/wishlistApi';
 import marketingApi from '../../apis/marketingApi';
+import chatApi from '../../apis/chatApi';
 import { useCart } from '../../contexts/CartContext';
+import { getStorageItem } from '../../utils/storage';
 import ProductCard from '../../components/ui/ProductCard';
 import VoucherCard from '../../components/ui/VoucherCard';
 import * as Haptics from 'expo-haptics';
@@ -54,6 +56,7 @@ export default function ProductDetailScreen() {
   // Voucher State
   const [vouchers, setVouchers] = useState<any[]>([]);
   const [vouchersLoading, setVouchersLoading] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
 
   const toggleWishlist = async () => {
     if (!product) return;
@@ -192,9 +195,12 @@ export default function ProductDetailScreen() {
   }
 
   // --- DATA MAPPING ---
-  const productImages = product.media?.length
-    ? [...product.media].sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0))
-    : [{ url: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=600&q=80' }];
+  const productImages = (product.media?.length ? product.media : (product.images?.length ? product.images : []))
+    .sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+  if (productImages.length === 0) {
+    productImages.push({ url: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=600&q=80' });
+  }
 
   const colorVariantsObj = product.variants?.filter((v: any) => v.attributes?.color).reduce((acc: any, v: any) => {
     if (!acc[v.attributes.color]) {
@@ -252,6 +258,32 @@ export default function ProductDetailScreen() {
         { text: 'Tiếp tục mua sắm' },
         { text: 'Xem Giỏ Hàng', onPress: () => router.push('/(tabs)/cart') }
       ]);
+    }
+  };
+
+
+  const handleChat = async () => {
+    const userStr = await getStorageItem('user');
+    if (!userStr) {
+      Alert.alert('Đăng nhập', 'Vui lòng đăng nhập để nhắn tin cho cửa hàng.');
+      return;
+    }
+
+    setChatLoading(true);
+    try {
+      const storeIdToChat = product.store_id?._id || product.store_id;
+      if (!storeIdToChat) throw new Error('Cannot find store ID');
+
+      console.log('[DEBUG] Opening chat session for store:', storeIdToChat);
+      const res = await chatApi.getOrCreateSession(storeIdToChat);
+      if (res && (res as any).success) {
+        const sessionId = (res as any).data?._id;
+        router.push(`/chat/${sessionId}` as any);
+      }
+    } catch (err) {
+      Alert.alert('Lỗi', 'Không thể kết nối với cửa hàng.');
+    } finally {
+      setChatLoading(false);
     }
   };
 
@@ -322,15 +354,6 @@ export default function ProductDetailScreen() {
                   style={styles.productImage}
                   resizeMode="cover"
                 />
-                {/* Video Play Overlay for the first image */}
-                {index === 0 && (
-                  <View style={styles.videoOverlay}>
-                    <View style={styles.playCircle}>
-                      <Ionicons name="play" size={24} color="#fff" />
-                    </View>
-                    <Text style={styles.videoDuration}>0:15</Text>
-                  </View>
-                )}
               </View>
             )}
             onMomentumScrollEnd={(e) => {
@@ -597,22 +620,39 @@ export default function ProductDetailScreen() {
 
       {/* Bottom Action Bar */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={[styles.addToCartBtn, (isOutOfStock || cartLoading) && styles.addToCartDisabled]}
-          onPress={handleAddToCart}
-          disabled={isOutOfStock || cartLoading}
-        >
-          {cartLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Ionicons name="bag-add-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
-              <Text style={styles.addToCartText}>
-                {isOutOfStock ? 'HẾT HÀNG' : 'THÊM VÀO GIỎ'}
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
+        <View style={styles.bottomBarContent}>
+          <TouchableOpacity
+            style={styles.chatIconBtn}
+            onPress={handleChat}
+            disabled={chatLoading}
+          >
+            {chatLoading ? (
+              <ActivityIndicator size="small" color="#ee4d2d" />
+            ) : (
+              <>
+                <Ionicons name="chatbubbles-outline" size={24} color="#ee4d2d" />
+                <Text style={styles.chatIconText}>Chat</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.addToCartBtn, (isOutOfStock || cartLoading) && styles.addToCartDisabled]}
+            onPress={handleAddToCart}
+            disabled={isOutOfStock || cartLoading}
+          >
+            {cartLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="bag-add-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+                <Text style={styles.addToCartText}>
+                  {isOutOfStock ? 'HẾT HÀNG' : 'THÊM VÀO GIỎ'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Review Modal */}
@@ -1061,16 +1101,36 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: '#fff',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 24,
+    paddingBottom: 30,
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
   },
+  bottomBarContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chatIconBtn: {
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    borderRightWidth: 1,
+    borderRightColor: '#eee',
+    paddingRight: 16,
+  },
+  chatIconText: {
+    fontSize: 10,
+    color: '#ee4d2d',
+    marginTop: 2,
+    fontWeight: '600',
+  },
   addToCartBtn: {
+    flex: 1,
     backgroundColor: '#111',
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -1082,7 +1142,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
 
   // Phase 6 Additional Styles

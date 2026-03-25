@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     await setStorageItem('user', JSON.stringify(user));
                     setUser(user);
                     setIsAuthenticated(true);
-                    return { success: true, requiresOtp: false };
+                    return { success: true, requiresOtp: false, user };
                 }
 
                 return {
@@ -80,7 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 await setStorageItem('user', JSON.stringify(user));
                 setUser(user);
                 setIsAuthenticated(true);
-                return { success: true };
+                return { success: true, user };
             }
         } catch (error: any) {
             return {
@@ -99,7 +99,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 await setStorageItem('user', JSON.stringify(user));
                 setUser(user);
                 setIsAuthenticated(true);
-                return { success: true };
+                return { success: true, user };
             }
         } catch (error: any) {
             return {
@@ -179,9 +179,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const logout = async () => {
         try {
-            await authApi.logout();
-        } catch (error) {
-            console.error('Logout API error', error);
+            const tokensStr = await getStorageItem('tokens');
+            const tokens = tokensStr ? JSON.parse(tokensStr) : null;
+            const refreshToken = tokens?.refresh?.token;
+
+            await authApi.logout(refreshToken);
+        } catch (error: any) {
+            // Only log if it's not a 401 (session already invalid)
+            if (error.response?.status !== 401) {
+                console.error('Logout API error', error);
+            }
         }
         await removeStorageItem('tokens');
         await removeStorageItem('user');

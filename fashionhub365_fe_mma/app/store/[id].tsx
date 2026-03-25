@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, FlatList, Dimensions, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, FlatList, Dimensions, StatusBar, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import storeApi from '../../apis/store.api';
 import listingApi from '../../apis/listingApi';
 import { getProductMainImage } from '../../utils/helpers';
+import skeleton from '../../components/ui/Skeleton';
+import chatApi from '../../apis/chatApi';
+import { getStorageItem } from '../../utils/storage';
 import Skeleton from '../../components/ui/Skeleton';
 
 const { width } = Dimensions.get('window');
@@ -75,6 +78,33 @@ export default function StoreDetailScreen() {
     }
   };
 
+  const [chatLoading, setChatLoading] = useState(false);
+  const handleChat = async () => {
+    const userStr = await getStorageItem('user');
+    if (!userStr) {
+      alert('Vui lòng đăng nhập để nhắn tin cho cửa hàng.');
+      return;
+    }
+
+    setChatLoading(true);
+    try {
+      const storeIdToChat = (store as any)._id;
+      if (!storeIdToChat) throw new Error('Cannot find store ID');
+
+      console.log('[DEBUG] Opening chat session for store:', storeIdToChat);
+      const res = await chatApi.getOrCreateSession(storeIdToChat);
+      if (res && (res as any).success) {
+        const sessionId = (res as any).data?._id;
+        router.push(`/chat/${sessionId}` as any);
+      }
+    } catch (err) {
+      console.error('[CHAT ERROR]', err);
+      Alert.alert('Lỗi', 'Không thể kết nối với cửa hàng.');
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -124,9 +154,9 @@ export default function StoreDetailScreen() {
   if (error || !store) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>{error || 'Store not found'}</Text>
+        <Text style={styles.errorText}>{error || 'Không tìm thấy cửa hàng'}</Text>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={styles.backBtnText}>Go Back</Text>
+          <Text style={styles.backBtnText}>Quay lại</Text>
         </TouchableOpacity>
       </View>
     );
@@ -199,12 +229,27 @@ export default function StoreDetailScreen() {
             <View style={styles.detailsContainer}>
               <View style={styles.actionsRow}>
                 <TouchableOpacity
+                  style={styles.chatBtn}
+                  onPress={handleChat}
+                  disabled={chatLoading}
+                >
+                  {chatLoading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <Ionicons name="chatbubbles-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
+                      <Text style={styles.chatBtnText}>Chat</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
                   style={[styles.followBtn, isFollowing && styles.followBtnActive]}
                   onPress={handleToggleFollow}
                   disabled={followLoading}
                 >
                   <Text style={[styles.followBtnText, isFollowing && styles.followBtnTextActive]}>
-                    {isFollowing ? 'Following' : '+ Follow'}
+                    {isFollowing ? 'Đang theo dõi' : '+ Theo dõi'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -212,7 +257,7 @@ export default function StoreDetailScreen() {
             </View>
 
             <View style={styles.divider} />
-            <Text style={styles.sectionTitle}>Latest Products</Text>
+            <Text style={styles.sectionTitle}>Sản phẩm mới nhất</Text>
           </>
         )}
         data={products}
@@ -223,7 +268,7 @@ export default function StoreDetailScreen() {
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <Text style={styles.emptyProducts}>This store hasn't posted any products yet.</Text>
+          <Text style={styles.emptyProducts}>Cửa hàng này chưa đăng sản phẩm nào.</Text>
         }
       />
     </SafeAreaView>
@@ -369,6 +414,20 @@ const styles = StyleSheet.create({
   },
   followBtnTextActive: {
     color: '#666',
+  },
+  chatBtn: {
+    backgroundColor: '#ee4d2d',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  chatBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 13,
   },
   description: {
     fontSize: 14,

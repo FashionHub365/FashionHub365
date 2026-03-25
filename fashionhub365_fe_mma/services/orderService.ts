@@ -3,7 +3,7 @@ import axiosClient from '../apis/axiosClient';
 // Normalize order data
 const normalizeOrder = (order: any) => {
   let shippingAddressText = 'No address';
-  
+
   if (typeof order.shipping_address === 'object') {
     shippingAddressText = order.shipping_address?.address_line || [
       order.shipping_address?.province,
@@ -34,9 +34,10 @@ const normalizeOrder = (order: any) => {
 // Fetch all seller orders
 export const fetchSellerOrders = async () => {
   try {
-    const response = await axiosClient.get('/seller/orders/seller/history');
-    const data = Array.isArray(response) ? response : [];
-    return data.map(normalizeOrder);
+    const response: any = await axiosClient.get('/seller/orders/seller/history');
+    // The backend returns { success: true, items: [...] }
+    const items = response.items || (Array.isArray(response) ? response : []);
+    return items.map(normalizeOrder);
   } catch (error) {
     console.error('Error fetching orders:', error);
     throw error;

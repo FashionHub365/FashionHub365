@@ -55,7 +55,7 @@ axiosClient.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/logout')) {
             if (isRefreshing) {
                 return new Promise(function (resolve, reject) {
                     failedQueue.push({ resolve, reject });
@@ -107,14 +107,19 @@ axiosClient.interceptors.response.use(
                     throw new Error('Refresh failed on server');
                 }
             } catch (refreshError) {
-                console.error('Token refresh failed (Phase 7 Fix):', refreshError);
+                // If there's no refresh token, it's not necessarily an error we need to log as a "failure"
+                if (refreshError.message !== 'No refresh token available') {
+                    console.error('Token refresh failed (Phase 7 Fix):', refreshError.message);
+                }
+
                 processQueue(refreshError, null);
 
+                // Clear storage and redirect
                 await removeStorageItem('tokens');
                 await removeStorageItem('user');
 
                 if (router) {
-                    router.replace('/login');
+                    router.replace('/(auth)/login');
                 }
                 return Promise.reject(refreshError);
             } finally {

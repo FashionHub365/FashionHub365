@@ -47,8 +47,12 @@ export default function NotificationsScreen() {
 
         try {
             const res = await notificationApi.getNotifications({ limit: 50 });
-            if (res && (res as any).success) {
-                setNotifications((res as any).data.items || []);
+            if (res) {
+                // @ts-ignore - Handle possible res.data vs res format
+                const result = res.data || res;
+                // @ts-ignore - Extract items array safely
+                const items = result.items || (Array.isArray(result) ? result : []);
+                setNotifications(items);
             }
         } catch (error) {
             console.error('Fetch notifications error:', error);

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet, Text, View, TouchableOpacity,
-  ScrollView, Image, StatusBar, Dimensions,
+  ScrollView, Image, StatusBar, Dimensions, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getUserRoleSlugs } from '../../utils/roleUtils';
+import storeApi from '../../apis/storeApi';
 
 const { width } = Dimensions.get('window');
 
@@ -44,6 +45,28 @@ function OrderStatusBtn({ icon, label, onPress }: any) {
 
 export default function ProfileScreen() {
   const { user, isAuthenticated, logout } = useAuth();
+  const [myStore, setMyStore] = useState<any>(null);
+  const [loadingStore, setLoadingStore] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchMyStore();
+    }
+  }, [isAuthenticated]);
+
+  const fetchMyStore = async () => {
+    try {
+      setLoadingStore(true);
+      const res = await storeApi.getMyStore();
+      if ((res as any).success) {
+        setMyStore((res as any).data.store);
+      }
+    } catch (error) {
+      console.log('Fetch my store error:', error);
+    } finally {
+      setLoadingStore(false);
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -82,6 +105,9 @@ export default function ProfileScreen() {
   const avatarUrl = user?.avatar;
   const displayName = user?.profile?.full_name || user?.username || 'Người dùng';
   const userEmail = user?.email || '';
+  const roles = getUserRoleSlugs(user);
+  const isAdmin = roles.includes('admin');
+  const isSeller = roles.includes('seller');
 
   return (
     <SafeAreaView style={styles.container}>
@@ -118,7 +144,7 @@ export default function ProfileScreen() {
             <View style={styles.profileNameArea}>
               <Text style={styles.profileName}>{displayName}</Text>
               <Text style={styles.profileEmail}>{userEmail}</Text>
-              {getUserRoleSlugs(user).filter(r => r !== 'user').map(role => (
+              {roles.filter(r => r !== 'user').map(role => (
                 <View key={role} style={styles.rolePill}>
                   <Text style={styles.rolePillText}>{role.toUpperCase()}</Text>
                 </View>
@@ -169,10 +195,6 @@ export default function ProfileScreen() {
 
         {/* ── ADMIN / SELLER SHORTCUTS ── */}
         {(() => {
-          const roles = getUserRoleSlugs(user);
-          const isAdmin = roles.includes('admin');
-          const isSeller = roles.includes('seller');
-
           if (!isAdmin && !isSeller) return null;
 
           return (
@@ -200,6 +222,57 @@ export default function ProfileScreen() {
           );
         })()}
 
+        {/* ── SELLER REGISTRATION BANNER ── */}
+        {(() => {
+          if (isSeller) return null;
+
+          if (loadingStore) {
+            return (
+              <View style={[styles.card, { paddingVertical: 12, alignItems: 'center' }]}>
+                <ActivityIndicator color="#1a73e8" />
+              </View>
+            );
+          }
+
+          if (myStore?.status === 'pending') {
+            return (
+              <View style={[styles.card, styles.pendingBanner]}>
+                <View style={[styles.menuIconBox, { backgroundColor: '#fff3e0' }]}>
+                  <Ionicons name="time-outline" size={20} color="#fb8c00" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.pendingTitle}>Yêu cầu đăng ký shop đang chờ duyệt</Text>
+                  <Text style={styles.pendingSub}>Chúng tôi sẽ thông báo cho bạn ngay khi có kết quả.</Text>
+                </View>
+              </View>
+            );
+          }
+
+          return (
+            <TouchableOpacity
+              style={[styles.card, styles.registerSellerRow]}
+              activeOpacity={0.8}
+              onPress={() => router.push('/profile/seller-register' as any)}
+            >
+              <LinearGradient
+                colors={['#1a73e8', '#0d47a1']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.registerSellerGradient}
+              >
+                <View style={styles.registerSellerInfo}>
+                  <Ionicons name="storefront-outline" size={24} color="#fff" />
+                  <View style={{ marginLeft: 12 }}>
+                    <Text style={styles.registerSellerTitle}>Trở thành người bán</Text>
+                    <Text style={styles.registerSellerSub}>Mở shop ngay hôm nay để bắt đầu kinh doanh</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+          );
+        })()}
+
         {/* ── MY ACCOUNT ── */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Tài Khoản Của Tôi</Text>
@@ -213,7 +286,7 @@ export default function ProfileScreen() {
           <Text style={styles.cardTitle}>Tiện Ích</Text>
           <MenuItem icon="bag-handle-outline" iconBg="#f5f5f5" iconColor="#111" label="Giỏ hàng" onPress={() => router.push('/(tabs)/cart')} />
           <MenuItem icon="heart-outline" iconBg="#f5f5f5" iconColor="#111" label="Sản phẩm yêu thích" onPress={() => router.push('/wishlist' as any)} />
-          <MenuItem icon="chatbubble-outline" iconBg="#f5f5f5" iconColor="#111" label="Chat với người bán" onPress={() => { }} />
+          <MenuItem icon="chatbubble-outline" iconBg="#f5f5f5" iconColor="#111" label="Chat với người bán" onPress={() => router.push('/chat' as any)} />
           <MenuItem icon="notifications-outline" iconBg="#f5f5f5" iconColor="#111" label="Thông báo" onPress={() => { }} badge="3" />
         </View>
 
@@ -546,6 +619,58 @@ const styles = StyleSheet.create({
   },
   footerText: {
     color: '#bbb',
+    fontSize: 12,
+  },
+
+  // ── SELLER REGISTRATION ──
+  pendingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff8e1',
+    borderWidth: 1,
+    borderColor: '#ffe082',
+    paddingVertical: 14,
+    gap: 12,
+  },
+  pendingTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#e65100',
+    marginBottom: 2,
+  },
+  pendingSub: {
+    fontSize: 12,
+    color: '#ef6c00',
+    lineHeight: 16,
+  },
+  registerSellerRow: {
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+    marginTop: 10,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  registerSellerGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+  },
+  registerSellerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  registerSellerTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  registerSellerSub: {
+    color: 'rgba(255,255,255,0.85)',
     fontSize: 12,
   },
 });

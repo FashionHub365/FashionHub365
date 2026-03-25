@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Dimensions, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -57,10 +57,10 @@ export default function AdminDashboard() {
         <Text style={styles.statValue}>{value.toLocaleString('vi-VN')}{suffix}</Text>
         {growth !== undefined && (
           <View style={styles.trendRow}>
-            <Ionicons 
-              name={growth >= 0 ? "trending-up" : "trending-down"} 
-              size={12} 
-              color={growth >= 0 ? "#4caf50" : "#f44336"} 
+            <Ionicons
+              name={growth >= 0 ? "trending-up" : "trending-down"}
+              size={12}
+              color={growth >= 0 ? "#4caf50" : "#f44336"}
             />
             <Text style={[styles.trendText, { color: growth >= 0 ? "#4caf50" : "#f44336" }]}>
               {Math.abs(growth).toFixed(1)}% so với tháng trước
@@ -75,16 +75,14 @@ export default function AdminDashboard() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color="#111" />
-        </TouchableOpacity>
+        <View style={styles.backBtn} />
         <Text style={styles.headerTitle}>Admin Dashboard</Text>
         <TouchableOpacity onPress={onRefresh} style={styles.headerBtn}>
           <Ionicons name="refresh" size={20} color="#111" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -93,53 +91,74 @@ export default function AdminDashboard() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Chỉ số quan trọng</Text>
           <View style={styles.statGrid}>
-            <StatCard 
-              title="Tổng Doanh Thu" 
-              value={summary.totalRevenue || 0} 
-              icon="cash-outline" 
-              color="#1a73e8" 
+            <StatCard
+              title="Tổng Doanh Thu"
+              value={summary.totalRevenue || 0}
+              icon="cash-outline"
+              color="#1a73e8"
               growth={trend.revenue}
               suffix="₫"
             />
-            <StatCard 
-              title="Đơn Hàng" 
-              value={summary.totalOrders || 0} 
-              icon="cart-outline" 
-              color="#fb8c00" 
+            <StatCard
+              title="Đơn Hàng"
+              value={summary.totalOrders || 0}
+              icon="cart-outline"
+              color="#fb8c00"
               growth={trend.orders}
             />
-            <StatCard 
-              title="Khách Hàng" 
-              value={summary.totalUsers || 0} 
-              icon="people-outline" 
-              color="#4caf50" 
+            <StatCard
+              title="Khách Hàng"
+              value={summary.totalUsers || 0}
+              icon="people-outline"
+              color="#4caf50"
               growth={trend.users}
             />
-            <StatCard 
-              title="Sản Phẩm" 
-              value={summary.totalProducts || 0} 
-              icon="shirt-outline" 
-              color="#e91e63" 
+            <StatCard
+              title="Sản Phẩm"
+              value={summary.totalProducts || 0}
+              icon="shirt-outline"
+              color="#e91e63"
             />
           </View>
         </View>
 
-        {/* Management Tools */}
+        {/* Management Grid */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quản lý hệ thống</Text>
-          <View style={styles.toolGrid}>
-            <TouchableOpacity style={styles.toolBtn} onPress={() => router.push('/(admin)/users')}>
-              <View style={[styles.toolIcon, { backgroundColor: '#e8f0fe' }]}>
-                <Ionicons name="people-outline" size={20} color="#1a73e8" />
+          <Text style={styles.sectionTitle}>Công cụ quản lý</Text>
+          <View style={styles.gridContainer}>
+            <TouchableOpacity style={styles.gridItem} onPress={() => router.push('/(admin)/users')}>
+              <View style={[styles.gridIcon, { backgroundColor: '#e8f0fe' }]}>
+                <Ionicons name="people" size={24} color="#1a73e8" />
               </View>
-              <Text style={styles.toolLabel}>Người dùng</Text>
+              <Text style={styles.gridLabel}>Người dùng</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.toolBtn} onPress={() => router.push('/(admin)/stores')}>
-              <View style={[styles.toolIcon, { backgroundColor: '#e6f4ea' }]}>
-                <Ionicons name="storefront-outline" size={20} color="#4caf50" />
+
+            <TouchableOpacity style={styles.gridItem} onPress={() => router.push('/(admin)/stores')}>
+              <View style={[styles.gridIcon, { backgroundColor: '#e6f4ea' }]}>
+                <Ionicons name="storefront" size={24} color="#34a853" />
               </View>
-              <Text style={styles.toolLabel}>Cửa hàng</Text>
+              <Text style={styles.gridLabel}>Cửa hàng</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.gridItem} onPress={() => router.push('/(admin)/products')}>
+              <View style={[styles.gridIcon, { backgroundColor: '#fce4ec' }]}>
+                <Ionicons name="shirt" size={24} color="#e91e63" />
+              </View>
+              <Text style={styles.gridLabel}>Sản phẩm</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.gridItem} onPress={() => router.push('/(admin)/categories')}>
+              <View style={[styles.gridIcon, { backgroundColor: '#e0f7fa' }]}>
+                <Ionicons name="list" size={24} color="#00bcd4" />
+              </View>
+              <Text style={styles.gridLabel}>Danh mục</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.gridItem} onPress={() => router.push('/(admin)/audit-logs')}>
+              <View style={[styles.gridIcon, { backgroundColor: '#fff3e0' }]}>
+                <Ionicons name="document-text" size={24} color="#fb8c00" />
+              </View>
+              <Text style={styles.gridLabel}>Nhật ký</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -152,7 +171,7 @@ export default function AdminDashboard() {
               <Text style={styles.seeAll}>Chi tiết</Text>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.chartCard}>
             <View style={styles.chartContainer}>
               {stats?.monthlyPlatformStats?.length > 0 ? (
@@ -162,11 +181,11 @@ export default function AdminDashboard() {
                   return data.map((m: any) => (
                     <View key={`${m._id.year}-${m._id.month}`} style={styles.barColumn}>
                       <View style={styles.barBackground}>
-                        <View 
+                        <View
                           style={[
-                            styles.barFill, 
+                            styles.barFill,
                             { height: `${((m.netRevenue || 0) / maxRevenue) * 100}%` }
-                          ]} 
+                          ]}
                         />
                       </View>
                       <Text style={styles.barLabel}>{m._id.month}/{m._id.year.toString().slice(-2)}</Text>
@@ -337,6 +356,37 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#444',
     fontWeight: '500',
+  },
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 12,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  gridItem: {
+    width: '25%',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  gridIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  gridLabel: {
+    fontSize: 11,
+    color: '#444',
+    fontWeight: '500',
+    textAlign: 'center',
   },
   chartCard: {
     backgroundColor: '#fff',

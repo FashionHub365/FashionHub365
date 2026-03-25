@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, Button,  Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TextInput, Button, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, Link } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { IconSymbol } from '../../components/ui/icon-symbol';
+import { getUserRoleSlugs } from '../../utils/roleUtils';
 
 export default function VerifyOtpScreen() {
   const { email } = useLocalSearchParams<{ email: string }>();
@@ -22,8 +23,15 @@ export default function VerifyOtpScreen() {
       const result = await verifyOtpLogin(email as string, otp, true);
 
       if (result && result.success) {
-        Alert.alert('Success', 'Login successful!', [
-          { text: 'OK', onPress: () => router.replace('/(tabs)') }
+        const user = (result as any).user;
+        const roles = getUserRoleSlugs(user);
+        let redirectPath = '/(tabs)' as any;
+
+        if (roles.includes('admin')) redirectPath = '/(admin)/dashboard' as any;
+        else if (roles.includes('seller')) redirectPath = '/(seller)/dashboard' as any;
+
+        Alert.alert('Thành công', 'Đăng nhập thành công!', [
+          { text: 'OK', onPress: () => router.replace(redirectPath) }
         ]);
       } else {
         Alert.alert('Verification Failed', result?.message || 'Invalid OTP code.');
@@ -41,7 +49,7 @@ export default function VerifyOtpScreen() {
         <View style={styles.backButtonContainer}>
           <Link href="/(auth)/login" asChild>
             <Text style={styles.backButtonText}>
-               <IconSymbol name="chevron.left" size={20} color="#007AFF" /> Back to Login
+              <IconSymbol name="chevron.left" size={20} color="#007AFF" /> Back to Login
             </Text>
           </Link>
         </View>
@@ -54,8 +62,8 @@ export default function VerifyOtpScreen() {
           We have sent an OTP code to your email:{"\n"}
           <Text style={styles.emailText}>{email}</Text>
         </Text>
-        
-        <TextInput 
+
+        <TextInput
           style={styles.input}
           placeholder="Enter 6-digit OTP code"
           value={otp}
@@ -65,9 +73,9 @@ export default function VerifyOtpScreen() {
           textAlign="center"
           autoFocus
         />
-        
+
         <View style={styles.buttonContainer}>
-           <Button title={loading ? "Verifying..." : "Verify OTP"} onPress={handleVerify} disabled={loading || otp.length < 6} />
+          <Button title={loading ? "Verifying..." : "Verify OTP"} onPress={handleVerify} disabled={loading || otp.length < 6} />
         </View>
 
         {loading && <ActivityIndicator style={styles.loader} size="large" color="#007AFF" />}

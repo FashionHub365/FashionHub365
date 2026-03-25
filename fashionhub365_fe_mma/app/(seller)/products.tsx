@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
+import {
+  View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
+  ActivityIndicator, Alert, Image, RefreshControl
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { IconSymbol } from '../../components/ui/icon-symbol';
+import { Ionicons } from '@expo/vector-icons';
 // @ts-ignore
 import { getSellerProducts, toggleStockStatus, deleteProduct } from '../../services/productService';
 import { getProductMainImage } from '../../utils/helpers';
@@ -11,16 +14,16 @@ export default function SellerProducts() {
   const [products, setProducts] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const loadProducts = useCallback(async () => {
-    setLoading(true);
     try {
       const params: any = {};
       if (search) params.search = search;
-      
+
       const data = await getSellerProducts(params);
       // @ts-ignore
       const result = data?.data || data || {};
@@ -28,15 +31,21 @@ export default function SellerProducts() {
       setTotal(result.total || 0);
     } catch (err: any) {
       console.error('Error loading products:', err);
-      Alert.alert('Lỗi', err.response?.data?.message || err.message || 'Không thể tải danh sách sản phẩm');
+      Alert.alert('Lỗi', 'Không thể tải danh sách sản phẩm');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [search]);
 
-  useEffect(() => { 
-    loadProducts(); 
+  useEffect(() => {
+    loadProducts();
   }, [loadProducts]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadProducts();
+  };
 
   const handleSearch = () => {
     setSearch(searchInput);
@@ -44,12 +53,12 @@ export default function SellerProducts() {
 
   const confirmDelete = (product: any) => {
     Alert.alert(
-      "Xóa sản phẩm?",
+      "Xác nhận xóa",
       `Bạn có chắc chắn muốn xóa "${product.name}"? Hành động này không thể hoàn tác.`,
       [
         { text: "Hủy", style: "cancel" },
-        { 
-          text: "Xác nhận xóa", 
+        {
+          text: "Xác nhận xóa",
           style: "destructive",
           onPress: async () => {
             try {
@@ -57,7 +66,7 @@ export default function SellerProducts() {
               Alert.alert('Thành công', 'Đã xóa sản phẩm.');
               loadProducts();
             } catch (err: any) {
-              Alert.alert('Lỗi', err?.response?.data?.message || 'Không thể xóa sản phẩm');
+              Alert.alert('Lỗi', 'Không thể xóa sản phẩm');
             }
           }
         }
@@ -71,31 +80,29 @@ export default function SellerProducts() {
       await toggleStockStatus(product._id);
       loadProducts();
     } catch (err: any) {
-      Alert.alert('Lỗi', 'Lỗi khi cập nhật trạng thái: ' + err.message);
+      Alert.alert('Lỗi', 'Lỗi khi cập nhật trạng thái');
     } finally {
       setTogglingId(null);
     }
   };
 
-
-
   const getStatusColor = (status: string) => {
-    switch(status) {
-      case 'active': return '#4caf50';
-      case 'inactive': return '#f44336';
-      case 'draft': return '#9e9e9e';
-      case 'blocked': return '#ff9800';
-      default: return '#9e9e9e';
+    switch (status) {
+      case 'active': return '#2ecc71';
+      case 'inactive': return '#e74c3c';
+      case 'draft': return '#95a5a6';
+      case 'blocked': return '#e67e22';
+      default: return '#95a5a6';
     }
   };
 
   const getStatusLabel = (status: string) => {
-    switch(status) {
-      case 'active': return 'ĐANG BÁN';
-      case 'inactive': return 'ĐÃ ẨN';
-      case 'draft': return 'NHÁP';
-      case 'blocked': return 'BỊ KHÓA';
-      default: return status.toUpperCase();
+    switch (status) {
+      case 'active': return 'Đang bán';
+      case 'inactive': return 'Đã ẩn';
+      case 'draft': return 'Nháp';
+      case 'blocked': return 'Bị khóa';
+      default: return status;
     }
   };
 
@@ -105,88 +112,104 @@ export default function SellerProducts() {
 
     return (
       <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Image source={{ uri: getProductMainImage(item) }} style={styles.productImage} resizeMode="cover" />
-          <View style={styles.info}>
-            <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
-            <Text style={styles.uuid}>#{item.uuid?.substring(0, 8)}</Text>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-               <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-                 {getStatusLabel(item.status)}
-               </Text>
+        <View style={styles.cardMain}>
+          <Image source={{ uri: getProductMainImage(item) }} style={styles.productImage} />
+          <View style={styles.productInfo}>
+            <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+            <View style={styles.skuRow}>
+              <Text style={styles.skuText}>SKU: {item.uuid?.substring(0, 8).toUpperCase()}</Text>
+              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '15' }]}>
+                <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+                  {getStatusLabel(item.status)}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
 
-        <View style={styles.detailsRow}>
-          <View style={styles.detailItem}>
-            <Text style={styles.label}>Giá bán</Text>
-            <Text style={styles.value}>{item.base_price?.toLocaleString('vi-VN')}₫</Text>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>Giá bán</Text>
+            <Text style={styles.statValue}>{item.base_price?.toLocaleString('vi-VN')}₫</Text>
           </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.label}>Phân loại</Text>
-            <Text style={styles.value}>{item.variants?.length || 0}</Text>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>Kho hàng</Text>
+            <Text style={styles.statValue}>{item.variants?.reduce((acc: number, v: any) => acc + (v.stock || 0), 0) || 0}</Text>
           </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.label}>Còn hàng</Text>
-            <TouchableOpacity 
-              onPress={() => handleToggleStock(item)}
-              disabled={isToggling || item.status === 'blocked'}
-              style={[styles.toggleBtn, isActive ? styles.toggleActive : styles.toggleInactive]}
-            >
-              <Text style={styles.toggleText}>{isActive ? 'CÓ' : 'KHÔNG'}</Text>
-            </TouchableOpacity>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>Đã bán</Text>
+            <Text style={styles.statValue}>{item.sold_count || 0}</Text>
           </View>
         </View>
 
-        <View style={styles.actions}>
-          <TouchableOpacity 
-            style={styles.actionBtn} 
-            onPress={() => router.push({ pathname: '/(seller)/product-form', params: { id: item._id } })}
-          >
-            <IconSymbol name="pencil.circle" size={24} color="#4a90e2" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => confirmDelete(item)}>
-            <IconSymbol name="trash.circle" size={24} color="#f44336" />
-          </TouchableOpacity>
+        <View style={styles.cardActions}>
+          <View style={styles.statusToggle}>
+            <Text style={styles.toggleLabel}>{isActive ? 'Đang hiển thị' : 'Đang ẩn'}</Text>
+            <TouchableOpacity
+              onPress={() => handleToggleStock(item)}
+              disabled={isToggling || item.status === 'blocked'}
+              style={[styles.switchTrack, isActive ? styles.switchActive : styles.switchInactive]}
+            >
+              <View style={[styles.switchThumb, isActive ? styles.thumbActive : styles.thumbInactive]} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => router.push({ pathname: '/(seller)/product-form', params: { id: item._id } })}
+            >
+              <Ionicons name="create-outline" size={22} color="#3498db" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => confirmDelete(item)}>
+              <Ionicons name="trash-outline" size={22} color="#e74c3c" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Sản phẩm ({total})</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={24} color="#111" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Sản phẩm ({total})</Text>
+        <TouchableOpacity
+          style={styles.addBtn}
+          onPress={() => router.push('/(seller)/product-form')}
+        >
+          <Ionicons name="add" size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Search */}
+      <View style={styles.searchBox}>
+        <View style={styles.searchInputWrapper}>
+          <Ionicons name="search-outline" size={20} color="#999" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Tìm kiếm theo tên sản phẩm..."
+            value={searchInput}
+            onChangeText={setSearchInput}
+            onSubmitEditing={handleSearch}
+          />
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/(seller)/product-form')}>
-          <Text style={styles.addBtnText}>+ Thêm mới</Text>
-        </TouchableOpacity>
       </View>
 
-      <View style={styles.searchContainer}>
-        <IconSymbol name="magnifyingglass" size={20} color="#888" style={styles.searchIcon} />
-        <TextInput 
-          style={styles.searchInput}
-          placeholder="Tìm kiếm sản phẩm..."
-          value={searchInput}
-          onChangeText={setSearchInput}
-          onSubmitEditing={handleSearch}
-          returnKeyType="search"
-        />
-        <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
-          <Text style={styles.searchBtnText}>Tìm kiếm</Text>
-        </TouchableOpacity>
-      </View>
-
-      {loading ? (
+      {loading && !refreshing ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#4a90e2" />
+          <ActivityIndicator size="large" color="#ee4d2d" />
         </View>
       ) : products.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Text style={styles.emptyText}>Không tìm thấy sản phẩm nào.</Text>
+          <Ionicons name="cube-outline" size={60} color="#ddd" />
+          <Text style={styles.emptyText}>Bạn chưa có sản phẩm nào.</Text>
         </View>
       ) : (
         <FlatList
@@ -195,6 +218,9 @@ export default function SellerProducts() {
           renderItem={renderProduct}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#ee4d2d"]} />
+          }
         />
       )}
     </SafeAreaView>
@@ -204,169 +230,196 @@ export default function SellerProducts() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8f9fa',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#f0f0f0',
+  },
+  backBtn: {
+    padding: 4,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#111',
   },
   addBtn: {
-    backgroundColor: '#4a90e2',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#ee4d2d',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  addBtnText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  searchBox: {
+    padding: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ebebeb',
   },
-  searchContainer: {
+  searchInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    margin: 15,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
   },
   searchIcon: {
-    marginRight: 10,
+    marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    height: 44,
-    fontSize: 16,
-  },
-  searchBtn: {
-    backgroundColor: '#4a90e2',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 6,
-    marginLeft: 10,
-  },
-  searchBtnText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 15,
+    color: '#333',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 40,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#888',
+    fontSize: 15,
+    color: '#999',
+    marginTop: 10,
   },
   listContainer: {
-    paddingHorizontal: 15,
-    paddingBottom: 20,
+    padding: 16,
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
     elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
   },
-  cardHeader: {
+  cardMain: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 15,
+    marginBottom: 14,
   },
   productImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    backgroundColor: '#f0f4f8',
-    marginRight: 12,
+    width: 70,
+    height: 70,
+    borderRadius: 12,
+    backgroundColor: '#f5f5f5',
   },
-  info: {
+  productInfo: {
     flex: 1,
+    marginLeft: 12,
+    justifyContent: 'center',
   },
-  name: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  uuid: {
-    fontSize: 12,
-    color: '#888',
-    fontFamily: 'monospace',
+  productName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111',
+    lineHeight: 20,
     marginBottom: 6,
   },
+  skuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  skuText: {
+    fontSize: 11,
+    color: '#999',
+  },
   statusBadge: {
-    alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 12,
+    borderRadius: 8,
   },
   statusText: {
     fontSize: 10,
     fontWeight: 'bold',
   },
-  detailsRow: {
+  statsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     backgroundColor: '#f9f9f9',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 15,
+    borderRadius: 12,
+    paddingVertical: 10,
+    marginBottom: 14,
   },
-  detailItem: {
+  statItem: {
+    flex: 1,
     alignItems: 'center',
   },
-  label: {
+  statLabel: {
+    fontSize: 10,
+    color: '#888',
+    marginBottom: 2,
+  },
+  statValue: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  statDivider: {
+    width: 1,
+    height: '60%',
+    backgroundColor: '#eee',
+    alignSelf: 'center',
+  },
+  cardActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f5f5f5',
+  },
+  statusToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  toggleLabel: {
     fontSize: 12,
     color: '#666',
-    marginBottom: 4,
+    marginRight: 8,
   },
-  value: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
+  switchTrack: {
+    width: 36,
+    height: 18,
+    borderRadius: 9,
+    padding: 2,
   },
-  toggleBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 4,
+  switchActive: {
+    backgroundColor: '#ee4d2d',
   },
-  toggleActive: {
-    backgroundColor: '#e8f5e9',
+  switchInactive: {
+    backgroundColor: '#ddd',
   },
-  toggleInactive: {
-    backgroundColor: '#ffebee',
+  switchThumb: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#fff',
   },
-  toggleText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#333',
+  thumbActive: {
+    alignSelf: 'flex-end',
   },
-  actions: {
+  thumbInactive: {
+    alignSelf: 'flex-start',
+  },
+  actionButtons: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingTop: 10,
   },
-  actionBtn: {
-    padding: 5,
-    marginLeft: 15,
+  iconBtn: {
+    padding: 6,
+    marginLeft: 12,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
   }
 });

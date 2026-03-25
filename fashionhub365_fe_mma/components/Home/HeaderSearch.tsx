@@ -3,9 +3,11 @@ import { View, StyleSheet, TouchableOpacity, Text, SafeAreaView, Platform, Statu
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCart } from '../../contexts/CartContext';
+import { useNotification } from '../../contexts/NotificationContext';
 
 export default function HeaderSearch() {
     const { cartData } = useCart();
+    const { unreadCount } = useNotification();
     const cartItemCount = cartData?.totalItems || 0;
 
     return (
@@ -35,11 +37,16 @@ export default function HeaderSearch() {
                 </TouchableOpacity>
 
                 {/* Wishlist or Notification Icon */}
-                <TouchableOpacity style={styles.iconButton}>
+                <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={() => router.push('/(tabs)/notifications')}
+                >
                     <Ionicons name="notifications-outline" size={24} color="#111" />
-                    <View style={styles.badge}>
-                        <Text style={styles.badgeText}>3</Text>
-                    </View>
+                    {unreadCount > 0 && (
+                        <View style={styles.badge}>
+                            <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+                        </View>
+                    )}
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
