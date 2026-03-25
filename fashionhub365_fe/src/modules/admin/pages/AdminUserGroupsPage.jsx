@@ -174,7 +174,7 @@ const AdminUserGroupsPage = () => {
         setGroupForm(emptyGroup);
       }
     } catch (nextError) {
-      setError(nextError.message || "Không thể tải dữ liệu nhóm quyền.");
+      setError(nextError.message || "Unable to load user group data.");
     } finally {
       setLoading(false);
     }
@@ -265,11 +265,11 @@ const AdminUserGroupsPage = () => {
     const name = groupForm.name.trim();
     const slug = groupForm.slug.trim();
     if (!name) {
-      setError("Vui lòng nhập tên nhóm quyền.");
+      setError("Please enter the group name.");
       return;
     }
     if (!slug) {
-      setError("Vui lòng nhập mã hệ thống (slug).");
+      setError("Please enter the system code (slug).");
       return;
     }
 
@@ -281,7 +281,7 @@ const AdminUserGroupsPage = () => {
           (item) => !item.deletedAt && item.slug.toLowerCase() === slug.toLowerCase()
         );
         if (exists) {
-          setError("Mã hệ thống đã tồn tại. Vui lòng thử mã khác.");
+          setError("System code already exists. Please try another one.");
           return;
         }
 
@@ -297,7 +297,7 @@ const AdminUserGroupsPage = () => {
         );
         const nextGroups = [created, ...groups];
         updateGroups(nextGroups, created.id);
-        setSuccess("Đã tạo nhóm quyền thành công.");
+        setSuccess("Group created successfully.");
       } else {
         const exists = groups.some(
           (item) =>
@@ -306,7 +306,7 @@ const AdminUserGroupsPage = () => {
             item.slug.toLowerCase() === slug.toLowerCase()
         );
         if (exists) {
-          setError("Mã hệ thống đã tồn tại. Vui lòng thử mã khác.");
+          setError("System code already exists. Please try another one.");
           return;
         }
 
@@ -328,7 +328,7 @@ const AdminUserGroupsPage = () => {
           });
         });
         updateGroups(nextGroups, selectedGroupId);
-        setSuccess("Đã cập nhật thông tin nhóm.");
+        setSuccess("Group information updated.");
       }
     } finally {
       setSaving(false);
@@ -353,7 +353,7 @@ const AdminUserGroupsPage = () => {
       );
     });
     updateGroups(nextGroups, "");
-    setSuccess("Đã xóa nhóm quyền.");
+    setSuccess("Group deleted.");
   };
 
   const onSearchMembers = async () => {
@@ -369,7 +369,7 @@ const AdminUserGroupsPage = () => {
       setSearchUsers(users);
       upsertKnownUsers(users);
     } catch (nextError) {
-      setError(nextError.message || "Không tìm thấy người dùng.");
+      setError(nextError.message || "No users found.");
     } finally {
       setSearching(false);
     }
@@ -377,15 +377,15 @@ const AdminUserGroupsPage = () => {
 
   const applyRolesToMembers = async (mode = "replace") => {
     if (!selectedGroupId) {
-      setError("Chưa chọn nhóm quyền.");
+      setError("No group selected.");
       return;
     }
     if (!groupForm.memberIds.length) {
-      setError("Nhóm này chưa có thành viên nào.");
+      setError("This group has no members.");
       return;
     }
     if (!groupForm.roleIds.length) {
-      setError("Nhóm này chưa được gán vai trò mặc định.");
+      setError("This group has no default roles assigned.");
       return;
     }
 
@@ -423,9 +423,9 @@ const AdminUserGroupsPage = () => {
         });
       });
       updateGroups(nextGroups, selectedGroupId);
-      setSuccess(`Đã áp dụng thành công quyền cho ${successCount}/${groupForm.memberIds.length} thành viên.`);
+      setSuccess(`Successfully applied permissions to ${successCount}/${groupForm.memberIds.length} members.`);
     } catch (nextError) {
-      setError(nextError.message || "Lỗi khi áp dụng quyền hàng loạt.");
+      setError(nextError.message || "Error applying bulk permissions.");
     } finally {
       setApplying(false);
     }
@@ -436,7 +436,7 @@ const AdminUserGroupsPage = () => {
       <section className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm min-h-[600px] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4 py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-          <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest">Đang tải dữ liệu...</p>
+          <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest">Loading data...</p>
         </div>
       </section>
     );
@@ -445,9 +445,9 @@ const AdminUserGroupsPage = () => {
   if (!canManageUserGroups) {
     return (
       <section className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm min-h-[400px] flex flex-col items-center justify-center">
-        <h1 className="text-2xl font-bold text-slate-800 tracking-tight mb-3">Quản lý Nhóm người dùng</h1>
+        <h1 className="text-2xl font-bold text-slate-800 tracking-tight mb-3">Manage User Groups</h1>
         <div className="bg-amber-50 border border-amber-200 text-amber-700 text-sm font-medium rounded-xl px-5 py-4 shadow-sm">
-          Tài khoản này không có quyền quản lý nhóm người dùng.
+          This account does not have permission to manage user groups.
         </div>
       </section>
     );
@@ -458,9 +458,9 @@ const AdminUserGroupsPage = () => {
       <aside className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm overflow-hidden flex flex-col max-h-[calc(100vh-120px)]">
         <div className="flex items-center justify-between mb-5 shrink-0">
           <div>
-            <h2 className="text-base font-bold text-slate-900 tracking-tight uppercase">Danh sách Nhóm</h2>
+            <h2 className="text-base font-bold text-slate-900 tracking-tight uppercase">Group List</h2>
             <p className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wide">
-              {activeGroups.length} nhóm hoạt động
+              {activeGroups.length} active groups
             </p>
           </div>
           <button
@@ -468,7 +468,7 @@ const AdminUserGroupsPage = () => {
             onClick={onCreateMode}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold uppercase tracking-wide hover:bg-indigo-700 transition-all shadow-sm"
           >
-            + Tạo mới
+            + Create New
           </button>
         </div>
 
@@ -488,18 +488,18 @@ const AdminUserGroupsPage = () => {
                 <div className="flex items-start justify-between">
                   <p className={`text-sm font-bold ${isActive ? 'text-indigo-900' : 'text-slate-800'}`}>{group.name}</p>
                   {group.status === "ACTIVE" ? (
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1 shrink-0" title="Đang hoạt động"></span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1 shrink-0" title="Active"></span>
                   ) : (
-                    <span className="w-2 h-2 rounded-full bg-slate-300 mt-1 shrink-0" title="Không hoạt động"></span>
+                    <span className="w-2 h-2 rounded-full bg-slate-300 mt-1 shrink-0" title="Inactive"></span>
                   )}
                 </div>
                 <p className={`text-[11px] mt-1 ${isActive ? 'text-indigo-600' : 'text-slate-500'}`}>{group.slug}</p>
                 <div className="mt-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
                   <span className={`px-2 py-1 rounded-md ${isActive ? 'bg-indigo-100/80 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
-                    {group.roleIds?.length || 0} quyền
+                    {group.roleIds?.length || 0} roles
                   </span>
                   <span className={`px-2 py-1 rounded-md ${isActive ? 'bg-indigo-100/80 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
-                    {group.memberIds?.length || 0} thành viên
+                    {group.memberIds?.length || 0} members
                   </span>
                 </div>
               </button>
@@ -511,15 +511,15 @@ const AdminUserGroupsPage = () => {
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm overflow-hidden flex flex-col max-h-[calc(100vh-120px)]">
         <div className="flex flex-wrap items-start justify-between gap-3 shrink-0">
           <div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Chi tiết Nhóm quyền</h1>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">User Group Details</h1>
             <p className="text-sm text-slate-500 mt-1">
-              Quản lý thông tin chung, chỉ định vai trò mặc định và quản trị thành viên của nhóm.
+              Manage general information, assign default roles, and manage group members.
             </p>
           </div>
           {groupForm.updatedAt && (
             <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
               <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-              Cập nhật lúc: <span className="text-slate-800">{formatDateTime(groupForm.updatedAt)}</span>
+              Last updated: <span className="text-slate-800">{formatDateTime(groupForm.updatedAt)}</span>
             </div>
           )}
         </div>
@@ -540,51 +540,51 @@ const AdminUserGroupsPage = () => {
         <div className="mt-6 overflow-y-auto stylish-scrollbar pr-2 pb-6 min-h-0 flex-1">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Tên nhóm</label>
+              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Group Name</label>
               <input
                 value={groupForm.name}
                 onChange={(event) => onFormChange("name", event.target.value)}
-                placeholder="VD: Nhóm CSKH"
+                placeholder="e.g. Support Team"
                 className="w-full pl-4 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Mã hệ thống (chỉ đọc)</label>
+              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">System Code (Read-only)</label>
               <input
                 value={groupForm.slug}
                 readOnly
-                placeholder="nhom-cskh"
+                placeholder="support-team"
                 className="w-full pl-4 pr-3 py-3 bg-slate-100/50 border border-slate-200 text-slate-500 font-medium cursor-not-allowed rounded-xl text-sm focus:outline-none"
               />
-              <p className="text-[10px] text-slate-400 mt-1.5 font-medium ml-1">Tự động tạo dựa trên tên nhóm</p>
+              <p className="text-[10px] text-slate-400 mt-1.5 font-medium ml-1">Automatically generated based on group name</p>
             </div>
             <div className="xl:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Mô tả chi tiết</label>
+              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Detailed Description</label>
               <textarea
                 rows={3}
                 value={groupForm.description}
                 onChange={(event) => onFormChange("description", event.target.value)}
-                placeholder="Mô tả quyền hạn và phạm vi công việc của nhóm..."
+                placeholder="Description of permissions and scope of the group..."
                 className="w-full pl-4 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Trạng thái</label>
+              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Status</label>
               <select
                 value={groupForm.status}
                 onChange={(event) => onFormChange("status", event.target.value)}
                 className="w-full pl-4 pr-3 py-3 bg-slate-50 border border-slate-200 hover:bg-slate-100 cursor-pointer rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
               >
-                <option value="ACTIVE">Hoạt động (Active)</option>
-                <option value="INACTIVE">Khóa (Inactive)</option>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
               </select>
             </div>
           </div>
 
           <section className="mt-8 pt-6 border-t border-slate-100">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Vai trò mặc định của nhóm</h3>
-              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">{groupForm.roleIds.length} quyền được chọn</span>
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Default Roles for Group</h3>
+              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">{groupForm.roleIds.length} roles selected</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
               {allRoles.map((role) => {
@@ -617,8 +617,8 @@ const AdminUserGroupsPage = () => {
 
           <section className="mt-8 pt-6 border-t border-slate-100">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Thành viên nhóm</h3>
-              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">{groupForm.memberIds.length} thành viên</span>
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Group Members</h3>
+              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">{groupForm.memberIds.length} members</span>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -626,7 +626,7 @@ const AdminUserGroupsPage = () => {
                 <input
                   value={memberKeyword}
                   onChange={(event) => setMemberKeyword(event.target.value)}
-                  placeholder="Tìm kiếm bằng tên hoặc email để thêm vào nhóm..."
+                  placeholder="Search by name or email to add to group..."
                   className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                 />
                 <svg className="w-5 h-5 text-slate-400 absolute left-4 top-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -637,7 +637,7 @@ const AdminUserGroupsPage = () => {
                 disabled={searching}
                 className="px-6 py-3.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60 transition-all shadow-sm"
               >
-                {searching ? "Đang tìm..." : "Tìm kiếm"}
+                {searching ? "Searching..." : "Search"}
               </button>
             </div>
 
@@ -666,7 +666,7 @@ const AdminUserGroupsPage = () => {
                             : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800"
                             }`}
                         >
-                          {added ? "Đã thêm" : "Thêm vào"}
+                          {added ? "Added" : "Add"}
                         </button>
                       </div>
                     );
@@ -679,16 +679,16 @@ const AdminUserGroupsPage = () => {
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="px-5 py-3.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider w-[40%]">Thành viên</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider w-[40%]">Member</th>
                     <th className="px-5 py-3.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider w-[40%]">Email</th>
-                    <th className="px-5 py-3.5 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">Thao tác</th>
+                    <th className="px-5 py-3.5 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {selectedMembers.length === 0 ? (
                     <tr>
                       <td className="px-5 py-8 text-center text-slate-500 text-sm font-medium" colSpan={3}>
-                        Nhóm chưa có thành viên nào.
+                        The group has no members.
                       </td>
                     </tr>
                   ) : (
@@ -706,7 +706,7 @@ const AdminUserGroupsPage = () => {
                             onClick={() => removeMember(member._id)}
                             className="px-3 py-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold transition-all"
                           >
-                            Xóa khỏi nhóm
+                            Remove from group
                           </button>
                         </td>
                       </tr>
@@ -718,10 +718,10 @@ const AdminUserGroupsPage = () => {
           </section>
 
           <section className="mt-8 pt-6 border-t border-slate-100">
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-3">Lịch sử tác động</h3>
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-3">Activity History</h3>
             <div className="border border-slate-200 rounded-xl max-h-[180px] overflow-y-auto stylish-scrollbar bg-slate-50">
               {(groupForm.history || []).length === 0 ? (
-                <div className="px-4 py-5 text-sm font-semibold text-slate-500 text-center">Chưa có lịch sử thao tác.</div>
+                <div className="px-4 py-5 text-sm font-semibold text-slate-500 text-center">No activity history.</div>
               ) : (
                 <div className="divide-y divide-slate-200">
                   {(groupForm.history || []).map((item) => (
@@ -749,7 +749,7 @@ const AdminUserGroupsPage = () => {
               disabled={applying}
               className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60 transition-all shadow-sm"
             >
-              {applying ? "Đang chạy..." : "Áp dụng quyền (Ghi đè)"}
+              {applying ? "Running..." : "Apply Permissions (Replace)"}
             </button>
             <button
               type="button"
@@ -757,7 +757,7 @@ const AdminUserGroupsPage = () => {
               disabled={applying}
               className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60 transition-all shadow-sm"
             >
-              {applying ? "Đang chạy..." : "Áp dụng quyền (Gộp thêm)"}
+              {applying ? "Running..." : "Apply Permissions (Merge)"}
             </button>
           </div>
 
@@ -768,7 +768,7 @@ const AdminUserGroupsPage = () => {
                 onClick={onDeleteGroup}
                 className="px-5 py-2.5 rounded-xl border border-rose-200 text-sm font-bold text-rose-600 hover:bg-rose-50 transition-all shadow-sm"
               >
-                Xóa nhóm
+                Delete Group
               </button>
             )}
             <button
@@ -777,7 +777,7 @@ const AdminUserGroupsPage = () => {
               disabled={saving}
               className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-60 transition-all shadow-sm"
             >
-              {saving ? "Đang lưu..." : selectedGroupId ? "Lưu thay đổi" : "Tạo nhóm mới"}
+              {saving ? "Saving..." : selectedGroupId ? "Save Changes" : "Create New Group"}
             </button>
           </div>
         </div>

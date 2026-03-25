@@ -317,9 +317,9 @@ const AdminRolesPage = () => {
       <div className="flex flex-col gap-3 mb-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-bold text-slate-800">Danh sách Vai trò</h2>
+            <h2 className="text-sm font-bold text-slate-800">Role List</h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              {activeRoles.length} vai trò khả dụng
+              {activeRoles.length} roles available
             </p>
           </div>
           <button
@@ -331,13 +331,13 @@ const AdminRolesPage = () => {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Tạo mới
+            Create New
           </button>
         </div>
         <div className="relative">
           <input
             type="text"
-            placeholder="Tìm vai trò..."
+            placeholder="Search roles..."
             className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
           />
           <svg className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -392,8 +392,8 @@ const AdminRolesPage = () => {
     <div className="space-y-4 mt-6">
       <div className="flex items-center justify-between border-b border-slate-200 pb-3">
         <div>
-          <h3 className="text-base font-bold text-slate-800">Cây quyền hạn (Permissions)</h3>
-          <p className="text-xs text-slate-500 mt-1">Quản lý chi tiết các quyền truy cập ứng với từng chức năng.</p>
+          <h3 className="text-base font-bold text-slate-800">Permission Tree</h3>
+          <p className="text-xs text-slate-500 mt-1">Manage detailed access permissions for each function.</p>
         </div>
         <button
           type="button"
@@ -402,9 +402,9 @@ const AdminRolesPage = () => {
           className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors border border-indigo-100/50"
         >
           {selectedPermissionIds.length === totalPermissions ? (
-            <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg> Bỏ chọn tất cả</>
+            <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg> Deselect All</>
           ) : (
-            <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> Chọn tất cả</>
+            <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> Select All</>
           )}
         </button>
       </div>
@@ -438,7 +438,7 @@ const AdminRolesPage = () => {
                   disabled={!canManageRoles}
                   className="text-xs font-semibold text-slate-500 hover:text-indigo-600 transition-colors uppercase tracking-wide"
                 >
-                  {allSelected ? "Bỏ chọn" : "Chọn nhóm này"}
+                  {allSelected ? "Deselect" : "Select this group"}
                 </button>
               </div>
 
@@ -498,17 +498,17 @@ const AdminRolesPage = () => {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              Quản lý Vai trò & Quyền
+              Manage Roles & Permissions
             </h1>
             <p className="text-sm text-slate-500 mt-1">
-              Thiết lập các nhóm quyền hạn để gán cho người dùng trong hệ thống.
+              Set up permission groups to assign to system users.
             </p>
             <p className="text-xs text-slate-500 mt-1">
               {currentEffectiveRoles.join(", ") || "user"}
             </p>
           </div>
           <div className="px-3 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-xs text-indigo-700 font-bold whitespace-nowrap">
-            {selectedPermissionIds.length}/{totalPermissions} quyền được chọn
+            {selectedPermissionIds.length}/{totalPermissions} permissions selected
           </div>
         </div>
 
@@ -531,20 +531,20 @@ const AdminRolesPage = () => {
         <div className="mt-5 grid grid-cols-1 xl:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">
-              Tên vai trò
+              Role Name
             </label>
             <input
               value={roleForm.name}
               onChange={(event) => onFormChange("name", event.target.value)}
               disabled={!canManageRoles}
-              placeholder="Ví dụ: Quản trị viên"
+              placeholder="Example: Administrator"
               className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-slate-50/50 focus:bg-white"
             />
           </div>
 
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">
-              Mã hệ thống (Chỉ đọc)
+              System Code (Read-only)
             </label>
             <input
               value={roleForm.slug}
@@ -555,14 +555,14 @@ const AdminRolesPage = () => {
 
           <div className="xl:col-span-2">
             <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">
-              Mô tả chi tiết
+              Detailed Description
             </label>
             <textarea
               rows={3}
               value={roleForm.description}
               onChange={(event) => onFormChange("description", event.target.value)}
               disabled={!canManageRoles}
-              placeholder="Mô tả quyền hạn và phạm vi của vai trò này..."
+              placeholder="Description of permissions and scope of this role..."
               className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-800 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-slate-50/50 focus:bg-white"
             />
           </div>
@@ -587,7 +587,7 @@ const AdminRolesPage = () => {
               }}
               className="px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
             >
-              Hủy bỏ
+              Cancel
             </button>
           )}
           <button
@@ -597,8 +597,8 @@ const AdminRolesPage = () => {
             className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm"
           >
             {saving ? (
-              <><svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Đang lưu...</>
-            ) : "Lưu thay đổi"}
+              <><svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Saving...</>
+            ) : "Save Changes"}
           </button>
         </div>
       </div>

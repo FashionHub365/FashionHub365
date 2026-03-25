@@ -1,81 +1,81 @@
 import React, { useEffect, useMemo, useState, Suspense } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 
 const menuItems = [
-  { to: "/admin/dashboard", label: "Tổng quan", icon: "dashboard" },
+  { to: "/admin/dashboard", label: "Overview", icon: "dashboard" },
   {
     id: "users_group",
-    label: "Người dùng & Quyền",
+    label: "Users & Permissions",
     icon: "users",
     children: [
-      { to: "/admin/users", label: "Danh sách người dùng" },
-      { to: "/admin/roles", label: "Vai trò & Quyền" },
-      { to: "/admin/user-groups", label: "Nhóm người dùng" },
-      { to: "/admin/seller-requests", label: "Yêu cầu người bán" }
+      { to: "/admin/users", label: "User List" },
+      { to: "/admin/roles", label: "Roles & Permissions" },
+      { to: "/admin/user-groups", label: "User Groups" },
+      { to: "/admin/seller-requests", label: "Seller Requests" }
     ]
   },
   {
     id: "products_group",
-    label: "Sản phẩm & Danh mục",
+    label: "Products & Categories",
     icon: "products",
     children: [
-      { to: "/admin/products", label: "Tất cả sản phẩm" },
-      { to: "/admin/categories", label: "Danh mục" },
+      { to: "/admin/products", label: "All Products" },
+      { to: "/admin/categories", label: "Categories" },
       { to: "/admin/metadata", label: "Metadata (Brands, Tags...)" },
-      { to: "/admin/catalog/reports", label: "Báo cáo & Giám sát" }
+      { to: "/admin/catalog/reports", label: "Reports & Monitoring" }
     ]
   },
   {
     id: "orders_group",
-    label: "Đơn hàng & Vận chuyển",
+    label: "Orders & Shipping",
     icon: "orders",
     children: [
-      { to: "/admin/orders", label: "Danh sách đơn hàng" },
-      { to: "/admin/shipping", label: "Vận chuyển" }
+      { to: "/admin/orders", label: "Order List" },
+      { to: "/admin/shipping", label: "Shipping" }
     ]
   },
   {
     id: "finance_group",
-    label: "Thanh toán & Tài chính",
+    label: "Payments & Finance",
     icon: "finance",
     children: [
-      { to: "/admin/payments", label: "Giao dịch" },
-      { to: "/admin/withdrawals", label: "Yêu cầu rút tiền" }
+      { to: "/admin/payments", label: "Transactions" },
+      { to: "/admin/withdrawals", label: "Withdrawal Requests" }
     ]
   },
   {
     id: "analytics_group",
-    label: "Analytics & Thống kê",
+    label: "Analytics & Statistics",
     icon: "analytics",
     children: [
-      { to: "/admin/reports", label: "Báo cáo doanh thu" },
-      { to: "/admin/audit", label: "Nhật ký hệ thống" }
+      { to: "/admin/reports", label: "Revenue Reports" },
+      { to: "/admin/audit", label: "System Audit Logs" }
     ]
   },
   {
     id: "marketing_group",
-    label: "Marketing & Khuyến mãi",
+    label: "Marketing & Promotions",
     icon: "marketing",
     children: [
-      { to: "/admin/vouchers", label: "Mã giảm giá (Vouchers)" },
-      { to: "/admin/campaigns", label: "Chiến dịch (Campaigns)" },
+      { to: "/admin/vouchers", label: "Vouchers" },
+      { to: "/admin/campaigns", label: "Campaigns" },
       { to: "/admin/flash-sales", label: "Flash Sales" },
-      { to: "/admin/coupons", label: "Mã giảm giá cũ" },
-      { to: "/admin/banners", label: "Banner & Quảng cáo" }
+      { to: "/admin/coupons", label: "Legacy Coupons" },
+      { to: "/admin/banners", label: "Banners & Ads" }
     ]
   },
   {
     id: "content_group",
-    label: "Nội dung & Giao diện",
+    label: "Content & Appearance",
     icon: "content",
     children: [
-      { to: "/admin/pages", label: "Trang tĩnh" },
-      { to: "/admin/blog", label: "Tin tức" },
-      { to: "/admin/appearance", label: "Giao diện" }
+      { to: "/admin/pages", label: "Static Pages" },
+      { to: "/admin/blog", label: "News / Blog" },
+      { to: "/admin/appearance", label: "Theme / UI" }
     ]
   },
-  { to: "/admin/system", label: "Cài đặt hệ thống", icon: "settings" },
+  { to: "/admin/system", label: "System Settings", icon: "settings" },
 ];
 
 const renderIcon = (name, isActive) => {
@@ -167,7 +167,9 @@ const AdminShell = () => {
         <div className="h-full flex flex-col relative">
           <div className={`px-5 py-6 flex flex-col items-center transition-all duration-300 ${!isHovered ? 'opacity-0 h-0 p-0 overflow-hidden' : 'opacity-100'}`}>
             <div className="flex items-center justify-center mb-1">
-              <span className="text-xl font-black tracking-tight text-indigo-600">FashionHub<span className="text-slate-900">365</span></span>
+              <Link to="/">
+                <span className="text-xl font-black tracking-tight text-indigo-600">FashionHub<span className="text-slate-900">365</span></span>
+              </Link>
             </div>
             <div className="h-0.5 w-12 bg-indigo-600/20 rounded-full" />
           </div>
@@ -278,12 +280,12 @@ const AdminShell = () => {
 
               <button
                 className={`w-full flex items-center py-2 text-sm font-medium text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all group ${!isHovered ? 'justify-center px-0' : 'px-3 gap-3'}`}
-                title={!isHovered ? "Đăng xuất" : ""}
+                title={!isHovered ? "Logout" : ""}
               >
                 <svg className="w-4 h-4 text-slate-400 group-hover:text-rose-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
-                {isHovered && <span>Đăng xuất</span>}
+                {isHovered && <span>Logout</span>}
               </button>
             </div>
           </div>
@@ -326,7 +328,7 @@ const AdminShell = () => {
                 </svg>
                 <input
                   name="search"
-                  placeholder="Tìm kiếm sản phẩm, người dùng hoặc báo cáo..."
+                  placeholder="Search products, users or reports..."
                   className="w-full bg-slate-100/70 border-none rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:bg-white transition-all"
                 />
               </form>
@@ -398,8 +400,8 @@ const AdminShell = () => {
               <div className="w-12 h-12 rounded-2xl bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center mb-4">
                 <div className="w-6 h-6 rounded-full border-t-2 border-indigo-600 animate-spin"></div>
               </div>
-              <p className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">Cấu hình trang...</p>
-              <p className="text-[11px] text-slate-400 mt-1 font-medium">Đang chuẩn bị không gian làm việc cho Admin</p>
+              <p className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">Configuring Page...</p>
+              <p className="text-[11px] text-slate-400 mt-1 font-medium">Preparing admin workspace...</p>
             </div>
           }>
             <Outlet />

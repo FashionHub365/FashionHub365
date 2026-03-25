@@ -1,5 +1,5 @@
 import React, { useEffect, useState, Suspense } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useChat } from '../../../contexts/ChatContext';
 import storeApi from '../../../apis/store.api';
@@ -227,7 +227,9 @@ const SellerLayout = () => {
                 <div className="h-full flex flex-col relative">
                     <div className={`px-6 py-6 transition-all duration-300 border-b border-slate-100 ${!isHovered ? 'opacity-0 h-0 p-0 overflow-hidden border-b-0' : 'opacity-100'}`}>
                         <div className="flex items-center justify-start mb-1">
-                            <span className="text-xl font-black tracking-tight text-indigo-600">FashionHub<span className="text-slate-900">365</span></span>
+                            <Link to={'/'}>
+                                <span className="text-xl font-black tracking-tight text-indigo-600">FashionHub<span className="text-slate-900">365</span></span>
+                            </Link>
                         </div>
                         <p className="text-[11px] font-medium text-slate-400 uppercase tracking-[0.24em]">Seller Center</p>
                         <div className="h-0.5 w-14 bg-indigo-600/20 rounded-full mt-3" />
