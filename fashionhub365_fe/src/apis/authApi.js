@@ -26,6 +26,9 @@ const authApi = {
     verifyEmail: (token) => {
         return axiosClient.post('/auth/verify-email', { token });
     },
+    sendVerificationEmail: (email) => {
+        return axiosClient.post('/auth/send-verification-email', { email });
+    },
 };
 
 export default authApi;

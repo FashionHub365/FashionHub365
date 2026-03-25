@@ -1,6 +1,6 @@
 import React from "react";
 
-export const OrderSummary = ({ items, totalItems, totalAmount, shippingFee }) => (
+export const OrderSummary = ({ items, totalItems, subtotal, shippingFee, totalAmount, shippingFeeLoading = false }) => (
     <div className="flex flex-col gap-4">
         <div className="bg-white border border-gray-200 p-6">
             <h3 className="font-semibold text-gray-900 mb-4">Order ({totalItems} items)</h3>
@@ -30,15 +30,21 @@ export const OrderSummary = ({ items, totalItems, totalAmount, shippingFee }) =>
             <div className="border-t border-gray-100 mt-4 pt-4 flex flex-col gap-2">
                 <div className="flex justify-between text-sm text-gray-600">
                     <span>Subtotal</span>
-                    <span>{totalAmount.toLocaleString("vi-VN")}₫</span>
+                    <span>{Number(subtotal || 0).toLocaleString("vi-VN")}₫</span>
                 </div>
                 <div className="flex justify-between text-sm text-gray-600">
                     <span>Shipping Fee</span>
-                    <span>{shippingFee === 0 ? <span className="text-green-600 font-medium">Free</span> : `${shippingFee.toLocaleString("vi-VN")}₫`}</span>
+                    <span>
+                        {shippingFeeLoading
+                            ? 'Calculating...'
+                            : Number(shippingFee || 0) === 0
+                                ? <span className="text-green-600 font-medium">Free</span>
+                                : `${Number(shippingFee || 0).toLocaleString("vi-VN")}₫`}
+                    </span>
                 </div>
                 <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-100">
                     <span>Total</span>
-                    <span>{(totalAmount + shippingFee).toLocaleString("vi-VN")}₫</span>
+                    <span>{Number(totalAmount || 0).toLocaleString("vi-VN")}₫</span>
                 </div>
             </div>
         </div>

@@ -4,6 +4,7 @@ import { useCart } from "../contexts/CartContext";
 import { useAuth } from "../contexts/AuthContext";
 import { isPrivilegedCommerceUser } from "../utils/roleUtils";
 import addressApi from "../apis/addressApi";
+import checkoutApi from "../apis/checkoutApi";
 import { StepBar } from "./Checkout/CheckoutCommon";
 import { SavedAddressList } from "./Checkout/SavedAddressList";
 import { AddressForm } from "./Checkout/AddressForm";
@@ -94,6 +95,8 @@ export const CheckoutShipping = () => {
     const [saveAddressForFuture, setSaveAddressForFuture] = useState(true);
     const [saveAddressLoading, setSaveAddressLoading] = useState(false);
     const [saveAddressError, setSaveAddressError] = useState("");
+    const [shippingQuote, setShippingQuote] = useState(null);
+    const [shippingQuoteLoading, setShippingQuoteLoading] = useState(false);
 
     useEffect(() => {
         if (isBlockedBuyer) {
@@ -348,7 +351,55 @@ export const CheckoutShipping = () => {
     };
 
     const { items = [], totalItems = 0, totalAmount = 0 } = cartData;
-    const shippingFee = totalAmount >= 1000000 ? 0 : 30000;
+
+    useEffect(() => {
+        let active = true;
+
+        const canQuote = items.length > 0
+            && form.province
+            && form.district
+            && form.ward
+            && form.addressLine.trim();
+
+        if (!canQuote) {
+            setShippingQuote(null);
+            setShippingQuoteLoading(false);
+            return undefined;
+        }
+
+        const run = async () => {
+            setShippingQuoteLoading(true);
+            try {
+                const res = await checkoutApi.quoteOrder({
+                    shipping_address: formToShipping(form, selectedAddressUuid),
+                });
+
+                if (!active) return;
+                setShippingQuote(res?.data || null);
+            } catch (error) {
+                if (!active) return;
+                setShippingQuote(null);
+            } finally {
+                if (active) setShippingQuoteLoading(false);
+            }
+        };
+
+        run();
+        return () => {
+            active = false;
+        };
+    }, [
+        items.length,
+        form.fullName,
+        form.phone,
+        form.email,
+        form.province,
+        form.district,
+        form.ward,
+        form.addressLine,
+        form.note,
+        selectedAddressUuid,
+    ]);
 
     if (isBlockedBuyer) return null;
 
@@ -433,8 +484,10 @@ export const CheckoutShipping = () => {
                     <OrderSummary
                         items={items}
                         totalItems={totalItems}
-                        totalAmount={totalAmount}
-                        shippingFee={shippingFee}
+                        subtotal={shippingQuote?.subtotal ?? totalAmount}
+                        shippingFee={shippingQuote?.shippingFee ?? 0}
+                        totalAmount={shippingQuote?.totalAmount ?? totalAmount}
+                        shippingFeeLoading={shippingQuoteLoading}
                     />
                 </div>
             </div>

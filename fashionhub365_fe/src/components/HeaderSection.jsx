@@ -229,6 +229,15 @@ export const HeaderSection = () => {
                       Following
                     </Link>
 
+                    <button
+                      className="group flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-emerald-600 transition-colors text-left"
+                      onClick={() => { setIsUserMenuOpen(false); navigate('/profile', { state: { tab: 'vouchers' } }); }}
+                    >
+                      <svg className="mr-3 h-4 w-4 text-gray-400 group-hover:text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 6V5a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2h8a2 2 0 002-2v-1M9 7h1m4 0h1m-6 4h6m-6 4h3m7-7l3 3m0 0l-3 3m3-3H12" />
+                      </svg>
+                      My Vouchers
+                    </button>
 
                     <button
                       className="group flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-pink-600 transition-colors text-left"

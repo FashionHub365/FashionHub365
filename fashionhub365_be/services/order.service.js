@@ -188,6 +188,112 @@ const rollbackPendingOnlineOrders = async (userId, orderIds, options = {}) => {
     });
 };
 
+const buildCheckoutQuoteFromCart = async (userId, { shipping_address, voucher_code } = {}) => {
+    if (!shipping_address) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Shipping address is required');
+    }
+
+    const cart = await Cart.findOne({ user_id: userId })
+        .populate({
+            path: 'items.productId',
+            select: 'name media base_price variants store_id',
+        });
+
+    if (!cart || cart.items.length === 0) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Gio hang trong. Khong the tinh phi giao hang.');
+    }
+
+    let totalCartAmount = 0;
+    const productsMap = new Map();
+
+    for (const cartItem of cart.items) {
+        const product = cartItem.productId;
+        if (!product) continue;
+
+        const variant = product.variants.find((v) => v._id.toString() === cartItem.variantId.toString());
+        if (!variant) {
+            throw new ApiError(httpStatus.BAD_REQUEST, `Bien the san pham "${product.name}" khong ton tai.`);
+        }
+        if (variant.stock < cartItem.quantity) {
+            throw new ApiError(
+                httpStatus.BAD_REQUEST,
+                `San pham "${product.name}" (${variant.variantName || ''}) chi con ${variant.stock} san pham.`
+            );
+        }
+
+        const price = variant.price || product.base_price;
+        totalCartAmount += price * cartItem.quantity;
+        productsMap.set(cartItem._id.toString(), { product, variant, price });
+    }
+
+    let totalDiscount = 0;
+    let appliedVoucher = null;
+    if (voucher_code) {
+        const voucherResult = await voucherService.applyVoucher(voucher_code, userId, totalCartAmount);
+        totalDiscount = Number(voucherResult.discount || 0);
+        appliedVoucher = voucherResult.voucher;
+    }
+
+    const itemsByStore = {};
+    for (const cartItem of cart.items) {
+        const mapped = productsMap.get(cartItem._id.toString());
+        if (!mapped?.product?.store_id) {
+            continue;
+        }
+
+        const storeId = mapped.product.store_id.toString();
+        if (!itemsByStore[storeId]) {
+            itemsByStore[storeId] = [];
+        }
+
+        itemsByStore[storeId].push({
+            subtotal: mapped.price * cartItem.quantity,
+            quantity: cartItem.quantity,
+            productId: mapped.product._id,
+            variantId: cartItem.variantId,
+            name: mapped.product.name,
+        });
+    }
+
+    if (Object.keys(itemsByStore).length === 0) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Khong co san pham hop le trong gio hang.');
+    }
+
+    const baseShippingFee = await shippingService.calculateShippingFee(shipping_address);
+    const storeQuotes = Object.entries(itemsByStore).map(([storeId, items]) => {
+        const subtotal = items.reduce((sum, item) => sum + Number(item.subtotal || 0), 0);
+        const shippingFee = subtotal >= 1000000 ? 0 : baseShippingFee;
+        const discountAmount = totalCartAmount > 0
+            ? Math.round((subtotal / totalCartAmount) * totalDiscount)
+            : 0;
+        const totalAmount = Math.max(0, subtotal + shippingFee - discountAmount);
+
+        return {
+            storeId,
+            subtotal,
+            shippingFee,
+            discountAmount,
+            totalAmount,
+            itemCount: items.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+        };
+    });
+
+    const subtotal = storeQuotes.reduce((sum, item) => sum + item.subtotal, 0);
+    const shippingFee = storeQuotes.reduce((sum, item) => sum + item.shippingFee, 0);
+    const discountAmount = storeQuotes.reduce((sum, item) => sum + item.discountAmount, 0);
+    const totalAmount = storeQuotes.reduce((sum, item) => sum + item.totalAmount, 0);
+
+    return {
+        subtotal,
+        shippingFee,
+        discountAmount,
+        totalAmount,
+        storeQuotes,
+        itemCount: cart.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+        voucherCode: appliedVoucher?.code || null,
+    };
+};
+
 const createOrderFromCart = async (userId, { shipping_address, payment_method = 'cod', note, voucher_code }, options = {}) => {
     const {
         clearCart = true,
@@ -623,6 +729,7 @@ const processReturn = async (actorId, returnId, action, note) => {
 };
 
 module.exports = {
+    buildCheckoutQuoteFromCart,
     createOrderFromCart,
     cancelMyOrder,
     getMyOrders,

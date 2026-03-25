@@ -86,9 +86,18 @@ const handleOrderConfirmedEvent = async (event) => {
     }
 
     if (user.email) {
-        const subject = `Order ${order.uuid} confirmed`;
-        const text = `Your payment has been confirmed and order ${order.uuid} is now CONFIRMED.`;
-        await emailService.sendEmail(user.email, subject, text);
+        const subject = `Thanh toán đơn hàng #${order.uuid.substring(0, 8)} đã được xác nhận`;
+        const html = `
+            <div style="font-family: Arial, sans-serif; line-height: 1.7; color: #333;">
+                <h2 style="margin-top: 0; color: #111;">Thanh toán thành công</h2>
+                <p>Đơn hàng <strong>#${order.uuid.substring(0, 8)}</strong> của bạn đã được xác nhận thanh toán và đang được xử lý.</p>
+                <p>Bạn có thể theo dõi tiến trình đơn hàng trong trang tài khoản của mình.</p>
+                <div style="margin-top: 24px;">
+                    <a href="${config.frontendUrl || 'http://localhost:3000'}/profile" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:700;">Xem đơn hàng</a>
+                </div>
+            </div>
+        `;
+        await emailService.sendEmail(user.email, subject, html);
     }
 
     await Notification.create({
@@ -111,9 +120,7 @@ const handleOrderCreatedEvent = async (event) => {
     }
 
     if (user.email) {
-        const subject = `Order ${order.uuid} placed successfully`;
-        const text = `Thank you for your order! Your order ${order.uuid} has been successfully placed.`;
-        await emailService.sendEmail(user.email, subject, text);
+        await emailService.sendOrderCreatedEmail(user.email, order);
     }
 
     await Notification.create({
@@ -159,8 +166,29 @@ const handleOrderStatusChangedEvent = async (event) => {
     });
 
     if (user.email) {
-        const subject = `Đơn hàng ${orderUuid} - ${statusLabel}`;
-        await emailService.sendEmail(user.email, subject, message);
+        if (newStatus === 'cancelled' && order) {
+            let cancelReason = 'Đơn hàng đã bị hủy.';
+            if (changedBy === 'customer') {
+                cancelReason = 'Bạn đã chủ động hủy đơn hàng.';
+            } else if (changedBy === 'system') {
+                cancelReason = 'Đơn hàng bị hủy tự động bởi hệ thống hoặc do thanh toán không thành công.';
+            } else if (changedBy === 'seller') {
+                cancelReason = 'Đơn hàng đã bị hủy bởi cửa hàng.';
+            }
+            await emailService.sendOrderCancelledEmail(user.email, order, cancelReason);
+        } else {
+            const subject = `Đơn hàng ${orderUuid} - ${statusLabel}`;
+            const html = `
+                <div style="font-family: Arial, sans-serif; line-height: 1.7; color: #333;">
+                    <h2 style="margin-top: 0; color: #111;">Cập nhật trạng thái đơn hàng</h2>
+                    <p>Đơn hàng <strong>${orderUuid}</strong> của bạn đã chuyển sang trạng thái: <strong>${statusLabel}</strong>.</p>
+                    <div style="margin-top: 24px;">
+                        <a href="${config.frontendUrl || 'http://localhost:3000'}/profile" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:700;">Theo dõi đơn hàng</a>
+                    </div>
+                </div>
+            `;
+            await emailService.sendEmail(user.email, subject, html);
+        }
     }
     if (order && changedBy !== 'seller') {
         const sellerRecipientIds = await getStoreRecipientIds(order.store_id);

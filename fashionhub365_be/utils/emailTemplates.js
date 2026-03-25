@@ -4,6 +4,15 @@ const BRAND_NAME = 'FashionHub365';
 const BRAND_COLOR = '#111111';
 const SECONDARY_COLOR = '#444444';
 const BG_COLOR = '#f5f5f5';
+const SUCCESS_COLOR = '#15803d';
+const SUCCESS_BG = '#f0fdf4';
+const DANGER_COLOR = '#b91c1c';
+const DANGER_BG = '#fef2f2';
+
+const frontendUrl = config.frontendUrl || 'http://localhost:3000';
+
+const formatCurrency = (value = 0) =>
+    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value || 0));
 
 const getBaseTemplate = (title, preheader, content) => {
     return `
@@ -30,7 +39,7 @@ const getBaseTemplate = (title, preheader, content) => {
         }
         .main {
             background-color: #ffffff;
-            margin: 0 auto;
+            margin: 40px auto 0;
             width: 100%;
             max-width: 600px;
             border-spacing: 0;
@@ -38,7 +47,6 @@ const getBaseTemplate = (title, preheader, content) => {
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            margin-top: 40px;
         }
         .header {
             background-color: ${BRAND_COLOR};
@@ -84,9 +92,14 @@ const getBaseTemplate = (title, preheader, content) => {
         .btn:hover {
             background-color: ${SECONDARY_COLOR};
         }
+        .card {
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
         .preheader {
             display: none;
-            max-height: 0px;
+            max-height: 0;
             overflow: hidden;
         }
     </style>
@@ -97,19 +110,16 @@ const getBaseTemplate = (title, preheader, content) => {
         <tr>
             <td align="center">
                 <table class="main" cellpadding="0" cellspacing="0" role="presentation">
-                    <!-- HEADER -->
                     <tr>
                         <td class="header">
                             <h1>${BRAND_NAME}</h1>
                         </td>
                     </tr>
-                    <!-- BODY -->
                     <tr>
                         <td class="body-content">
                             ${content}
                         </td>
                     </tr>
-                    <!-- FOOTER -->
                     <tr>
                         <td class="footer">
                             <p>&copy; ${new Date().getFullYear()} ${BRAND_NAME}. All rights reserved.</p>
@@ -151,7 +161,7 @@ const getResetPasswordEmailTemplate = (url) => {
         <p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản liên kết với địa chỉ email này tại <strong>${BRAND_NAME}</strong>.</p>
         <p>Để đặt lại mật khẩu mới, vui lòng nhấp vào nút dưới đây:</p>
         <div style="text-align:center;">
-            <a href="${url}" class="btn" style="color:#ffffff;">Đặt lại Mật khẩu</a>
+            <a href="${url}" class="btn" style="color:#ffffff;">Đặt lại mật khẩu</a>
         </div>
         <p>Liên kết này sẽ chỉ có hiệu lực trong một khoảng thời gian ngắn vì lý do bảo mật.</p>
         <p>Nếu bạn không yêu cầu đặt lại mật khẩu, xin hãy bỏ qua email này. Mật khẩu của bạn vẫn an toàn và sẽ không bị thay đổi.</p>
@@ -164,11 +174,11 @@ const getWelcomeEmailTemplate = () => {
     const title = 'Lắng nghe nhịp điệu thời trang cùng FashionHub365';
     const preheader = 'Email của bạn đã được xác thực thành công. Bắt đầu mua sắm ngay hôm nay!';
     const content = `
-        <h2 style="margin-top:0; color:${BRAND_COLOR};">Chào mừng bạn! 🎉</h2>
+        <h2 style="margin-top:0; color:${BRAND_COLOR};">Chào mừng bạn!</h2>
         <p>Xin chúc mừng, tài khoản của bạn tại <strong>${BRAND_NAME}</strong> đã được kích hoạt thành công.</p>
         <p>Chúng tôi rất vui mừng được chào đón bạn đến với cộng đồng tín đồ thời trang của chúng tôi. Tại đây, bạn sẽ khám phá các bộ sưu tập mới nhất, những xu hướng hot nhất và vô vàn ưu đãi hấp dẫn.</p>
         <div style="text-align:center;">
-            <a href="${config.frontendUrl || 'http://localhost:3000'}" class="btn" style="color:#ffffff;">Bắt đầu mua sắm</a>
+            <a href="${frontendUrl}" class="btn" style="color:#ffffff;">Bắt đầu mua sắm</a>
         </div>
         <p>Nếu bạn có bất kỳ thắc mắc hay cần hỗ trợ gì, đừng ngần ngại liên hệ với chúng tôi.</p>
         <p>Trân trọng,<br><strong>Đội ngũ ${BRAND_NAME}</strong></p>
@@ -181,10 +191,10 @@ const getPasswordChangedEmailTemplate = () => {
     const preheader = 'Thông báo quan trọng về bảo mật tài khoản của bạn tại FashionHub365.';
     const content = `
         <h2 style="margin-top:0; color:${BRAND_COLOR};">Xin chào,</h2>
-        <p>Đây là một email thông báo rằng mật khẩu cho tài khoản của bạn tại <strong>${BRAND_NAME}</strong> vừa được thay đổi thành công.</p>
-        <p>Nếu bạn là người thực hiện thay đổi này, bạn không cần phải làm gì thêm.</p>
-        <div style="padding:15px; background-color:#fff3cd; color:#856404; border-radius:4px; margin:20px 0;">
-            <strong>Lưu ý:</strong> Nếu bạn KHÔNG thực hiện thay đổi này, tài khoản của bạn có thể đang bị xâm phạm. Vui lòng liên hệ với bộ phận CSKH của chúng tôi ngay lập tức để được hỗ trợ.
+        <p>Đây là email xác nhận rằng mật khẩu cho tài khoản của bạn tại <strong>${BRAND_NAME}</strong> vừa được thay đổi thành công.</p>
+        <p>Nếu bạn là người thực hiện thay đổi này, bạn không cần làm gì thêm.</p>
+        <div class="card" style="background-color:#fff3cd; color:#856404;">
+            <strong>Lưu ý:</strong> Nếu bạn không thực hiện thay đổi này, vui lòng liên hệ bộ phận hỗ trợ ngay lập tức để bảo vệ tài khoản.
         </div>
         <p>Trân trọng,<br><strong>Đội ngũ ${BRAND_NAME}</strong></p>
     `;
@@ -192,86 +202,102 @@ const getPasswordChangedEmailTemplate = () => {
 };
 
 const getOrderCreatedEmailTemplate = (order) => {
-    const title = `Xác nhận đơn hàng #${order.uuid.substring(0, 8)}`;
-    const preheader = `Cảm ơn bạn đã đặt hàng tại ${BRAND_NAME}. Đơn hàng của bạn đang được xử lý.`;
+    const shortCode = order.uuid.substring(0, 8);
+    const title = `Đặt hàng thành công #${shortCode}`;
+    const preheader = `Đơn hàng #${shortCode} của bạn đã được tiếp nhận thành công tại ${BRAND_NAME}.`;
 
-    let itemsHtml = '';
-    order.items.forEach(item => {
-        itemsHtml += `
+    const itemsHtml = (order.items || []).map((item) => `
             <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">
+                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee;">
                     <p style="margin: 0; font-weight: bold;">${item.product_name}</p>
-                    <p style="margin: 0; font-size: 14px; color: #666666;">Số lượng: ${item.quantity}</p>
+                    <p style="margin: 4px 0 0; font-size: 14px; color: #666666;">Số lượng: ${item.quantity}</p>
                 </td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee; text-align: right;">
-                    ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price * item.quantity)}
+                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee; text-align: right; vertical-align: top;">
+                    ${formatCurrency(item.price * item.quantity)}
                 </td>
             </tr>
-        `;
-    });
+        `).join('');
+
+    const shipping = order.shipping_address || {};
+    const subtotal = Number(order.total_amount || 0) - Number(order.shipping_fee || 0);
 
     const content = `
-        <h2 style="margin-top:0; color:${BRAND_COLOR};">Cảm ơn bạn đã đặt hàng!</h2>
-        <p>Chào bạn, đơn hàng <strong>#${order.uuid.substring(0, 8)}</strong> của bạn đã được tiếp nhận và đang trong quá trình xử lý.</p>
-        
-        <div style="background-color: #f9f9f9; padding: 20px; border-radius: 4px; margin: 20px 0;">
-            <h3 style="margin-top: 0; font-size: 18px; border-bottom: 2px solid ${BRAND_COLOR}; padding-bottom: 10px;">Chi tiết đơn hàng</h3>
+        <div class="card" style="background-color:${SUCCESS_BG}; border:1px solid #bbf7d0;">
+            <p style="margin:0; font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:${SUCCESS_COLOR}; font-weight:bold;">Order Success</p>
+            <h2 style="margin:10px 0 0; color:${SUCCESS_COLOR};">Đặt hàng thành công</h2>
+            <p style="margin:10px 0 0;">Đơn hàng <strong>#${shortCode}</strong> của bạn đã được hệ thống ghi nhận và đang chờ xử lý.</p>
+        </div>
+
+        <p>Chào bạn, cảm ơn bạn đã mua sắm tại <strong>${BRAND_NAME}</strong>. Dưới đây là thông tin đơn hàng của bạn:</p>
+
+        <div class="card" style="background-color:#f9f9f9;">
+            <h3 style="margin-top:0; font-size:18px; border-bottom:2px solid ${BRAND_COLOR}; padding-bottom:10px;">Chi tiết đơn hàng</h3>
             <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
                 ${itemsHtml}
                 <tr>
-                    <td style="padding: 20px 0 5px; font-weight: bold;">Tổng tiền hàng:</td>
-                    <td style="padding: 20px 0 5px; text-align: right;">${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.total_amount - (order.shipping_fee || 0))}</td>
+                    <td style="padding: 18px 0 6px; font-weight: bold;">Tổng tiền hàng:</td>
+                    <td style="padding: 18px 0 6px; text-align: right;">${formatCurrency(subtotal)}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 5px 0; font-weight: bold;">Phí vận chuyển:</td>
-                    <td style="padding: 5px 0; text-align: right;">${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.shipping_fee || 0)}</td>
+                    <td style="padding: 6px 0; font-weight: bold;">Phí vận chuyển:</td>
+                    <td style="padding: 6px 0; text-align: right;">${formatCurrency(order.shipping_fee || 0)}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 10px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLOR};">Tổng cộng:</td>
-                    <td style="padding: 10px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLOR}; text-align: right;">${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.total_amount)}</td>
+                    <td style="padding: 12px 0 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLOR};">Tổng cộng:</td>
+                    <td style="padding: 12px 0 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLOR}; text-align: right;">${formatCurrency(order.total_amount)}</td>
                 </tr>
             </table>
         </div>
 
-        <div style="margin: 20px 0;">
-            <h3 style="font-size: 16px; margin-bottom: 10px;">Địa chỉ giao hàng:</h3>
-            <p style="margin: 0; color: #666666; line-height: 1.4;">
-                ${order.shipping_address.receiver_name}<br>
-                ${order.shipping_address.phone_number}<br>
-                ${order.shipping_address.address_line}, ${order.shipping_address.ward}, ${order.shipping_address.district}, ${order.shipping_address.city}
+        <div class="card" style="background-color:#fafafa; border:1px solid #ededed;">
+            <h3 style="margin-top:0; font-size:16px;">Địa chỉ giao hàng</h3>
+            <p style="margin:0; color:#666666; line-height:1.5;">
+                ${shipping.receiver_name || ''}<br>
+                ${shipping.phone_number || ''}<br>
+                ${shipping.address_line || ''}, ${shipping.ward || ''}, ${shipping.district || ''}, ${shipping.city || ''}
             </p>
         </div>
 
         <div style="text-align:center; margin-top: 30px;">
-            <a href="${config.frontendUrl || 'http://localhost:3000'}/profile/orders" class="btn" style="color:#ffffff;">Theo dõi đơn hàng</a>
+            <a href="${frontendUrl}/profile" class="btn" style="color:#ffffff;">Theo dõi đơn hàng</a>
         </div>
-        
+
         <p>Trân trọng,<br><strong>Đội ngũ ${BRAND_NAME}</strong></p>
     `;
     return getBaseTemplate(title, preheader, content);
 };
 
 const getOrderCancelledEmailTemplate = (order, reason = 'Yêu cầu từ khách hàng hoặc thanh toán thất bại') => {
-    const title = `Đon hàng #${order.uuid.substring(0, 8)} đã bị hủy`;
-    const preheader = `Thông báo về việc hủy đơn hàng #${order.uuid.substring(0, 8)} tại ${BRAND_NAME}.`;
+    const shortCode = order.uuid.substring(0, 8);
+    const title = `Đơn hàng #${shortCode} đã bị hủy`;
+    const preheader = `Thông báo về việc hủy đơn hàng #${shortCode} tại ${BRAND_NAME}.`;
 
     const content = `
-        <h2 style="margin-top:0; color: #d9534f;">Đơn hàng đã bị hủy</h2>
-        <p>Chào bạn, chúng tôi rất tiếc phải thông báo rằng đơn hàng <strong>#${order.uuid.substring(0, 8)}</strong> của bạn đã bị hủy.</p>
-        
-        <div style="background-color: #fff5f5; border-left: 4px solid #d9534f; padding: 15px; margin: 20px 0;">
-            <p style="margin: 0; font-weight: bold; color: #d9534f;">Lý do hủy:</p>
-            <p style="margin: 5px 0 0;">${reason}</p>
+        <div class="card" style="background-color:${DANGER_BG}; border:1px solid #fecaca;">
+            <p style="margin:0; font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:${DANGER_COLOR}; font-weight:bold;">Order Cancelled</p>
+            <h2 style="margin:10px 0 0; color:${DANGER_COLOR};">Đơn hàng đã bị hủy</h2>
+            <p style="margin:10px 0 0;">Đơn hàng <strong>#${shortCode}</strong> của bạn hiện không còn được xử lý.</p>
+        </div>
+
+        <p>Chào bạn, chúng tôi rất tiếc phải thông báo rằng đơn hàng <strong>#${shortCode}</strong> của bạn đã bị hủy.</p>
+
+        <div class="card" style="background-color:#fff5f5; border-left:4px solid ${DANGER_COLOR};">
+            <p style="margin:0; font-weight:bold; color:${DANGER_COLOR};">Lý do hủy</p>
+            <p style="margin:8px 0 0;">${reason}</p>
+        </div>
+
+        <div class="card" style="background-color:#fafafa; border:1px solid #ededed;">
+            <p style="margin:0;"><strong>Mã đơn hàng:</strong> #${shortCode}</p>
+            <p style="margin:8px 0 0;"><strong>Tổng thanh toán:</strong> ${formatCurrency(order.total_amount)}</p>
         </div>
 
         <p>Nếu bạn đã thanh toán trực tuyến cho đơn hàng này, số tiền sẽ được hoàn trả vào tài khoản của bạn trong vòng 3-5 ngày làm việc tùy theo chính sách ngân hàng.</p>
-        
-        <p>Chúng tôi hy vọng sẽ có cơ hội phục vụ bạn tốt hơn trong những lần mua sắm tiếp theo.</p>
-        
+        <p>Chúng tôi hy vọng sẽ sớm được phục vụ bạn trong những lần mua sắm tiếp theo.</p>
+
         <div style="text-align:center; margin-top: 30px;">
-            <a href="${config.frontendUrl || 'http://localhost:3000'}" class="btn" style="color:#ffffff;">Tiếp tục mua sắm</a>
+            <a href="${frontendUrl}" class="btn" style="color:#ffffff;">Tiếp tục mua sắm</a>
         </div>
-        
+
         <p>Trân trọng,<br><strong>Đội ngũ ${BRAND_NAME}</strong></p>
     `;
     return getBaseTemplate(title, preheader, content);

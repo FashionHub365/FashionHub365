@@ -21,6 +21,27 @@ router.use(
     )
 );
 
+router.post('/quote', authorize(['ORDER.CREATE']), catchAsync(async (req, res) => {
+    const { shipping_address, voucher_code } = req.body;
+
+    if (!shipping_address) {
+        return res.status(httpStatus.BAD_REQUEST).json({
+            success: false,
+            message: 'Vui long cung cap dia chi giao hang.',
+        });
+    }
+
+    const quote = await orderService.buildCheckoutQuoteFromCart(req.user._id, {
+        shipping_address,
+        voucher_code,
+    });
+
+    return res.status(httpStatus.OK).json({
+        success: true,
+        data: quote,
+    });
+}));
+
 router.post('/', authorize(['ORDER.CREATE']), catchAsync(async (req, res) => {
     const {
         shipping_address,

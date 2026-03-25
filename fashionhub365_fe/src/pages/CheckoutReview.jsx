@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useCart } from "../contexts/CartContext";
 import { useAuth } from "../contexts/AuthContext";
 import checkoutApi from "../apis/checkoutApi";
@@ -75,6 +75,7 @@ export const CheckoutReview = () => {
     const { user } = useAuth();
     const isBlockedBuyer = isPrivilegedCommerceUser(user);
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [shipping, setShipping] = useState(null);
     const [paymentMethod, setPaymentMethod] = useState("cod");
@@ -88,6 +89,10 @@ export const CheckoutReview = () => {
     const [voucherError, setVoucherError] = useState("");
     const [voucherLoading, setVoucherLoading] = useState(false);
     const [availableVouchers, setAvailableVouchers] = useState([]);
+    const [walletVouchers, setWalletVouchers] = useState([]);
+    const [checkoutQuote, setCheckoutQuote] = useState(null);
+    const [quoteLoading, setQuoteLoading] = useState(false);
+    const { items = [], totalItems = 0, totalAmount = 0 } = cartData;
 
     const getVoucherDiscount = (voucher, amount) => {
         if (!voucher) return 0;
@@ -110,10 +115,19 @@ export const CheckoutReview = () => {
     useEffect(() => {
         const fetchVouchers = async () => {
             try {
-                const res = await voucherApi.getActiveVouchers({ status: 'active' });
-                if (res.success) {
-                    const items = res.data?.items || res.data || res.items || [];
+                const [activeRes, myRes] = await Promise.allSettled([
+                    voucherApi.getActiveVouchers({ status: 'active', limit: 50 }),
+                    voucherApi.getMyVouchers(),
+                ]);
+
+                if (activeRes.status === "fulfilled" && activeRes.value.success) {
+                    const items = activeRes.value.data?.items || activeRes.value.data || activeRes.value.items || [];
                     setAvailableVouchers(Array.isArray(items) ? items : []);
+                }
+
+                if (myRes.status === "fulfilled" && myRes.value.success) {
+                    const items = myRes.value.data || myRes.value.data?.items || [];
+                    setWalletVouchers(Array.isArray(items) ? items : []);
                 }
             } catch (err) {
                 console.error("Failed to fetch vouchers", err);
@@ -135,12 +149,51 @@ export const CheckoutReview = () => {
         setShipping(JSON.parse(saved));
     }, [isBlockedBuyer, navigate]);
 
-    const { items = [], totalItems = 0, totalAmount = 0 } = cartData;
-    const shippingFee = totalAmount >= 1000000 ? 0 : 30000;
+    useEffect(() => {
+        let active = true;
 
-    const finalDiscount = getVoucherDiscount(appliedVoucher, totalAmount);
+        const run = async () => {
+            if (!shipping || !items.length) {
+                setCheckoutQuote(null);
+                setQuoteLoading(false);
+                return;
+            }
 
-    const grandTotal = Math.max(0, totalAmount + shippingFee - finalDiscount);
+            setQuoteLoading(true);
+            try {
+                const res = await checkoutApi.quoteOrder({
+                    shipping_address: shipping,
+                });
+
+                if (!active) return;
+                setCheckoutQuote(res?.data || null);
+            } catch (error) {
+                if (!active) return;
+                setCheckoutQuote(null);
+            } finally {
+                if (active) setQuoteLoading(false);
+            }
+        };
+
+        run();
+        return () => {
+            active = false;
+        };
+    }, [shipping, items.length]);
+
+    useEffect(() => {
+        const preselectedVoucherCode = location.state?.voucherCode;
+        if (preselectedVoucherCode) {
+            setVoucherCode(preselectedVoucherCode);
+        }
+    }, [location.state]);
+
+    const subtotal = checkoutQuote?.subtotal ?? totalAmount;
+    const shippingFee = checkoutQuote?.shippingFee ?? 0;
+
+    const finalDiscount = getVoucherDiscount(appliedVoucher, subtotal);
+
+    const grandTotal = Math.max(0, subtotal + shippingFee - finalDiscount);
     const uniqueStoreCount = new Set(items.map((item) => item.storeId).filter(Boolean)).size;
     const isVnPayBlockedByMultiStore = paymentMethod === "vnpay" && uniqueStoreCount > 1;
 
@@ -150,7 +203,7 @@ export const CheckoutReview = () => {
         setVoucherLoading(true);
         setVoucherError("");
         try {
-            const res = await voucherApi.applyVoucher(code, totalAmount);
+            const res = await voucherApi.applyVoucher(code, subtotal);
             if (res.success || res.data?.success) {
                 const payload = res.data?.data || res.data || res;
                 const voucher = payload?.voucher || res.voucher;
@@ -165,6 +218,33 @@ export const CheckoutReview = () => {
             setVoucherLoading(false);
         }
     };
+
+    useEffect(() => {
+        const preselectedVoucherCode = location.state?.voucherCode;
+        if (preselectedVoucherCode && subtotal > 0 && !appliedVoucher && !voucherLoading) {
+            const applyPreselectedVoucher = async () => {
+                setVoucherLoading(true);
+                setVoucherError("");
+                try {
+                    const res = await voucherApi.applyVoucher(preselectedVoucherCode, subtotal);
+                    if (res.success || res.data?.success) {
+                        const payload = res.data?.data || res.data || res;
+                        const voucher = payload?.voucher || res.voucher;
+                        setAppliedVoucher(voucher ? { ...voucher, _discountAmount: payload?.discount } : null);
+                        setVoucherCode(preselectedVoucherCode);
+                    }
+                } catch (err) {
+                    setAppliedVoucher(null);
+                    setVoucherError(err.response?.data?.message || err.message || "Invalid voucher code");
+                } finally {
+                    setVoucherLoading(false);
+                }
+            };
+
+            applyPreselectedVoucher();
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [location.pathname, location.state, navigate, subtotal, appliedVoucher, voucherLoading]);
 
     const handlePlaceOrder = async () => {
         if (!shipping) return;
@@ -306,6 +386,9 @@ export const CheckoutReview = () => {
     }
 
     if (isBlockedBuyer || !shipping) return null;
+
+    const walletVoucherCodes = new Set(walletVouchers.map((voucher) => voucher.code));
+    const displayVouchers = walletVouchers.length > 0 ? walletVouchers : availableVouchers;
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -462,13 +545,24 @@ export const CheckoutReview = () => {
                                     )}
 
                                     {/* Available Vouchers */}
-                                    {!appliedVoucher && availableVouchers.length > 0 && (
+                                    {!appliedVoucher && displayVouchers.length > 0 && (
                                         <div className="mt-4 pt-3 border-t border-dashed border-gray-200">
-                                            <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Available Vouchers</p>
+                                            <div className="mb-2 flex items-center justify-between gap-2">
+                                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                                                    {walletVouchers.length > 0 ? "My Voucher Wallet" : "Available Vouchers"}
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => navigate("/profile", { state: { tab: "vouchers" } })}
+                                                    className="text-[11px] font-semibold text-gray-600 underline"
+                                                >
+                                                    View voucher wallet
+                                                </button>
+                                            </div>
                                             <div className="flex flex-col gap-2">
-                                                {availableVouchers.map(v => {
+                                                {displayVouchers.map(v => {
                                                     const minOrderAmount = v.min_order_amount || v.min_order_value || 0;
-                                                    const isEligible = totalAmount >= minOrderAmount;
+                                                    const isEligible = subtotal >= minOrderAmount;
                                                     return (
                                                         <div key={v._id} className={`flex justify-between items-center p-3 border rounded-lg transition-all ${isEligible ? 'bg-white border-blue-200 hover:border-blue-400' : 'bg-gray-50 border-gray-200 opacity-70'}`}>
                                                             <div className="flex flex-col">
@@ -482,6 +576,11 @@ export const CheckoutReview = () => {
                                                                 <p className={`text-[10px] mt-1 font-medium ${isEligible ? 'text-gray-400' : 'text-red-500'}`}>
                                                                     Min. order: {minOrderAmount.toLocaleString('vi-VN')}₫
                                                                 </p>
+                                                                {walletVoucherCodes.has(v.code) && (
+                                                                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-600">
+                                                                        Saved in wallet
+                                                                    </p>
+                                                                )}
                                                             </div>
                                                             <button
                                                                 onClick={() => handleApplyVoucher(v.code)}
@@ -500,12 +599,14 @@ export const CheckoutReview = () => {
 
                                 <div className="flex justify-between text-sm text-gray-600 border-t border-gray-200 pt-3">
                                     <span>Subtotal ({totalItems} items)</span>
-                                    <span>{totalAmount.toLocaleString("vi-VN")}₫</span>
+                                    <span>{subtotal.toLocaleString("vi-VN")}₫</span>
                                 </div>
                                 <div className="flex justify-between text-sm text-gray-600">
                                     <span>Shipping Fee</span>
                                     <span>
-                                        {shippingFee === 0
+                                        {quoteLoading
+                                            ? 'Calculating...'
+                                            : shippingFee === 0
                                             ? <span className="text-green-600 font-semibold">Free</span>
                                             : `${shippingFee.toLocaleString("vi-VN")}₫`
                                         }

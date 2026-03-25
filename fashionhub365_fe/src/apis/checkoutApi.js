@@ -1,6 +1,7 @@
 import axiosClient from './axiosClient';
 
 const checkoutApi = {
+    quoteOrder: (data) => axiosClient.post('/orders/quote', data),
     /** POST /api/v1/orders – Tạo đơn từ giỏ hàng */
     placeOrder: (data) => axiosClient.post('/orders', data),
 

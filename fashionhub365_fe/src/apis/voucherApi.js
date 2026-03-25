@@ -6,6 +6,16 @@ const voucherApi = {
         return axiosInstance.get('/vouchers/active', { params });
     },
 
+    // USER: Claim a voucher
+    claimVoucher(id) {
+        return axiosInstance.post(`/vouchers/claim/${id}`);
+    },
+
+    // USER: Get claimed vouchers
+    getMyVouchers() {
+        return axiosInstance.get('/vouchers/my-vouchers');
+    },
+
     // USER: Apply voucher at checkout
     applyVoucher(code, orderAmount) {
         return axiosInstance.post('/vouchers/apply', { code, orderAmount });

@@ -30,9 +30,13 @@ const OverviewTab = ({ user, summary, recentOrders, defaultAddress, onSetTab }) 
                     <p className="text-xs text-gray-500">Wishlist Items</p>
                     <p className="mt-1 text-2xl font-bold text-gray-900">{summary.wishlistItems}</p>
                 </div>
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                    <p className="text-xs text-gray-500">Saved Vouchers</p>
+                    <p className="mt-1 text-2xl font-bold text-gray-900">{summary.totalVouchers}</p>
+                </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-2xl border border-gray-200 bg-white p-4">
                     <p className="text-xs text-gray-500">Completed Orders</p>
                     <p className="mt-1 text-xl font-bold text-gray-900">{summary.completedOrders}</p>
@@ -44,6 +48,17 @@ const OverviewTab = ({ user, summary, recentOrders, defaultAddress, onSetTab }) 
                 <div className="rounded-2xl border border-gray-200 bg-white p-4">
                     <p className="text-xs text-gray-500">Total Spent</p>
                     <p className="mt-1 text-xl font-bold text-gray-900">{summary.totalSpent.toLocaleString("vi-VN")} VND</p>
+                </div>
+                <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                    <div className="flex items-start justify-between gap-3">
+                        <div>
+                            <p className="text-xs text-gray-500">Voucher Wallet</p>
+                            <p className="mt-1 text-xl font-bold text-gray-900">{summary.totalVouchers}</p>
+                        </div>
+                        <button type="button" onClick={() => onSetTab("vouchers")} className="text-xs font-semibold text-gray-700 underline">
+                            Open
+                        </button>
+                    </div>
                 </div>
             </div>
 

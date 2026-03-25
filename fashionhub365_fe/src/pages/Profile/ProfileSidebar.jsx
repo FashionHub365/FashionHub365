@@ -39,6 +39,12 @@ const TabIcon = ({ id }) => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 11V9a2 2 0 00-2-2m2 4v4a2 2 0 104 0v-1m-4-3H9m2 0h4m6 1a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             );
+        case "vouchers":
+            return (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 6V5a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2h8a2 2 0 002-2v-1M9 7h1m4 0h1m-6 4h6m-6 4h3m7-7l3 3m0 0l-3 3m3-3H12" />
+                </svg>
+            );
         default:
             return (
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,6 +79,7 @@ const ProfileSidebar = ({ tabs, activeTab, onTabChange, summary }) => {
                 <p className="mt-1">Orders: {summary.totalOrders}</p>
                 <p>Addresses: {summary.totalAddresses}</p>
                 <p>Wishlist: {summary.wishlistItems}</p>
+                <p>Vouchers: {summary.totalVouchers}</p>
             </div>
         </aside>
     );

@@ -15,9 +15,11 @@ import AddressesTab from "./Profile/AddressesTab";
 import WishlistTab from "./Profile/WishlistTab";
 import FollowingTab from "./Profile/FollowingTab";
 import AffiliateTab from "./Profile/AffiliateTab";
+import VouchersTab from "./Profile/VouchersTab";
 
 // Utilities
 import { toCheckoutShipping } from "./Profile/utils";
+import voucherApi from "../apis/voucherApi";
 
 export const Profile = () => {
     const { user, logout } = useAuth();
@@ -44,6 +46,15 @@ export const Profile = () => {
     const [followingPage, setFollowingPage] = useState(1);
     const [totalFollowingPages, setTotalFollowingPages] = useState(1);
     const followingLimit = 6;
+    const [activeVouchers, setActiveVouchers] = useState([]);
+    const [myVouchers, setMyVouchers] = useState([]);
+    const [loadingActiveVouchers, setLoadingActiveVouchers] = useState(false);
+    const [loadingMyVouchers, setLoadingMyVouchers] = useState(false);
+    const [activeVouchersError, setActiveVouchersError] = useState("");
+    const [myVouchersError, setMyVouchersError] = useState("");
+    const [claimingVoucherId, setClaimingVoucherId] = useState("");
+    const [applyingVoucherCode, setApplyingVoucherCode] = useState("");
+    const [claimSuccessCode, setClaimSuccessCode] = useState("");
 
     useEffect(() => {
         if (location.state?.tab) setActiveTab(location.state.tab);
@@ -107,12 +118,74 @@ export const Profile = () => {
         }
     };
 
+    const fetchActiveVouchers = async () => {
+        setLoadingActiveVouchers(true);
+        setActiveVouchersError("");
+        try {
+            const res = await voucherApi.getActiveVouchers({ status: "active", limit: 50 });
+            if (res.success) {
+                const items = res.data?.items || res.data || res.items || [];
+                setActiveVouchers(Array.isArray(items) ? items : []);
+            }
+        } catch (e) {
+            setActiveVouchersError(e.response?.data?.message || "Cannot load available vouchers.");
+        } finally {
+            setLoadingActiveVouchers(false);
+        }
+    };
+
+    const fetchMyVouchers = async () => {
+        setLoadingMyVouchers(true);
+        setMyVouchersError("");
+        try {
+            const res = await voucherApi.getMyVouchers();
+            if (res.success) {
+                const items = res.data || res.data?.items || [];
+                setMyVouchers(Array.isArray(items) ? items : []);
+            }
+        } catch (e) {
+            setMyVouchersError(e.response?.data?.message || "Cannot load your vouchers.");
+        } finally {
+            setLoadingMyVouchers(false);
+        }
+    };
+
     useEffect(() => {
         if (activeTab === "orders" || activeTab === "profile") fetchOrders();
         if (activeTab === "wishlist" && user) fetchWishlist(currentPage);
         if (activeTab === "following" && user) fetchFollowing(followingPage);
         if ((activeTab === "addresses" || activeTab === "profile") && user) fetchAddresses();
+        if ((activeTab === "vouchers" || activeTab === "profile") && user) {
+            fetchActiveVouchers();
+            fetchMyVouchers();
+        }
     }, [activeTab, user, currentPage, followingPage]);
+
+    const handleClaimVoucher = async (voucherId) => {
+        setClaimingVoucherId(voucherId);
+        setClaimSuccessCode("");
+        try {
+            await voucherApi.claimVoucher(voucherId);
+            const claimedVoucher = activeVouchers.find((voucher) => voucher._id === voucherId);
+            if (claimedVoucher?.code) {
+                setClaimSuccessCode(claimedVoucher.code);
+            }
+            await Promise.all([fetchActiveVouchers(), fetchMyVouchers()]);
+        } catch (e) {
+            setMyVouchersError(e.response?.data?.message || "Cannot claim this voucher right now.");
+        } finally {
+            setClaimingVoucherId("");
+        }
+    };
+
+    const handleUseVoucher = async (voucherCode) => {
+        setApplyingVoucherCode(voucherCode);
+        try {
+            navigate("/checkout/review", { state: { voucherCode } });
+        } finally {
+            setApplyingVoucherCode("");
+        }
+    };
 
     const saveAddress = async (payload, uuid) => {
         setAddressesSubmitting(true);
@@ -208,8 +281,9 @@ export const Profile = () => {
                 .reduce((sum, o) => sum + Number(o.total_amount || 0), 0),
             totalAddresses: addresses.length,
             wishlistItems: wishlist.length,
+            totalVouchers: myVouchers.length,
         }),
-        [orders, addresses, wishlist]
+        [orders, addresses, wishlist, myVouchers]
     );
 
     const recentOrders = useMemo(() => orders.slice(0, 3), [orders]);
@@ -229,6 +303,7 @@ export const Profile = () => {
         { id: "profile", label: "Overview" },
         { id: "orders", label: "Orders" },
         { id: "addresses", label: "Addresses" },
+        { id: "vouchers", label: "My Vouchers" },
         { id: "wishlist", label: "Wishlist" },
         { id: "following", label: "Following" },
         { id: "affiliate", label: "Affiliate" },
@@ -341,6 +416,23 @@ export const Profile = () => {
                         )}
 
                         {activeTab === "affiliate" && <AffiliateTab user={user} />}
+
+                        {activeTab === "vouchers" && (
+                            <VouchersTab
+                                activeVouchers={activeVouchers}
+                                myVouchers={myVouchers}
+                                loadingActive={loadingActiveVouchers}
+                                loadingMine={loadingMyVouchers}
+                                activeError={activeVouchersError}
+                                myError={myVouchersError}
+                                claimingVoucherId={claimingVoucherId}
+                                applyingVoucherCode={applyingVoucherCode}
+                                claimSuccessCode={claimSuccessCode}
+                                onClaimVoucher={handleClaimVoucher}
+                                onUseVoucher={handleUseVoucher}
+                                onExploreProducts={() => navigate("/listing")}
+                            />
+                        )}
 
                         {activeTab === "settings" && (
                             <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600">Security settings UI will be added next.</div>

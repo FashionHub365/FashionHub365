@@ -6,6 +6,7 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "seed": "node script/seedData.js",
+    "seed:shipping": "node script/seedShipping.js",
     "seed:rbac": "node script/seedRBAC.js",
     "seed:clean": "node script/seedData.js --clean",
     "smoke:redis": "node script/smokeRedis.js",

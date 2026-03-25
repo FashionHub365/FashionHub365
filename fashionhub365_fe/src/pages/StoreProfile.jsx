@@ -7,8 +7,10 @@ import { StoreProductCard } from "../components/StorePage/StoreProductCard";
 import { StoreHeader } from "../components/StorePage/StoreHeader";
 import listingApi from "../apis/listingApi";
 import storeApi from "../apis/store.api";
+import voucherApi from "../apis/voucherApi";
 import { useAuth } from "../contexts/AuthContext";
 import { getUserRoleSlugs } from "../utils/roleUtils";
+import VoucherShelfSection from "../components/Voucher/VoucherShelfSection";
 
 const isObjectId = (value = "") => /^[a-fA-F0-9]{24}$/.test(String(value));
 
@@ -21,6 +23,9 @@ export const StoreProfile = () => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [storeVouchers, setStoreVouchers] = useState([]);
+  const [claimingVoucherId, setClaimingVoucherId] = useState("");
+  const [claimedCodes, setClaimedCodes] = useState(new Set());
 
   const [filters, setFilters] = useState({
     category: "",
@@ -158,6 +163,31 @@ export const StoreProfile = () => {
     }
   }, [filters, store?._id, storeId]);
 
+  const fetchStoreVouchers = useCallback(async () => {
+    const resolvedStoreId = store?._id || (isObjectId(storeId) ? storeId : "");
+    if (!resolvedStoreId) {
+      setStoreVouchers([]);
+      return;
+    }
+
+    try {
+      const response = await voucherApi.getActiveVouchers({
+        status: "active",
+        limit: 20,
+        store_id: resolvedStoreId,
+      });
+      if (response.success) {
+        const items = response.data?.items || response.data || response.items || [];
+        const normalizedItems = Array.isArray(items) ? items : [];
+        setStoreVouchers(normalizedItems);
+        setClaimedCodes(new Set(normalizedItems.filter((voucher) => voucher.isClaimed).map((voucher) => voucher.code)));
+      }
+    } catch (err) {
+      console.error("Error fetching store vouchers:", err);
+      setStoreVouchers([]);
+    }
+  }, [store?._id, storeId]);
+
   useEffect(() => {
     fetchStoreInfo();
     fetchCategories();
@@ -166,6 +196,10 @@ export const StoreProfile = () => {
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  useEffect(() => {
+    fetchStoreVouchers();
+  }, [fetchStoreVouchers, user]);
 
   // Handle click outside "More" menu
   useEffect(() => {
@@ -217,6 +251,26 @@ export const StoreProfile = () => {
     setFilters((prev) => ({ ...prev, sort: e.target.value, page: 1 }));
   };
 
+  const handleClaimVoucher = async (voucher) => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    const voucherId = voucher?._id || voucher?.uuid;
+    if (!voucherId) return;
+
+    setClaimingVoucherId(voucherId);
+    try {
+      await voucherApi.claimVoucher(voucherId);
+      setClaimedCodes((prev) => new Set([...prev, voucher.code]));
+    } catch (err) {
+      console.error("Claim voucher error:", err);
+    } finally {
+      setClaimingVoucherId("");
+    }
+  };
+
   const totalPages = Math.ceil(total / filters.limit);
 
   const handlePageChange = (newPage) => {
@@ -238,6 +292,17 @@ export const StoreProfile = () => {
   return (
     <div className="flex flex-col items-center relative bg-[#f5f5f5] min-h-screen">
       <StoreHeader store={store} totalProducts={total} />
+
+      <VoucherShelfSection
+        title={store?.name ? `Voucher from ${store.name}` : "Store vouchers"}
+        description="Collect this store's vouchers now so they are ready when you checkout products from this shop."
+        vouchers={storeVouchers}
+        claimedCodes={claimedCodes}
+        claimingVoucherId={claimingVoucherId}
+        emptyMessage="This store has no active vouchers at the moment."
+        onClaimVoucher={handleClaimVoucher}
+        onOpenWallet={() => navigate("/profile", { state: { tab: "vouchers" } })}
+      />
 
       {/* Shopee Style Navigation Bar with Real Categories */}
       <nav className="w-full bg-white shadow-sm sticky top-0 z-20 overflow-visible border-b border-gray-100">
