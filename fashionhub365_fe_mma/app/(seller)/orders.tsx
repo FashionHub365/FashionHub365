@@ -5,6 +5,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { fetchSellerOrders, updateOrderStatus } from '../../services/orderService';
 
 const STATUS_FILTERS = ['all', 'pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+const STATUS_LABELS: Record<string, string> = {
+  all: 'Tất cả',
+  pending: 'Chờ duyệt',
+  processing: 'Đang xử lý',
+  shipped: 'Đang giao',
+  delivered: 'Đã giao',
+  cancelled: 'Đã hủy'
+};
 const STATUS_COLORS = {
   pending: '#f39c12',
   processing: '#3498db',
@@ -28,7 +36,7 @@ export default function SellerOrders() {
       setActiveFilter('all');
     } catch (err: any) {
       console.error('Error loading orders:', err);
-      Alert.alert('Error', err.response?.data?.message || err.message || 'Cannot load orders');
+      Alert.alert('Lỗi', err.response?.data?.message || err.message || 'Không thể tải đơn hàng');
     } finally {
       setLoading(false);
     }
@@ -47,18 +55,18 @@ export default function SellerOrders() {
 
   const handleOrderUpdate = (orderId: string, newStatus: string) => {
     Alert.alert(
-      "Update Status",
-      `Change order status to ${newStatus.toUpperCase()}?`,
+      "Cập nhật trạng thái",
+      `Bạn có chắc chắn muốn chuyển đơn hàng sang trạng thái ${STATUS_LABELS[newStatus].toUpperCase()}?`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Hủy", style: "cancel" },
         { 
-          text: "Confirm", 
+          text: "Xác nhận", 
           onPress: async () => {
             try {
               await updateOrderStatus(orderId, newStatus, "");
               loadOrders();
             } catch (err: any) {
-              Alert.alert('Error', err?.response?.data?.message || 'Failed to update status');
+              Alert.alert('Lỗi', err?.response?.data?.message || 'Không thể cập nhật trạng thái');
             }
           }
         }
@@ -75,14 +83,14 @@ export default function SellerOrders() {
         <View style={styles.cardHeader}>
           <Text style={styles.orderId}>#{item.order_id || item._id?.substring(0, 8)}</Text>
           <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
-            <Text style={[styles.statusText, { color: statusColor }]}>{item.status.toUpperCase()}</Text>
+            <Text style={[styles.statusText, { color: statusColor }]}>{STATUS_LABELS[item.status]?.toUpperCase() || item.status.toUpperCase()}</Text>
           </View>
         </View>
 
         <View style={styles.detailsBlock}>
-          <Text style={styles.detailText}><Text style={styles.bold}>Customer:</Text> {item.customer_name}</Text>
-          <Text style={styles.detailText}><Text style={styles.bold}>Phone:</Text> {item.customer_phone}</Text>
-          <Text style={styles.detailText}><Text style={styles.bold}>Address:</Text> {item.shipping_address_text}</Text>
+          <Text style={styles.detailText}><Text style={styles.bold}>Khách hàng:</Text> {item.customer_name}</Text>
+          <Text style={styles.detailText}><Text style={styles.bold}>Điện thoại:</Text> {item.customer_phone}</Text>
+          <Text style={styles.detailText}><Text style={styles.bold}>Địa chỉ:</Text> {item.shipping_address_text}</Text>
         </View>
 
         <View style={styles.itemsBlock}>
@@ -95,26 +103,26 @@ export default function SellerOrders() {
         </View>
 
         <View style={styles.footerRow}>
-          <Text style={styles.totalText}>Total: {item.total_amount?.toLocaleString('vi-VN')}₫</Text>
+          <Text style={styles.totalText}>Tổng: {item.total_amount?.toLocaleString('vi-VN')}₫</Text>
           <View style={styles.actions}>
             {item.status === 'pending' && (
               <>
                 <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#3498db' }]} onPress={() => handleOrderUpdate(item._id, 'processing')}>
-                  <Text style={styles.actionBtnText}>Accept</Text>
+                  <Text style={styles.actionBtnText}>Xác nhận</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#e74c3c' }]} onPress={() => handleOrderUpdate(item._id, 'cancelled')}>
-                  <Text style={styles.actionBtnText}>Cancel</Text>
+                  <Text style={styles.actionBtnText}>Hủy đơn</Text>
                 </TouchableOpacity>
               </>
             )}
             {item.status === 'processing' && (
               <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#9b59b6' }]} onPress={() => handleOrderUpdate(item._id, 'shipped')}>
-                <Text style={styles.actionBtnText}>Ship</Text>
+                <Text style={styles.actionBtnText}>Giao hàng</Text>
               </TouchableOpacity>
             )}
             {item.status === 'shipped' && (
               <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#2ecc71' }]} onPress={() => handleOrderUpdate(item._id, 'delivered')}>
-                <Text style={styles.actionBtnText}>Deliver</Text>
+                <Text style={styles.actionBtnText}>Hoàn tất</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -126,9 +134,9 @@ export default function SellerOrders() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Order Management</Text>
+        <Text style={styles.headerTitle}>Quản lý Đơn hàng</Text>
         <TouchableOpacity style={styles.refreshBtn} onPress={loadOrders}>
-          <Text style={styles.refreshBtnText}>↻ Refresh</Text>
+          <Text style={styles.refreshBtnText}>↻ Tải lại</Text>
         </TouchableOpacity>
       </View>
 
@@ -141,7 +149,7 @@ export default function SellerOrders() {
               onPress={() => handleFilterChange(filter)}
             >
               <Text style={[styles.filterText, activeFilter === filter && styles.filterTextActive]}>
-                {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                {STATUS_LABELS[filter]}
               </Text>
             </TouchableOpacity>
           ))}
@@ -154,7 +162,7 @@ export default function SellerOrders() {
         </View>
       ) : filteredOrders.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Text style={styles.emptyText}>No orders found.</Text>
+          <Text style={styles.emptyText}>Không tìm thấy đơn hàng nào.</Text>
         </View>
       ) : (
         <FlatList

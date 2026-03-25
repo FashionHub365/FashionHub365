@@ -33,7 +33,7 @@ export default function StoreDetailScreen() {
           setStore((storeRes as any).data);
 
           // Fetch products for this store
-          const prodRes = await listingApi.getProducts({ store: (storeRes as any).data._id, limit: 50, sort: 'newest' });
+          const prodRes = await listingApi.getProducts({ storeId: id, limit: 50, sort: 'newest' });
           if (prodRes && (prodRes as any).success) {
             setProducts((prodRes as any).data.products);
           }

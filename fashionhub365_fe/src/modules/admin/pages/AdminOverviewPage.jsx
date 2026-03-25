@@ -182,7 +182,7 @@ const AdminOverviewPage = () => {
         setStats(response);
       } catch (err) {
         console.error("Failed to load dashboard:", err);
-        setError("Khong the tai du lieu thong ke.");
+        setError("Unable to load statistical data.");
       } finally {
         setLoading(false);
       }
@@ -211,7 +211,7 @@ const AdminOverviewPage = () => {
       pdf.save(`dashboard_overview_${new Date().toISOString().split("T")[0]}.pdf`);
     } catch (err) {
       console.error("Export failed:", err);
-      showError("Xuat PDF that bai.");
+      showError("PDF export failed.");
     }
   };
 
@@ -259,9 +259,9 @@ const AdminOverviewPage = () => {
     <div ref={dashboardRef} className="max-w-7xl mx-auto space-y-6 bg-slate-50 p-2 sm:p-4 rounded-3xl">
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
-          <h2 className="text-[26px] font-bold text-slate-900 tracking-tight">Tong quan he thong</h2>
+          <h2 className="text-[26px] font-bold text-slate-900 tracking-tight">System Overview</h2>
           <p className="text-[13px] text-slate-500 mt-1 font-medium">
-            Theo doi GMV, doanh thu san va tien can thanh toan cho seller.
+            Track GMV, platform revenue, and payable amounts for sellers.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -269,7 +269,7 @@ const AdminOverviewPage = () => {
             <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <span>{new Date().toLocaleDateString("vi-VN")}</span>
+            <span>{new Date().toLocaleDateString("en-US")}</span>
           </button>
           <button
             type="button"
@@ -279,7 +279,7 @@ const AdminOverviewPage = () => {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            <span>Xuat du lieu</span>
+            <span>Export Data</span>
           </button>
         </div>
       </div>
@@ -290,27 +290,27 @@ const AdminOverviewPage = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <OverviewCard
-          title="Tong GMV"
+          title="Total GMV"
           value={`$${formatMoney(summary.totalRevenue)}`}
           trend={trend.revenue}
           tone="emerald"
-          subtitle="Tong gia tri don hang tren san"
+          subtitle="Total order value on the platform"
         />
         <OverviewCard
-          title="Doanh thu san"
+          title="Platform Revenue"
           value={`$${formatMoney(summary.platformRevenue)}`}
           trend={trend.platformRevenue}
           tone="indigo"
-          subtitle="Net platform fee sau reversal/refund"
+          subtitle="Net platform fee after reversals/refunds"
         />
         <OverviewCard
-          title="Cho tra seller"
+          title="Pending Seller Payable"
           value={`$${formatMoney(summary.sellerPayablePending)}`}
           tone="amber"
-          subtitle="Tien da thu nhung chua release vao vi seller"
+          subtitle="Collected funds not yet released to seller wallets"
         />
         <OverviewCard
-          title="Tong don hang"
+          title="Total Orders"
           value={formatCount(summary.totalOrders)}
           trend={trend.orders}
           tone="sky"
@@ -322,8 +322,8 @@ const AdminOverviewPage = () => {
         <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm xl:col-span-2">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-lg font-bold text-slate-900 tracking-tight">Tang truong doanh thu san</h3>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">Platform fee theo thang</p>
+              <h3 className="text-lg font-bold text-slate-900 tracking-tight">Platform Revenue Growth</h3>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">Monthly platform fees</p>
             </div>
             <div className="text-right">
               <p className="text-xs uppercase tracking-widest text-slate-400 font-bold">Recognized / Reversed</p>
@@ -336,8 +336,8 @@ const AdminOverviewPage = () => {
 
         <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
           <div>
-            <h3 className="text-lg font-bold text-slate-900 tracking-tight">Trang thai don hang</h3>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">Phan bo order trong he thong</p>
+            <h3 className="text-lg font-bold text-slate-900 tracking-tight">Order Status</h3>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">Order distribution in the system</p>
           </div>
           {loading ? <CardSkeleton className="h-64 mt-6" /> : <DonutChart segments={ordersByStatus} />}
         </div>
@@ -347,10 +347,10 @@ const AdminOverviewPage = () => {
         <div className="px-6 py-5 flex items-center justify-between border-b border-slate-100">
           <div>
             <h3 className="text-lg font-bold text-slate-900 tracking-tight">Recent orders with fee breakdown</h3>
-            <p className="text-xs text-slate-500 mt-1">Admin co the thay san giu bao nhieu va seller nhan bao nhieu tren tung don.</p>
+            <p className="text-xs text-slate-500 mt-1">Admin can see platform holdings and seller earnings for each order.</p>
           </div>
           <Link to="/admin/orders" className="text-[13px] font-bold text-indigo-700 hover:text-indigo-800 bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors">
-            Xem tat ca
+            View All
           </Link>
         </div>
         <div className="overflow-x-auto">
@@ -371,7 +371,7 @@ const AdminOverviewPage = () => {
               {recentOrders.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-10 text-center text-slate-500 text-sm">
-                    Chua co don hang nao.
+                    No orders yet.
                   </td>
                 </tr>
               ) : (

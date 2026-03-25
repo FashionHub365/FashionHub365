@@ -65,7 +65,7 @@ export default function SellerDashboard() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Seller Dashboard</Text>
+        <Text style={styles.headerTitle}>Kênh Người Bán</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -94,14 +94,14 @@ export default function SellerDashboard() {
         </View>
 
         {/* Summary Cards */}
-        <Text style={styles.sectionTitle}>Overview</Text>
+        <Text style={styles.sectionTitle}>Tổng quan</Text>
         <View style={styles.statsGrid}>
           
           <View style={styles.statCard}>
             <View style={[styles.iconContainer, { backgroundColor: '#e8f5e9' }]}>
               <IconSymbol name="dollarsign.circle.fill" size={24} color="#4caf50" />
             </View>
-            <Text style={styles.statLabel}>Total Revenue</Text>
+            <Text style={styles.statLabel}>Tổng doanh thu</Text>
             <Text style={styles.statValue}>{summary.totalRevenue?.toLocaleString('vi-VN') || 0}₫</Text>
           </View>
 
@@ -109,7 +109,7 @@ export default function SellerDashboard() {
             <View style={[styles.iconContainer, { backgroundColor: '#e3f2fd' }]}>
               <IconSymbol name="cart.fill" size={24} color="#2196f3" />
             </View>
-            <Text style={styles.statLabel}>Total Orders</Text>
+            <Text style={styles.statLabel}>Tổng đơn hàng</Text>
             <Text style={styles.statValue}>{summary.totalOrders || 0}</Text>
           </View>
 
@@ -117,7 +117,7 @@ export default function SellerDashboard() {
             <View style={[styles.iconContainer, { backgroundColor: '#fff3e0' }]}>
               <IconSymbol name="timer" size={24} color="#ff9800" />
             </View>
-            <Text style={styles.statLabel}>Pending Orders</Text>
+            <Text style={styles.statLabel}>Đơn chờ xử lý</Text>
             <Text style={styles.statValue}>{summary.pendingOrders || 0}</Text>
           </View>
 
@@ -125,7 +125,7 @@ export default function SellerDashboard() {
             <View style={[styles.iconContainer, { backgroundColor: '#f3e5f5' }]}>
               <IconSymbol name="cube.box.fill" size={24} color="#9c27b0" />
             </View>
-            <Text style={styles.statLabel}>Total Products</Text>
+            <Text style={styles.statLabel}>Tổng sản phẩm</Text>
             <Text style={styles.statValue}>{summary.totalProducts || 0}</Text>
           </View>
 

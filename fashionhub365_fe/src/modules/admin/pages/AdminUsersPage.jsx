@@ -633,8 +633,8 @@ const AdminUsersPage = () => {
   const onRemoveDirectPermission = async (permissionId) => {
     if (!selectedUser?._id || !permissionId) return;
     const isConfirmed = await confirmAction({
-      title: "Xác nhận xóa",
-      text: "Bạn có chắc chắn muốn xóa quyền ghi đè trực tiếp này không?",
+      title: "Confirm Deletion",
+      text: "Are you sure you want to delete this direct permission override?",
       icon: "warning"
     });
     if (!isConfirmed) return;
@@ -701,11 +701,11 @@ const AdminUsersPage = () => {
     const isLocked = currentStatus === "BANNED";
     const nextStatus = isLocked ? "ACTIVE" : "BANNED";
     const confirmMessage = isLocked
-      ? "Bạn có chắc chắn muốn mở khóa tài khoản này không?"
-      : "Bạn có chắc chắn muốn khóa tài khoản này không?";
+      ? "Are you sure you want to unlock this account?"
+      : "Are you sure you want to lock this account?";
 
     const isConfirmed = await confirmAction({
-      title: isLocked ? "Mở khóa tài khoản" : "Khóa tài khoản",
+      title: isLocked ? "Unlock Account" : "Lock Account",
       text: confirmMessage,
       icon: isLocked ? "info" : "warning"
     });
@@ -728,8 +728,8 @@ const AdminUsersPage = () => {
 
     if (isInactive) {
       const isConfirmed = await confirmAction({
-        title: "Khôi phục tài khoản",
-        text: "Bạn có chắc chắn muốn khôi phục tài khoản này về trạng thái HOẠT ĐỘNG không?",
+        title: "Restore Account",
+        text: "Are you sure you want to restore this account to ACTIVE status?",
         icon: "info"
       });
       if (!isConfirmed) return;
@@ -739,14 +739,14 @@ const AdminUsersPage = () => {
           "ACTIVE",
           "Restored by admin"
         );
-        showSuccess("Tài khoản đã được khôi phục thành công.");
+        showSuccess("Account restored successfully.");
       });
       return;
     }
 
     const isConfirmed = await confirmAction({
-      title: "Xóa tài khoản",
-      text: "Bạn có chắc chắn muốn xóa tạm thời tài khoản này không?",
+      title: "Delete Account",
+      text: "Are you sure you want to soft-delete this account?",
       icon: "warning"
     });
     if (!isConfirmed) return;
@@ -760,13 +760,13 @@ const AdminUsersPage = () => {
     <section className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Danh sách Người dùng</h1>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">List User</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Vai trò hiện tại của bạn: <span className="font-semibold text-indigo-600">{currentEffectiveRoles.join(", ") || "user"}</span>
+            Role: <span className="font-semibold text-indigo-600">{currentEffectiveRoles.join(", ") || "user"}</span>
           </p>
         </div>
         <div className="text-xs text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-          Chỉ Super Admin và Admin mới có quyền gán vai trò.
+          Only Super Admin and Admin can assign roles.
         </div>
       </div>
 
@@ -792,7 +792,7 @@ const AdminUsersPage = () => {
           <input
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Tìm kiếm theo tên, email..."
+            placeholder="Search by name, email..."
             className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
           />
           <svg className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -804,26 +804,26 @@ const AdminUsersPage = () => {
           onChange={(event) => onChangeStatusFilter(event.target.value)}
           className="border border-slate-200 bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 hover:bg-slate-100 cursor-pointer"
         >
-          <option value="all">Tất cả trạng thái</option>
-          <option value="ACTIVE">Hoạt động (Active)</option>
-          <option value="INACTIVE">Chưa kích hoạt</option>
-          <option value="BANNED">Bị khóa (Banned)</option>
+          <option value="all">All Statuses</option>
+          <option value="ACTIVE">Active</option>
+          <option value="INACTIVE">Inactive</option>
+          <option value="BANNED">Banned</option>
         </select>
         <select
           value={accountTypeFilter}
           onChange={(event) => onChangeAccountTypeFilter(event.target.value)}
           className="border border-slate-200 bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 hover:bg-slate-100 cursor-pointer"
         >
-          <option value="all">Tất cả loại tài khoản</option>
-          <option value="USER">Khách hàng (User)</option>
-          <option value="SELLER">Nhà bán hàng (Seller)</option>
-          {isSuperAdmin && <option value="ADMIN">Quản trị (Admin)</option>}
+          <option value="all">All Account Types</option>
+          <option value="USER">Customer (User)</option>
+          <option value="SELLER">Seller</option>
+          {isSuperAdmin && <option value="ADMIN">Administrator</option>}
         </select>
         <button
           type="submit"
           className="rounded-xl bg-slate-900 text-white text-sm font-bold px-5 hover:bg-slate-800 transition-all shadow-sm flex items-center justify-center"
         >
-          Tìm kiếm
+          Search
         </button>
       </form>
 
@@ -831,23 +831,23 @@ const AdminUsersPage = () => {
         {loading || loadingRoles ? (
           <div className="py-20 flex flex-col items-center justify-center gap-3">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Đang tải dữ liệu...</span>
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Loading data...</span>
           </div>
         ) : visibleUsers.length === 0 ? (
           <div className="py-20 flex flex-col items-center justify-center gap-2">
             <svg className="w-12 h-12 text-slate-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-            <p className="text-sm font-semibold text-slate-600">Không tìm thấy người dùng nào.</p>
-            <p className="text-xs text-slate-400">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
+            <p className="text-sm font-semibold text-slate-600">No users found.</p>
+            <p className="text-xs text-slate-400">Try changing filters or search keywords.</p>
           </div>
         ) : (
           <table className="w-full text-sm min-w-[1080px]">
             <thead className="bg-slate-50/80 text-xs text-slate-500 uppercase tracking-widest border-b border-slate-200">
               <tr>
-                <th className="px-4 py-3 text-left font-bold w-1/4">Người dùng</th>
-                <th className="px-4 py-3 text-left font-bold w-[15%]">Loại TK</th>
-                <th className="px-4 py-3 text-left font-bold w-1/4">Vai trò</th>
-                <th className="px-4 py-3 text-left font-bold w-[12%]">Trạng thái</th>
-                <th className="px-4 py-3 text-right font-bold">Thao tác</th>
+                <th className="px-4 py-3 text-left font-bold w-1/4">User</th>
+                <th className="px-4 py-3 text-left font-bold w-[15%]">Account Type</th>
+                <th className="px-4 py-3 text-left font-bold w-1/4">Roles</th>
+                <th className="px-4 py-3 text-left font-bold w-[12%]">Status</th>
+                <th className="px-4 py-3 text-right font-bold">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -861,11 +861,11 @@ const AdminUsersPage = () => {
 
                 let StatusBadge;
                 if (status === "ACTIVE") {
-                  StatusBadge = <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Hoạt động</span>;
+                  StatusBadge = <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Active</span>;
                 } else if (isLocked) {
-                  StatusBadge = <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200/60"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Bị khóa</span>;
+                  StatusBadge = <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200/60"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Locked</span>;
                 } else if (isInactive) {
-                  StatusBadge = <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200/60"><span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Chưa KH</span>;
+                  StatusBadge = <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200/60"><span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Inactive</span>;
                 } else {
                   StatusBadge = <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200/60"><span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>{status}</span>;
                 }
@@ -887,7 +887,7 @@ const AdminUsersPage = () => {
                     </td>
                     <td className="px-4 py-3.5">
                       <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
-                        {userItem._accountType === 'USER' ? 'KHÁCH HÀNG' : userItem._accountType === 'SELLER' ? 'NHÀ BÁN HÀNG' : userItem._accountType === 'ADMIN' ? 'QUẢN TRỊ VIÊN' : userItem._accountType}
+                        {userItem._accountType === 'USER' ? 'CUSTOMER' : userItem._accountType === 'SELLER' ? 'SELLER' : userItem._accountType === 'ADMIN' ? 'ADMINISTRATOR' : userItem._accountType}
                       </span>
                     </td>
                     <td className="px-4 py-3.5">
@@ -900,7 +900,7 @@ const AdminUsersPage = () => {
                             {name}
                           </span>
                         )) : (
-                          <span className="text-xs italic text-slate-400">Không có vai trò</span>
+                          <span className="text-xs italic text-slate-400">No roles</span>
                         )}
                       </div>
                     </td>
@@ -914,7 +914,7 @@ const AdminUsersPage = () => {
                           onClick={() => openAssignRoleModal(userItem)}
                           disabled={!canManageThisUser || isProcessing}
                           className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-30 tooltip"
-                          title="Gán quyền"
+                          title="Assign Roles"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
@@ -925,7 +925,7 @@ const AdminUsersPage = () => {
                           onClick={() => onToggleLockUser(userItem)}
                           disabled={!canManageThisUser || isProcessing || isInactive}
                           className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 ${isLocked ? 'text-emerald-600 hover:bg-emerald-50' : 'text-amber-500 hover:bg-amber-50'}`}
-                          title={isLocked ? "Mở khóa" : "Khóa tài khoản"}
+                          title={isLocked ? "Unlock" : "Lock Account"}
                         >
                           {isLocked ? (
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2-2v6a2 2 0 002 2z" /></svg>
@@ -938,7 +938,7 @@ const AdminUsersPage = () => {
                           onClick={() => onSoftDeleteUser(userItem)}
                           disabled={!canManageThisUser || isProcessing}
                           className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors disabled:opacity-30"
-                          title="Xóa mềm"
+                          title="Soft Delete"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
@@ -955,7 +955,7 @@ const AdminUsersPage = () => {
 
       <div className="mt-4 flex items-center justify-between gap-2 text-sm">
         <p className="text-slate-500">
-          Tổng cộng: <span className="font-bold text-slate-700">{total}</span> tài khoản
+          Total: <span className="font-bold text-slate-700">{total}</span> accounts
         </p>
         <div className="flex items-center gap-2">
           <button
@@ -964,10 +964,10 @@ const AdminUsersPage = () => {
             disabled={page <= 1}
             className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            Trang trước
+            Previous
           </button>
           <span className="text-slate-600 font-semibold px-2">
-            Trang {page} / {totalPages}
+            Page {page} of {totalPages}
           </span>
           <button
             type="button"
@@ -975,7 +975,7 @@ const AdminUsersPage = () => {
             disabled={page >= totalPages}
             className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            Trang sau
+            Next
           </button>
         </div>
       </div>
@@ -986,14 +986,14 @@ const AdminUsersPage = () => {
             <div className="w-full max-w-2xl bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
               <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3 shrink-0">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 tracking-tight">Cấp quyền cho tài khoản</h3>
+                  <h3 className="text-lg font-bold text-slate-900 tracking-tight">Assign Permissions</h3>
                   <p className="text-sm text-slate-500 mt-0.5 font-medium">
                     {getDisplayName(selectedUser)} - {selectedUser.email || "-"}
                   </p>
                   <p className="text-xs text-slate-500 mt-2">
-                    Loại tài khoản:{" "}
+                    Account Type:{" "}
                     <span className="font-bold text-slate-700 uppercase">
-                      {selectedAccountType === 'USER' ? 'KHÁCH HÀNG' : selectedAccountType === 'SELLER' ? 'NHÀ BÁN HÀNG' : selectedAccountType === 'ADMIN' ? 'QUẢN TRỊ VIÊN' : selectedAccountType}
+                      {selectedAccountType === 'USER' ? 'CUSTOMER' : selectedAccountType === 'SELLER' ? 'SELLER' : selectedAccountType === 'ADMIN' ? 'ADMINISTRATOR' : selectedAccountType}
                     </span>
                   </p>
                 </div>
@@ -1019,7 +1019,7 @@ const AdminUsersPage = () => {
                         : "border-transparent text-slate-500 hover:text-slate-700"
                         }`}
                     >
-                      Cấp vai trò
+                      Assign Roles
                     </button>
                   )}
                   <button
@@ -1029,7 +1029,7 @@ const AdminUsersPage = () => {
                       : "border-transparent text-slate-500 hover:text-slate-700"
                       }`}
                   >
-                    Ghi đè quyền
+                    Direct Permissions
                   </button>
                   <button
                     onClick={() => setActiveModalTab("summary")}
@@ -1038,7 +1038,7 @@ const AdminUsersPage = () => {
                       : "border-transparent text-slate-500 hover:text-slate-700"
                       }`}
                   >
-                    Tổng hợp quyền
+                    Permissions Summary
                   </button>
                 </div>
               )}
@@ -1048,7 +1048,7 @@ const AdminUsersPage = () => {
                   {loadingAssignContext ? (
                     <div className="py-12 flex flex-col items-center justify-center gap-3">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Đang tải thông tin quyền...</p>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Loading permission info...</p>
                     </div>
                   ) : (
                     <>
@@ -1056,14 +1056,14 @@ const AdminUsersPage = () => {
                         <>
                           {showGlobalRoleEditor && (
                             <div>
-                              <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-1">Quyền hệ thống (Global)</h4>
+                              <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-1">Global Roles</h4>
                               <p className="text-xs text-slate-500 mb-3">
-                                Áp dụng cho các tài khoản quản trị viện hoặc người dùng chung.
+                                Apply to administration or general user accounts.
                               </p>
                               <div className="max-h-[260px] overflow-y-auto space-y-2.5 pr-1 stylish-scrollbar">
                                 {globalAssignableRoles.length === 0 ? (
                                   <div className="text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                    <p className="text-sm text-slate-500 font-medium">Không có vai trò nào khả dụng để gán.</p>
+                                    <p className="text-sm text-slate-500 font-medium">No roles available for assignment.</p>
                                   </div>
                                 ) : (
                                   globalAssignableRoles.map((role) => {
@@ -1106,12 +1106,12 @@ const AdminUsersPage = () => {
                                               })}
                                               {permissions.length > 5 && (
                                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500">
-                                                  +{permissions.length - 5} nữa
+                                                  +{permissions.length - 5} more
                                                 </span>
                                               )}
                                             </div>
                                           ) : (
-                                            <p className="text-[10px] text-slate-400 font-medium italic mt-1">Không có quyền nào</p>
+                                            <p className="text-[10px] text-slate-400 font-medium italic mt-1">No permissions</p>
                                           )}
                                         </div>
                                       </label>
@@ -1124,9 +1124,9 @@ const AdminUsersPage = () => {
 
                           {showStoreRoleEditor && (
                             <div className={`${showGlobalRoleEditor ? "border-t border-slate-200 pt-5 mt-5" : ""}`}>
-                              <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-1">Vai trò cửa hàng (Seller)</h4>
+                              <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-1">Shop Roles (Seller)</h4>
                               <p className="text-xs text-slate-500 mb-3">
-                                Chọn cửa hàng và gán các quyền dành riêng cho chức năng quản lý cửa hàng (Store).
+                                Select a shop and assign specific permissions for shop management functions.
                               </p>
 
                               <div className="mb-4">
@@ -1144,7 +1144,7 @@ const AdminUsersPage = () => {
                                   }}
                                   className="w-full border border-slate-200 bg-slate-50 hover:bg-slate-100 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
                                 >
-                                  <option value="">-- Chọn cửa hàng --</option>
+                                  <option value="">-- Select Shop --</option>
                                   {stores.map((store) => (
                                     <option key={store._id} value={store._id}>
                                       {store.name || store.slug}
@@ -1156,7 +1156,7 @@ const AdminUsersPage = () => {
                               <div className="max-h-[260px] overflow-y-auto space-y-2.5 pr-1 stylish-scrollbar">
                                 {storeAssignableRoles.length === 0 ? (
                                   <div className="text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                    <p className="text-sm text-slate-500 font-medium">Không có quyền cửa hàng nào được thiết lập.</p>
+                                    <p className="text-sm text-slate-500 font-medium">No shop roles established.</p>
                                   </div>
                                 ) : (
                                   storeAssignableRoles.map((role) => {
@@ -1199,12 +1199,12 @@ const AdminUsersPage = () => {
                                               })}
                                               {permissions.length > 5 && (
                                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500">
-                                                  +{permissions.length - 5} nữa
+                                                  +{permissions.length - 5} more
                                                 </span>
                                               )}
                                             </div>
                                           ) : (
-                                            <p className="text-[10px] text-slate-400 font-medium italic mt-1">Không có quyền nào</p>
+                                            <p className="text-[10px] text-slate-400 font-medium italic mt-1">No permissions</p>
                                           )}
                                         </div>
                                       </label>
@@ -1220,10 +1220,10 @@ const AdminUsersPage = () => {
                       {activeModalTab === "direct" && (
                         <div className="pt-2">
                           <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-1">
-                            Quyền chi tiết (Direct Permissions)
+                            Direct Permissions
                           </h4>
                           <p className="text-xs text-slate-500 mb-3">
-                            Ghi đè bằng ALLOW (cho phép) hoặc DENY (từ chối) một quyền hạn cụ thể đối với tài khoản này.
+                            Override with ALLOW or DENY a specific permission for this account.
                           </p>
 
                           <div className="mt-3 grid grid-cols-1 md:grid-cols-[1fr,140px] gap-3">
@@ -1235,8 +1235,8 @@ const AdminUsersPage = () => {
                             >
                               <option value="">
                                 {loadingPermissionCatalog
-                                  ? "Đang tải quyền..."
-                                  : "-- Chọn quyền cụ thể --"}
+                                  ? "Loading permissions..."
+                                  : "-- Select Specific Permission --"}
                               </option>
                               {permissionCatalog.map((permission) => (
                                 <option key={permission._id} value={permission._id}>
@@ -1250,8 +1250,8 @@ const AdminUsersPage = () => {
                               className="border border-slate-200 bg-slate-50 hover:bg-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
                               disabled={loadingAssignContext}
                             >
-                              <option value="ALLOW">CẤP (ALLOW)</option>
-                              <option value="DENY">CẤM (DENY)</option>
+                              <option value="ALLOW">ALLOW</option>
+                              <option value="DENY">DENY</option>
                             </select>
                           </div>
 
@@ -1259,7 +1259,7 @@ const AdminUsersPage = () => {
                             <input
                               value={directPermissionNote}
                               onChange={(event) => setDirectPermissionNote(event.target.value)}
-                              placeholder="Ghi chú (không bắt buộc)"
+                              placeholder="Note (optional)"
                               className="w-full pl-4 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                               disabled={loadingAssignContext || savingDirectPermission}
                             />
@@ -1274,14 +1274,14 @@ const AdminUsersPage = () => {
                               }
                               className="px-5 py-3 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 disabled:opacity-60 transition-all shadow-sm"
                             >
-                              {savingDirectPermission ? "Đang lưu..." : "Áp dụng quyền"}
+                              {savingDirectPermission ? "Saving..." : "Apply Permission"}
                             </button>
                           </div>
 
                           <div className="mt-4 max-h-[180px] overflow-y-auto space-y-2.5 pr-1 stylish-scrollbar">
                             {userDirectPermissions.length === 0 ? (
                               <div className="text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                <p className="text-sm text-slate-500 font-medium">Không có quyền ghi đè trực tiếp nào.</p>
+                                <p className="text-sm text-slate-500 font-medium">No direct permission overrides.</p>
                               </div>
                             ) : (
                               userDirectPermissions.map((override) => {
@@ -1318,7 +1318,7 @@ const AdminUsersPage = () => {
                                       disabled={isRemoving || !permissionId}
                                       className="px-3 py-1.5 rounded-lg border border-rose-200 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60 transition-colors"
                                     >
-                                      {isRemoving ? "Đang xóa..." : "Xóa"}
+                                      {isRemoving ? "Removing..." : "Remove"}
                                     </button>
                                   </div>
                                 );
@@ -1330,14 +1330,14 @@ const AdminUsersPage = () => {
 
                       {activeModalTab === "summary" && (
                         <div className="pt-2">
-                          <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-1">Tổng hợp quyền hiện tại</h4>
+                          <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-1">Current Permissions Summary</h4>
                           <p className="text-xs text-slate-500 mb-3">
-                            Các quyền thực tế tài khoản đang có từ các vai trò và quyền ghi đè trực tiếp.
+                            Actual permissions the account currently holds from roles and direct overrides.
                           </p>
                           <div className="max-h-[180px] overflow-y-auto stylish-scrollbar">
                             {effectivePermissionCodesForSelectedUser.length === 0 ? (
                               <div className="text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                <p className="text-sm text-slate-500 font-medium">Tài khoản này chưa có quyền nào.</p>
+                                <p className="text-sm text-slate-500 font-medium">This account has no permissions.</p>
                               </div>
                             ) : (
                               <div className="flex flex-wrap gap-1.5">
@@ -1365,7 +1365,7 @@ const AdminUsersPage = () => {
                   onClick={closeModal}
                   className="px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-white hover:text-slate-900 transition-colors shadow-sm"
                 >
-                  Đóng
+                  Close
                 </button>
                 {showGlobalRoleEditor && (
                   <button
@@ -1374,7 +1374,7 @@ const AdminUsersPage = () => {
                     disabled={savingRoles || loadingAssignContext}
                     className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-60 transition-all shadow-sm"
                   >
-                    {savingRoles ? "Đang lưu..." : "Lưu quyền hệ thống"}
+                    {savingRoles ? "Saving..." : "Save Global Roles"}
                   </button>
                 )}
                 {showStoreRoleEditor && (
@@ -1384,7 +1384,7 @@ const AdminUsersPage = () => {
                     disabled={savingStoreRoles || loadingAssignContext}
                     className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 disabled:opacity-60 transition-all shadow-sm"
                   >
-                    {savingStoreRoles ? "Đang lưu..." : "Lưu quyền cửa hàng"}
+                    {savingStoreRoles ? "Saving..." : "Save Shop Roles"}
                   </button>
                 )}
               </div>
